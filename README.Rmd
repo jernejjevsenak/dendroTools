@@ -14,12 +14,7 @@ knitr::opts_chunk$set(
 
 # dendroTools
 
-The core purpose of the dendroTools package is to introduce novel dendroclimatological methods to study linear and nonlinear relationship between daily climate data and tree-ring sequences. There are two core functions. The first core function is daily_response(), which finds the optimal sequence of days that are linearly or nonlinearly related to a tree-ring proxy records. The second core function is compare_methods() that calculates several performance measures for train and test data for different regression method.
-
-To use daily_response(), two data frames are required, one with daily climate data, e.g. temperatures; and one with tree-ring proxy records. Example data is provided, so users can see, how data frames should be organized. The daily_response() calculates all possible values of a selected statistical measure between response variables and daily environmental data. Calculations are based on a moving window, which runs through daily environmental data and calculates moving averages. 
-
-compare_methods() calcualtes performance measures for multiple linear regression (MLR), artificial neural
-networks with Bayesian regularization training algorithm (ANN), M5P model trees (MT), model trees with bagging (BMT) and random forest of regression trees (RF). Calculated performance measures are correlation coefficient, root mean squared error (RMSE), root relative squared error (RSSE), index of agreement (d), reduction of error (RE), coefficient of efficiency (CE) nad mean bias.
+The goal of dendroTools is to ...
 
 ## Installation
 
@@ -30,69 +25,10 @@ You can install dendroTools from github with:
 devtools::install_github("jernejjevsenak/dendroTools")
 ```
 
-## Examples
+## Example
 
-This is a basic example which shows you how to use the daily_response(): 
+This is a basic example which shows you how to solve a common problem:
 
-```{r example, results = 'hide'}
+```{r example}
 ## basic example code
-library(dendroTools)
-data(daily_temperatures_example) 
-data(example_proxies_1)
-result1 <- daily_response(response = example_proxies_1, env_data = daily_temperatures_example, 
-							method = "lm", measure = "r.squared", lower_limit = 90, upper_limit = 150)
-
 ```
-This function is computationally intensive and it takes a while to calculate all possible values. Especially, if nonlinear "brnn" method is used. Each calculated value is printed, therefore user can be sure, that algorithm is still running. 
-The return of this function is a list with three elements: @calculations, @method, @measure. The return is organized in a way, that can be used by three plotting functions: plot_extreme(), plot_specific() and plot_heatmap(). 
-Function plot_extreme() graphs a line plot of a row with the highest calculated measure. It indicates the sequence of days, that give the best value of selected statistical measure. With plot_specific(), measures with selected window width are plotted. Function plot_heatmap() is a visual representation of calculated values.
-
-```{r plot examples}
-plot_extreme(result1, title = TRUE)
-plot_specific(result1, window_width = 100, title = TRUE)
-plot_heatmap(result1)
-```
-
-Here is an example on using the compare_methods(). The core idea is to compare different regression methods and select the best model for climate reconstruction. Users should spend some time to understand what are the tunning parameters of specific method. Basically, methods could be run with default parameters, but usually it turns out that optimization of parameters gives better results. To optimize parameters, users might want to explore the caret package. 
-
-```{r example, results = 'hide'}
-## basic example with default parameter values
-library(dendroTools)
-data(example_dataset_1)
-experiment_1 <- compare_methods(formula = MVA~.,
-dataset = example_dataset_1, k = 3, repeats = 10)
-```
-
-To see the outputs, use the following code.
-
-```{r example, results = 'hide'}
-experiment_1[[1]] # See a data frame results
-experiment_1[[2]] # See a ggplot of mean bias for validation data
-```
-
-```{r example, results = 'hide'}
-## basic example with tunned parameter values
-library(dendroTools)
-data(example_dataset_1)
-experiment_2 <- compare_methods(formula = MVA~.,
-dataset = example_dataset_1, k = 3, repeats = 2, neurons = 1,
-MT_M = 4, MT_N = FALSE, MT_U = FALSE, MT_R = FALSE, BMT_P = 100,
-BMT_I = 100, BMT_M = 4, BMT_N = FALSE, BMT_U = FALSE, BMT_R = FALSE,
-RF_P = 100, RF_I = 100, RF_depth= 0, multiply = 5)
-experiment_2[[1]] # See a data frame results
-experiment_2[[2]] # See a ggplot of mean bias for validation data
-```
-
-Aain, to see the outputs, use the following code.
-
-```{r example, results = 'hide'}
-experiment_2[[1]] # See a data frame results
-experiment_2[[2]] # See a ggplot of mean bias for validation data
-```
-
-
-## Authors
-* **Jernej Jevšenak**
-
-## Collaborators
-* **Prof. dr. Tom Levanič**

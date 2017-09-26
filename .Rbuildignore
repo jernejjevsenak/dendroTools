@@ -3,10 +3,8 @@
 ^cran-comments\.md$
 ^cran-comments\.MD$
 ^README\.Rmd$
-^cran-comments\.md$
 ^dendroTools\.Rproj$
 ^\.travis\.yml$
 ^README\.md$
-^README\.Rmd$
 ^README-.*\.png$
 ^revdep$
