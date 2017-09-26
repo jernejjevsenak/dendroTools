@@ -1,0 +1,28 @@
+Package: dendroTools
+Type: Package
+Title: Nonlinear Methods for Analyzing Dendroclimatological Data
+Version: 0.0.2
+Author: Jernej Jevsenak [aut, cre], Tom Levanic [ctb]
+Maintainer: Jernej Jevsenak <jernej.jevsenak@gmail.com>
+Description: Provides novel dendroclimatological methods, primarily used by the
+    Tree-ring research community. There are two core functions. The first one is 
+    daily_response(), which finds the optimal sequence of days that are linearly
+    or nonlinearly related to one or more tree-ring proxy records. The second 
+    one is compare_methods(), which effectively compares linear and several 
+    nonlinear regression algorithms.  
+License: GPL-3
+URL: http://github.com/jernejjevsenak/dendroTools
+BugReports: http://github.com/jernejjevsenak/dendroTools/issues
+Encoding: UTF-8
+LazyData: true
+Suggests: testthat, dplR
+RoxygenNote: 6.0.1
+Imports: ggplot2 (>= 2.2.0), brnn (>= 0.6), reshape2 (>= 1.4.2), oce
+        (>= 0.9-21), scales (>= 0.4.1), stats, dcv (>= 0.1.1), 
+        MLmetrics (>= 1.1.1), RWeka (>= 0.4-34), dplyr (>= 0.7.0),
+        reshape (>= 0.8.6)
+Depends: R (>= 3.4)
+NeedsCompilation: no
+Packaged: 2017-07-14 17:56:16 UTC; JernejJ
+Repository: CRAN
+Date/Publication: 2017-07-14 18:44:08 UTC
