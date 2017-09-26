@@ -1,11 +1,7 @@
-## Resubmission
-This is a resubmission. CRAN devtools results returned the following error: Package required and available but unsuitable version: 'stats'. To remove the error:
+##  First Submission
 
-* I changed the Depends field in the Description file: Depends: R (>= 3.4). I decided to do that since the error was produced in an earlier version of R (i.e. R 3.3.3 (2017-03-06)). (Solution was suggested by [R-pkg-devel] mailing list.) 
-* I removed the specific version of 'stats' in the Imports field in the Description file. 
-* I changed the import in the NAMESCPACE for 'stats'. Now: importFrom("stats", "cor", "lm", "qt", "quantile")
+This is a first submission of the dendroTools package. Previously, package was called dendroExtra, but authors decided to publish the new version under new name dendroTools. There are several reasons for that which are explained in the NEWS file. However, we kind ask CRAN for understanding and to approve the change of the name of this package. Here, we ask CRAN, when dendroTools will be on CRAN, to remove the dendroExtra package from CRAN. 
 
-I have also changed the version of dendroExtra to 0.0.2
 
 ## Test environments
 * local OS X install, R 3.4.0
