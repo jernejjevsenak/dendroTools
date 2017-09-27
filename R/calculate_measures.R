@@ -13,6 +13,22 @@
 #' @return a data frame of calculated test and train measures
 #' @export
 #'
+#' @references
+#' Briffa, K.R., Jones, P.D., Pilcher, J.R., Hughes, M.K., 1988. Reconstructing
+#' summer temperatures in northern Fennoscandinavia back to A.D.1700 using tree
+#' ring data from Scots Pine. Arct. Alp. Res. 20, 385-394.
+#'
+#' Fritts, H.C., 1976. Tree Rings and Climate. Academic Press, London 567 pp.
+#'
+#' Lorenz, E.N., 1956. Empirical Orthogonal Functions and Statistical Weather
+#' Prediction. Massachusetts Institute of Technology, Department of Meteorology.
+#'
+#' Willmott, C.J., 1981. On the validation of models. Phys. Geogr. 2, 184-194.
+#'
+#' Witten, I.H., Frank, E., Hall, M.A., 2011. Data Mining: Practical Machine
+#' Learning Tools and Techniques, 3rd ed. Morgan Kaufmann Publishers, Burlington
+#' 629 pp.
+#'
 #' @examples
 #' data(example_dataset_1)
 #' test_data <- example_dataset_1[1:30, ]

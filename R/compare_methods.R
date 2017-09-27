@@ -15,8 +15,6 @@
 #' columns and (optional) years as row names.
 #' @param k number of folds for cross-validation
 #' @param repeats number of cross-vadlidation repeats
-#' @param outputs character vector containing the informatiion, wheter results
-#' should be displayed for calibration and/ or validation data
 #' @param neurons positive integer that indicates the number of neurons used
 #'  for brnn method
 #' @param multiply an intiger that will be used to change the seed options
@@ -36,10 +34,42 @@
 #' @param RF_depth maxDepth (argument for random forest)
 #'
 #' @return a list with two elements. Element one is a data frame with
-#' calculated measures for five regression methods. Element two is a
-#' ggplot object of bias for validation data.
+#' calculated measures for five regression methods. For each regression method
+#' and each caculated measure, mean and standard deviation are given, together
+#' with rank and share of rank 1.
+#' Element two is a ggplot object of bias for validation data.
 #'
 #' @export
+#'
+#' @references
+#' Bishop, C.M., 1995. Neural Networks for Pattern Recognition. Oxford
+#' University Press, Inc. 482 pp.
+#'
+#' Breiman, L., 1996. Bagging predictors. Machine Learning 24, 123-140.
+#'
+#' Breiman, L., 2001. Random forests. Machine Learning 45, 5-32.
+#'
+#' Burden, F., Winkler, D., 2008. Bayesian Regularization of Neural Networks,
+#' in: Livingstone, D.J. (ed.), Artificial Neural Networks: Methods and
+#' Applications, vol. 458. Humana Press, Totowa, NJ, pp. 23-42.
+#'
+#' Hastie, T., Tibshirani, R., Friedman, J.H., 2009. The Elements of
+#' Statistical Learning : Data Mining, Inference, and Prediction, 2nd ed.
+#' Springer, New York xxii, 745 p. pp.
+#'
+#' Ho, T.K., 1995. Random decision forests, Proceedings of the Third
+#' International Conference on Document Analysis and Recognition Volume 1.
+#' IEEE Computer Society, pp. 278-282.
+#'
+#' Hornik, K., Buchta, C., Zeileis, A., 2009. Open-source machine learning: R
+#' meets Weka. Comput. Stat. 24, 225-232.
+#'
+#' Pérez-Rodríguez, P., Gianola, D., 2016. Brnn: Brnn (Bayesian Regularization
+#' for Feed-forward Neural Networks). R package version 0.6.
+#'
+#' Quinlan, J.R., 1992. Learning with Continuous Classes, Proceedings of the
+#' 5th Australian Joint Conference on Artificial Intelligence (AI '92). World
+#' Scientific, Hobart, pp. 343-348.
 #'
 #' @examples
 #' \dontrun{
@@ -438,35 +468,29 @@ final_resuts <- dplyr::select(DF, Measure, Period,
 
 ##################################################################
 # Here is a function to calculate bias
-
 listVec <- lapply(list_MLR_bias, c, recursive = TRUE)
 m <- do.call(cbind, listVec)
-MLR_bias <- m[c(13, 14), ]
-row.names(MLR_bias) <- c("bias_cal", "bias_val")
+MLR_bias <- m[14, ]
 MLR_bias <- data.frame(bias = MLR_bias, method = "MLR")
 
 listVec <- lapply(list_ANN_bias, c, recursive = TRUE)
 m <- do.call(cbind, listVec)
-ANN_bias <- m[c(13, 14), ]
-row.names(ANN_bias) <- c("bias_cal", "bias_val")
+ANN_bias <- m[14, ]
 ANN_bias <- data.frame(bias = ANN_bias, method = "ANN")
 
 listVec <- lapply(list_MT_bias, c, recursive = TRUE)
 m <- do.call(cbind, listVec)
-MT_bias <- m[c(13, 14), ]
-row.names(MT_bias) <- c("bias_cal", "bias_val")
+MT_bias <- m[14, ]
 MT_bias <- data.frame(bias = MT_bias, method = "MT")
 
 listVec <- lapply(list_BMT_bias, c, recursive = TRUE)
 m <- do.call(cbind, listVec)
-BMT_bias <- m[c(13, 14), ]
-row.names(BMT_bias) <- c("bias_cal", "bias_val")
+BMT_bias <- m[14, ]
 BMT_bias <- data.frame(bias = BMT_bias, method = "BMT")
 
 listVec <- lapply(list_RF_bias, c, recursive = TRUE)
 m <- do.call(cbind, listVec)
-RF_bias <- m[c(13, 14), ]
-row.names(RF_bias) <- c("bias_cal", "bias_val")
+RF_bias <- m[14, ]
 RF_bias <- data.frame(bias = RF_bias, method = "RF")
 
 bias_together <- rbind(MLR_bias, ANN_bias, MT_bias, BMT_bias, RF_bias)
@@ -481,7 +505,6 @@ gg_object <- ggplot(bias_together, aes(bias)) +
         strip.background = element_rect(fill = "white")) +
   scale_x_continuous(breaks = pretty(bias_together$bias, n = 4)) +
   ggtitle("bias for validation data")
-
 
 final_list <- list(final_resuts, gg_object)
 

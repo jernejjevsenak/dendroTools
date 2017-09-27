@@ -53,14 +53,14 @@ plot_specific(result1, window_width = 100, title = TRUE)
 plot_heatmap(result1)
 ```
 
-Here is an example on using the compare_methods(). The core idea is to compare different regression methods and select the best model for climate reconstruction. Users should spend some time to understand what are the tunning parameters of specific method. Basically, methods could be run with default parameters, but usually it turns out that optimization of parameters gives better results. To optimize parameters, users might want to explore the caret package. 
+Here is an example of using the compare_methods(). The core idea is to compare different regression methods and select the best model for climate reconstruction. Users should spend some time to understand what are the tunning parameters of specific method. Basically, methods could be run with default parameters, but usually it turns out that optimization of parameters gives better results. To optimize parameters, users might want to explore the caret package. 
 
 ```{r example 2, results = 'hide'}
 ## basic example with default parameter values
 library(dendroTools)
 data(example_dataset_1)
 experiment_1 <- compare_methods(formula = MVA~.,
-dataset = example_dataset_1, k = 3, repeats = 10)
+dataset = example_dataset_1, k = 3, repeats = 100)
 ```
 
 To see the outputs, use the following code.
@@ -71,17 +71,17 @@ experiment_1[[2]] # See a ggplot of mean bias for validation data
 ```
 
 ```{r example 3, results = 'hide'}
-## basic example with tunned parameter values
+## An example with tunned parameter values
 library(dendroTools)
 data(example_dataset_1)
 experiment_2 <- compare_methods(formula = MVA~.,
-dataset = example_dataset_1, k = 3, repeats = 50, neurons = 1,
+dataset = example_dataset_1, k = 3, repeats = 100, neurons = 1,
 MT_M = 4, MT_N = FALSE, MT_U = FALSE, MT_R = FALSE, BMT_P = 100,
 BMT_I = 100, BMT_M = 4, BMT_N = FALSE, BMT_U = FALSE, BMT_R = FALSE,
 RF_P = 100, RF_I = 100, RF_depth= 0, multiply = 5)
 ```
 
-Aain, to see the outputs, use the following code.
+Aagin, to see the outputs, use the following code.
 
 ```{r example 3a}
 experiment_2[[1]] # See a data frame results

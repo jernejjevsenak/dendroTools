@@ -51,14 +51,13 @@ for brnn method}
 
 \item{multiply}{an intiger that will be used to change the seed options
 for different repeats. set.seed(multiply*5)}
-
-\item{outputs}{character vector containing the informatiion, wheter results
-should be displayed for calibration and/ or validation data}
 }
 \value{
 a list with two elements. Element one is a data frame with
-calculated measures for five regression methods. Element two is a
-ggplot object of bias for validation data.
+calculated measures for five regression methods. For each regression method
+and each caculated measure, mean and standard deviation are given, together
+with rank and share of rank 1.
+Element two is a ggplot object of bias for validation data.
 }
 \description{
 Calculates performance measures for train and test data of different
@@ -88,4 +87,34 @@ RF_P = 100, RF_I = 100, RF_depth= 0, multiply = 5)
 experiment_2[[1]] # See a data frame results
 experiment_2[[2]] # See a ggplot of mean bias for validation data
 }
+}
+\references{
+Bishop, C.M., 1995. Neural Networks for Pattern Recognition. Oxford
+University Press, Inc. 482 pp.
+
+Breiman, L., 1996. Bagging predictors. Machine Learning 24, 123-140.
+
+Breiman, L., 2001. Random forests. Machine Learning 45, 5-32.
+
+Burden, F., Winkler, D., 2008. Bayesian Regularization of Neural Networks,
+in: Livingstone, D.J. (ed.), Artificial Neural Networks: Methods and
+Applications, vol. 458. Humana Press, Totowa, NJ, pp. 23-42.
+
+Hastie, T., Tibshirani, R., Friedman, J.H., 2009. The Elements of
+Statistical Learning : Data Mining, Inference, and Prediction, 2nd ed.
+Springer, New York xxii, 745 p. pp.
+
+Ho, T.K., 1995. Random decision forests, Proceedings of the Third
+International Conference on Document Analysis and Recognition Volume 1.
+IEEE Computer Society, pp. 278-282.
+
+Hornik, K., Buchta, C., Zeileis, A., 2009. Open-source machine learning: R
+meets Weka. Comput. Stat. 24, 225-232.
+
+Pérez-Rodríguez, P., Gianola, D., 2016. Brnn: Brnn (Bayesian Regularization
+for Feed-forward Neural Networks). R package version 0.6.
+
+Quinlan, J.R., 1992. Learning with Continuous Classes, Proceedings of the
+5th Australian Joint Conference on Artificial Intelligence (AI '92). World
+Scientific, Hobart, pp. 343-348.
 }
