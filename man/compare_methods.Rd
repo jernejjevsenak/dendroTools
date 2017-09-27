@@ -18,7 +18,7 @@ columns and (optional) years as row names.}
 
 \item{k}{number of folds for cross-validation}
 
-\item{repeats}{number of cross-vadlidation repeats}
+\item{repeats}{number of cross-validation repeats}
 
 \item{neurons}{positive integer that indicates the number of neurons used
 for brnn method}
@@ -111,7 +111,7 @@ IEEE Computer Society, pp. 278-282.
 Hornik, K., Buchta, C., Zeileis, A., 2009. Open-source machine learning: R
 meets Weka. Comput. Stat. 24, 225-232.
 
-Pérez-Rodríguez, P., Gianola, D., 2016. Brnn: Brnn (Bayesian Regularization
+Perez-Rodriguez, P., Gianola, D., 2016. Brnn: Brnn (Bayesian Regularization
 for Feed-forward Neural Networks). R package version 0.6.
 
 Quinlan, J.R., 1992. Learning with Continuous Classes, Proceedings of the
