@@ -1,6 +1,6 @@
 ##  First Submission
 
-This is a first submission of the dendroTools package. Previously, package was called dendroExtra, but authors decided to publish the new version under new name dendroTools. There are several reasons for that which are explained in the NEWS file. However, we kind ask CRAN for understanding and to approve the change of the name of this package. Here, we ask CRAN, when dendroTools will be on CRAN, to remove the dendroExtra package from CRAN. 
+This is a first submission of the dendroTools package. Previously, package was called dendroExtra, but authors decided to publish the new version under new name dendroTools. There are several reasons for that which are explained in the NEWS file. However, we kindly ask CRAN for understanding and to approve the change of the name of this package. Here, we ask CRAN, when dendroTools will be on CRAN, to remove the dendroExtra package from CRAN. 
 
 
 ## Test environments

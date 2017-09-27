@@ -51,6 +51,9 @@ for brnn method}
 
 \item{multiply}{an intiger that will be used to change the seed options
 for different repeats. set.seed(multiply*5)}
+
+\item{outputs}{character vector containing the informatiion, wheter results
+should be displayed for calibration and/ or validation data}
 }
 \value{
 a list with two elements. Element one is a data frame with
@@ -84,8 +87,5 @@ BMT_I = 100, BMT_M = 4, BMT_N = FALSE, BMT_U = FALSE, BMT_R = FALSE,
 RF_P = 100, RF_I = 100, RF_depth= 0, multiply = 5)
 experiment_2[[1]] # See a data frame results
 experiment_2[[2]] # See a ggplot of mean bias for validation data
-
-
-
 }
 }

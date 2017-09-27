@@ -15,6 +15,8 @@
 #' columns and (optional) years as row names.
 #' @param k number of folds for cross-validation
 #' @param repeats number of cross-vadlidation repeats
+#' @param outputs character vector containing the informatiion, wheter results
+#' should be displayed for calibration and/ or validation data
 #' @param neurons positive integer that indicates the number of neurons used
 #'  for brnn method
 #' @param multiply an intiger that will be used to change the seed options
@@ -58,11 +60,11 @@
 #' experiment_2[[2]] # See a ggplot of mean bias for validation data
 #' }
 
-compare_methods <- function(formula, dataset, k = 3, repeats = 2, neurons = 1,
-                           MT_M = 4, MT_N = F, MT_U = F, MT_R = F, BMT_P = 100,
-                           BMT_I = 100, BMT_M = 4, BMT_N = F, BMT_U = F,
-                           BMT_R = F, RF_P = 100, RF_I = 100, RF_depth = 0,
-                           multiply = 5) {
+compare_methods <- function(formula, dataset, k = 3, repeats = 2,
+                            neurons = 1, MT_M = 4, MT_N = F, MT_U = F,
+                            MT_R = F, BMT_P = 100, BMT_I = 100, BMT_M = 4,
+                            BMT_N = F, BMT_U = F, BMT_R = F, RF_P = 100,
+                            RF_I = 100, RF_depth = 0, multiply = 5) {
 
 # This function is used to calculate measures r, RMSE, RRSE, d, RE, CE and bias
 # for train and test data
@@ -439,27 +441,32 @@ final_resuts <- dplyr::select(DF, Measure, Period,
 
 listVec <- lapply(list_MLR_bias, c, recursive = TRUE)
 m <- do.call(cbind, listVec)
-MLR_bias <- m[14, ]
+MLR_bias <- m[c(13, 14), ]
+row.names(MLR_bias) <- c("bias_cal", "bias_val")
 MLR_bias <- data.frame(bias = MLR_bias, method = "MLR")
 
 listVec <- lapply(list_ANN_bias, c, recursive = TRUE)
 m <- do.call(cbind, listVec)
-ANN_bias <- m[14, ]
+ANN_bias <- m[c(13, 14), ]
+row.names(ANN_bias) <- c("bias_cal", "bias_val")
 ANN_bias <- data.frame(bias = ANN_bias, method = "ANN")
 
 listVec <- lapply(list_MT_bias, c, recursive = TRUE)
 m <- do.call(cbind, listVec)
-MT_bias <- m[14, ]
+MT_bias <- m[c(13, 14), ]
+row.names(MT_bias) <- c("bias_cal", "bias_val")
 MT_bias <- data.frame(bias = MT_bias, method = "MT")
 
 listVec <- lapply(list_BMT_bias, c, recursive = TRUE)
 m <- do.call(cbind, listVec)
-BMT_bias <- m[14, ]
+BMT_bias <- m[c(13, 14), ]
+row.names(BMT_bias) <- c("bias_cal", "bias_val")
 BMT_bias <- data.frame(bias = BMT_bias, method = "BMT")
 
 listVec <- lapply(list_RF_bias, c, recursive = TRUE)
 m <- do.call(cbind, listVec)
-RF_bias <- m[14, ]
+RF_bias <- m[c(13, 14), ]
+row.names(RF_bias) <- c("bias_cal", "bias_val")
 RF_bias <- data.frame(bias = RF_bias, method = "RF")
 
 bias_together <- rbind(MLR_bias, ANN_bias, MT_bias, BMT_bias, RF_bias)
@@ -474,6 +481,7 @@ gg_object <- ggplot(bias_together, aes(bias)) +
         strip.background = element_rect(fill = "white")) +
   scale_x_continuous(breaks = pretty(bias_together$bias, n = 4)) +
   ggtitle("bias for validation data")
+
 
 final_list <- list(final_resuts, gg_object)
 
