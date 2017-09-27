@@ -36,6 +36,17 @@ train_observed <- train_data[, 1]
 test_observed <- test_data[, 1]
 calculate_measures(train_predicted, test_predicted, train_observed,
 test_observed)
+
+test_data <- example_dataset_1[1:20, ]
+train_data <- example_dataset_1[21:79, ]
+library(brnn)
+lin_mod <- brnn(MVA ~., data = train_data)
+train_predicted <- predict(lin_mod, train_data)
+test_predicted <- predict(lin_mod, test_data)
+train_observed <- train_data[, 1]
+test_observed <- test_data[, 1]
+calculate_measures(train_predicted, test_predicted, train_observed,
+test_observed)
 }
 \references{
 Briffa, K.R., Jones, P.D., Pilcher, J.R., Hughes, M.K., 1988. Reconstructing

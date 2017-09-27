@@ -75,14 +75,22 @@ in the matrix is indicating a window width (row names) and a location in a
 matrix of daily sequences of environmental data (column names).
 }
 \examples{
-\dontrun{
 data(daily_temperatures_example)
 data(example_proxies_1)
 library(dplyr)
 oxygen_isotope <- select(example_proxies_1, O)
 carbon_isotope <- select(example_proxies_1, C)
 
-Example1 <- daily_response(response = carbon_isotope,
+Example1a <- daily_response(response = carbon_isotope,
+env_data = daily_temperatures_example, method = "lm", measure = "r.squared",
+lower_limit = 357, upper_limit = 358)
+
+Example1b <- daily_response(response = oxygen_isotope,
+env_data = daily_temperatures_example, method = "lm", measure = "adj.r.squared",
+lower_limit = 350, upper_limit = 351)
+
+\dontrun{
+Example1c <- daily_response(response = carbon_isotope,
 env_data = daily_temperatures_example, method = "lm", measure = "r.squared",
 lower_limit = 100, upper_limit = 104)
 

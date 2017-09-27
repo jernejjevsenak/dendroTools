@@ -18,7 +18,8 @@ columns and (optional) years as row names.}
 
 \item{k}{number of folds for cross-validation}
 
-\item{repeats}{number of cross-validation repeats}
+\item{repeats}{number of cross-validation repeats. Should be equal or more
+than 2.}
 
 \item{neurons}{positive integer that indicates the number of neurons used
 for brnn method}
@@ -87,6 +88,14 @@ RF_P = 100, RF_I = 100, RF_depth= 0, multiply = 5)
 experiment_2[[1]] # See a data frame results
 experiment_2[[2]] # See a ggplot of mean bias for validation data
 }
+experiment_3 <- compare_methods(formula = MVA~.,
+dataset = example_dataset_1, k = 2, repeats = 2, neurons = 1,
+MT_M = 4, MT_N = FALSE, MT_U = FALSE, MT_R = FALSE, BMT_P = 100,
+BMT_I = 100, BMT_M = 4, BMT_N = FALSE, BMT_U = FALSE, BMT_R = FALSE,
+RF_P = 100, RF_I = 100, RF_depth= 0, multiply = 5)
+
+experiment_4 <- compare_methods(formula = MVA~.,
+dataset = example_dataset_1, k = 2, repeats = 2)
 }
 \references{
 Bishop, C.M., 1995. Neural Networks for Pattern Recognition. Oxford
