@@ -56,7 +56,7 @@ kept.}
 }
 \value{
 a list with four elements:
-  1. calculations is a matrix with all caclulated results,
+  1. calculations is a matrix with all calculated results,
   2. method is a string indicating method that was used
   3. measure is a string indicating a calculated measure
   4. optimized_result is aggregated daily data, that returned the best

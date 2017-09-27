@@ -55,7 +55,7 @@ for different repeats. set.seed(multiply*5)}
 \value{
 a list with two elements. Element one is a data frame with
 calculated measures for five regression methods. For each regression method
-and each caculated measure, mean and standard deviation are given, together
+and each calculated measure, mean and standard deviation are given, together
 with rank and share of rank 1.
 Element two is a ggplot object of bias for validation data.
 }
@@ -67,7 +67,7 @@ trees (MT), model trees with bagging (BMT) and random forest of regression
 trees (RF). Calculated performance measures are correlation coefficient,
 root mean squared error (RMSE), root relative squared error (RSSE), index
 of agreement (d), reduction of error (RE), coefficient of efficiency
-(CE) nad mean bias.
+(CE) and mean bias.
 }
 \examples{
 \dontrun{

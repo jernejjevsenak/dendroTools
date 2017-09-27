@@ -7,7 +7,7 @@
 #' trees (RF). Calculated performance measures are correlation coefficient,
 #' root mean squared error (RMSE), root relative squared error (RSSE), index
 #' of agreement (d), reduction of error (RE), coefficient of efficiency
-#' (CE) nad mean bias.
+#' (CE) and mean bias.
 #'
 #' @param formula an object of class "formula" (or one that can be coerced
 #' to that class): a symbolic description of the model to be fitted.
@@ -35,7 +35,7 @@
 #'
 #' @return a list with two elements. Element one is a data frame with
 #' calculated measures for five regression methods. For each regression method
-#' and each caculated measure, mean and standard deviation are given, together
+#' and each calculated measure, mean and standard deviation are given, together
 #' with rank and share of rank 1.
 #' Element two is a ggplot object of bias for validation data.
 #'
