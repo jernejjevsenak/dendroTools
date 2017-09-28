@@ -104,7 +104,11 @@ compare_methods <- function(formula, dataset, k = 3, repeats = 2,
 # This function is used to calculate measures r, RMSE, RRSE, d, RE, CE and bias
 # for train and test data
 
-#############################################################################
+# Stop message in case both data frames do not have the same length
+  if (repeats <  2)
+    stop("repeats should be at least 2!")
+
+  #############################################################################
 # Iter function is now used
 
 # Here, empty lists are defined, where calculations will be stored. Empty lists

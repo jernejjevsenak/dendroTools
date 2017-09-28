@@ -3,7 +3,7 @@
 dendroTools
 ===========
 
-The core purpose of the dendroTools package is to introduce novel dendroclimatological methods to study linear and nonlinear relationship between daily climate data and tree-ring sequences. There are two core functions. The first core function is daily\_response(), which finds the optimal sequence of days that are linearly or nonlinearly related to a tree-ring proxy records. The second core function is compare\_methods() that calculates several performance measures for train and test data for different regression method.
+The core purpose of the dendroTools package is to introduce novel dendroclimatological methods to study linear and nonlinear relationship between daily climate data and tree-ring sequences. There are two core functions. The first core function is daily\_response(), which finds the optimal sequence of days that are linearly related to a tree-ring proxy records. The second core function is compare\_methods() that calculates several performance measures for train and test data for different regression method.
 
 To use daily\_response(), two data frames are required, one with daily climate data, e.g. temperatures; and one with tree-ring proxy records. Example data is provided, so users can see, how data frames should be organized. The daily\_response() calculates all possible values of a selected statistical measure between response variables and daily environmental data. Calculations are based on a moving window, which runs through daily environmental data and calculates moving averages.
 
@@ -30,7 +30,7 @@ library(dendroTools)
 data(daily_temperatures_example) 
 data(example_proxies_1)
 result1 <- daily_response(response = example_proxies_1, env_data = daily_temperatures_example, 
-                            method = "lm", measure = "r.squared", lower_limit = 90, upper_limit = 150)
+                            method = "lm", measure = "r.squared", lower_limit = 90, upper_limit = 150, remove_insignificant = TRUE)
 ```
 
 This function is computationally intensive and it takes a while to calculate all possible values. Especially, if nonlinear "brnn" method is used. Each calculated value is printed, therefore user can be sure, that algorithm is still running. The return of this function is a list with three elements: @calculations, @method, @measure. The return is organized in a way, that can be used by three plotting functions: plot\_extreme(), plot\_specific() and plot\_heatmap(). Function plot\_extreme() graphs a line plot of a row with the highest calculated measure. It indicates the sequence of days, that give the best value of selected statistical measure. With plot\_specific(), measures with selected window width are plotted. Function plot\_heatmap() is a visual representation of calculated values.

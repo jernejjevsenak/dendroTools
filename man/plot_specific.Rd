@@ -31,8 +31,8 @@ lower_limit = 90, upper_limit = 150)
 plot_specific(Example1, window_width = 90)
 
 Example2 <- daily_response(response = example_proxies_1,
-env_data = daily_temperatures_example, method = "brnn",
-measure = "adj.r.squared", lower_limit = 150, upper_limit = 155,
+env_data = daily_temperatures_example, method = "lm",
+measure = "adj.r.squared", lower_limit = 150, upper_limit = 158,
 neurons = 1)
 plot_specific(Example2, window_width = 153, title = TRUE)
 }

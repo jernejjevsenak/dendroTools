@@ -23,7 +23,7 @@ expect_equal(test1, test2)
 
 # daily_response function should return a list with matrix and two characters
 test3 <- daily_response(response = example_proxies_1,
-  env_data = daily_temperatures_example, method = "brnn",
+  env_data = daily_temperatures_example, method = "lm",
   measure = "adj.r.squared", lower = 250, upper = 253, previous_year = TRUE)
 expect_is(test3, "list")
 expect_is(test3[[1]], "matrix")
@@ -55,13 +55,6 @@ test5 <- daily_response(response = MVA_parameter,
                         lower = 150, upper = 170, previous_year = FALSE)
 expect_equal(max(test4[[1]], na.rm = TRUE) ^ 2, max(test5[[1]], na.rm = TRUE))
 
-
-# Check for smooth_matrix
-test6 <- matrix(seq(1.01, 2, by = 0.01), ncol = 10, byrow = TRUE)
-test7 <- test6
-test7[5, 5] <- -1
-test7 <- smooth_matrix(test7, factor_drop = 0.7)
-expect_equal(test6, test7)
 
 # A test for critical R
 # when the same data is used and alpha is reduced, there should be a higher
