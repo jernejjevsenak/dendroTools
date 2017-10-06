@@ -19,7 +19,7 @@
 #' each column represents a day of a year. Row.names should be matched with
 #' those from a response data frame. If not, set row_names_subset = TRUE.
 #' @param method a string specifying which method to use. Current possibilities
-#' are "cor" and "lm".
+#' are "cor", "lm" and "brnn".
 #' @param measure a string specifying which measure to use. Current
 #' possibilities are "r.squared" and "adj.r.squared". If method = "cor",
 #' measure is not relevant.
@@ -30,9 +30,14 @@
 #' @param previous_year if set to TRUE, env_data and response variables will be
 #' rearranged in a way, that also previous year will be used for calculations of
 #' selected statistical measure.
+#' @param neurons positive integer that indicates the number of neurons used
+#'  for brnn method
+#' @param brnn_smooth if set to TRUE, a smoothing algorithm is applied that
+#' removes unrealistic calculations which are a result of neural net failure.
 #' @param remove_insignificant if set to TRUE, removes all correlations bellow
-#' the significant threshold level, based on a selected alpha. For "lm" method,
-#' squared threshold is used, which corresponds to R squared statistics.
+#' the significant threshold level, based on a selected alpha. For "lm" and
+#' "brnn" method, squared threshold is used, which corresponds to R squared
+#' statistics.
 #' @param alpha significance level used to remove insignificant calculations.
 #' @param row_names_subset if set to TRUE, row.names are used to subset
 #' env_data and response data frames. Only years from both data frames are
@@ -61,36 +66,69 @@
 #' lower_limit = 357, upper_limit = 358)
 #'
 #' Example1b <- daily_response(response = oxygen_isotope,
+#' env_data = daily_temperatures_example, method = "cor", measure = "adj.r.squared",
+#' lower_limit = 100, upper_limit = 200, remove_insignificant = TRUE)
+#' plot_heatmap(Example1b)
+#'
+#' Example1c <- daily_response(response = example_proxies_1,
 #' env_data = daily_temperatures_example, method = "lm", measure = "adj.r.squared",
-#' lower_limit = 350, upper_limit = 351, remove_insignificant = TRUE)
+#' lower_limit = 25, upper_limit = 35)
 #'
-#' Example1c <- daily_response(response = carbon_isotope,
-#' env_data = daily_temperatures_example, method = "lm", measure = "r.squared",
-#' lower_limit = 100, upper_limit = 104)
-#'
-#' Example2 <- daily_response(response = example_proxies_1,
-#' env_data = daily_temperatures_example, method = "cor",
-#' measure = "ad.j.r.squared", fixed_width = 120)
+#' Example2 <- daily_response(response = carbon_isotope,
+#' env_data = daily_temperatures_example, method = "lm",
+#' measure = "adj.r.squared", fixed_width = 10)
 #'
 #' Example3 <- daily_response(response = oxygen_isotope,
-#' env_data = daily_temperatures_example, method = "lm", lower_limit = 100,
+#' env_data = daily_temperatures_example, method = "brnn", lower_limit = 100,
 #' upper_limit = 150, remove_insignificant = TRUE)
+#' plot_heatmap(Example3)
 #'
 #' # Example with negative correlations. Data frames are automatically subset.
 #' data(example_proxies_2)
 #' Example4 <- daily_response(response = example_proxies_2,
-#' env_data = daily_temperatures_example, method = "cor",
+#' env_data = daily_temperatures_example, method = "brnn",
+#' lower_limit = 30, upper_limit = 40, row_names_subset = TRUE)
+#'
+#' # Now brnn examples
+#' Example1a <- daily_response(response = carbon_isotope,
+#' env_data = daily_temperatures_example, method = "brnn", measure = "r.squared",
+#' lower_limit = 357, upper_limit = 358)
+#'
+#' Example1b <- daily_response(response = oxygen_isotope,
+#' env_data = daily_temperatures_example, method = "brnn", measure = "adj.r.squared",
+#' lower_limit = 100, upper_limit = 200, remove_insignificant = TRUE)
+#' plot_heatmap(Example1b)
+#'
+#' Example1c <- daily_response(response = example_proxies_1,
+#' env_data = daily_temperatures_example, method = "brnn", measure = "adj.r.squared",
+#' lower_limit = 25, upper_limit = 35)
+#'
+#' Example2x <- daily_response(response = carbon_isotope,
+#' env_data = daily_temperatures_example, method = "brnn",
+#' measure = "adj.r.squared", fixed_width = 10)
+#'
+#' Example3 <- daily_response(response = oxygen_isotope,
+#' env_data = daily_temperatures_example, method = "brnn", lower_limit = 100,
+#' upper_limit = 150, remove_insignificant = TRUE)
+#' plot_heatmap(Example3)
+#'
+#' # Example with negative correlations. Data frames are automatically subset.
+#' data(example_proxies_2)
+#' Example4 <- daily_response(response = example_proxies_2,
+#' env_data = daily_temperatures_example, method = "brnn",
 #' lower_limit = 30, upper_limit = 40, row_names_subset = TRUE)
 #' }
 
 daily_response <- function(response, env_data, method = "lm",
                            measure = "r.squared", lower_limit = 30,
                            upper_limit = 270, fixed_width = 0,
-                           previous_year = FALSE,
-                           remove_insignificant = TRUE,
+                           previous_year = FALSE, neurons = 2,
+                           brnn_smooth = TRUE, remove_insignificant = TRUE,
                            alpha = .05, row_names_subset = FALSE) {
 
   # PART 1 - general data arrangements, warnings abd stops
+
+  set.seed(neurons * 55)
 
   # Both bojects (response and env_data) are converted to data frames
   response <- data.frame(response)
@@ -110,7 +148,7 @@ daily_response <- function(response, env_data, method = "lm",
   # Correlations could be calculated only for one variable
   if (method == "cor" & ncol(response) > 1)
     stop(paste("More than 1 variable in response data frame not suitable ",
-  "for 'cor' method. Use 'lm'"))
+  "for 'cor' method. Use 'lm' or 'brnn'"))
 
   if (lower_limit >= upper_limit)
     stop("lower_limit can not be higher than upper_limit!")
@@ -174,10 +212,12 @@ daily_response <- function(response, env_data, method = "lm",
   # A) Chunks are used if fixed.withd != 0
     # A.1 method == "cor"
     # A.2 method == "lm"
+    # A.3 method == "brnn"
 
   # B) Chunks are used if fixed.withd == 0
     # B.1 method == "cor"
     # B.2 method == "lm"
+    # B.3 method == "brnn"
 
   # A.1 method = "cor"
   if (fixed_width != 0 & method == "cor") {
@@ -187,17 +227,19 @@ daily_response <- function(response, env_data, method = "lm",
       temporal_matrix <- matrix(NA, nrow = 1,
         ncol = (ncol(env_data) - fixed_width) + 1)
 
+      pb <- txtProgressBar(min = 0, max = (ncol(env_data) - fixed_width), style = 3)
+
       # An iterating loop. In each itteration x is calculated and represents
       # response (dependent) variable. X is a moving average. Window width of
       # a moving window is fixed_width. Next, statistical measure is calculated
-      # based on a selected method (cor or lm). Calculation is stored in
+      # based on a selected method (cor, lm or brnn). Calculation is stored in
       # temporal matrix.
       for (j in 0: (ncol(env_data) - fixed_width)) {
         x <- rowMeans(env_data[1:nrow(env_data),
          (1 + j): (j + fixed_width)], na.rm = TRUE)
 
 
-        print(paste(j, fixed_width), sep = "")
+        # print(paste(j, fixed_width), sep = "")
 
         x <- matrix(x, nrow = nrow(env_data), ncol = 1)
         temporal_correlation <- cor(response[, 1], x[, 1])
@@ -210,7 +252,12 @@ daily_response <- function(response, env_data, method = "lm",
 
         #print (temporal_correlation)
         temporal_matrix[1, j + 1] <- temporal_correlation
+
+        setTxtProgressBar(pb, j)
+
       }
+
+      close(pb)
 
      # temporal_matrix is given rownames and colnames. Rownames represent a
      # window width used fot calculations. Colnames represent the position of
@@ -228,6 +275,8 @@ daily_response <- function(response, env_data, method = "lm",
     temporal_matrix <- matrix(NA, nrow = 1,
       ncol = (ncol(env_data) - fixed_width) + 1)
 
+    pb <- txtProgressBar(min = 0, max = (ncol(env_data) - fixed_width), style = 3)
+
     for (j in 0:(ncol(env_data) - fixed_width)) {
       x <- rowMeans(env_data[1:nrow(env_data),
         (1 + j) : (j + fixed_width)], na.rm = TRUE)
@@ -240,13 +289,72 @@ daily_response <- function(response, env_data, method = "lm",
 
       if (measure == "r.squared"){
         temporal_matrix[1, j + 1] <- temporal_r_squared
-        print(temporal_r_squared)
+        # print(temporal_r_squared)
       }
 
       if (measure == "adj.r.squared"){
         temporal_matrix[1, j + 1] <- temporal_adj_r_squared
-        print(temporal_adj_r_squared)
+        # print(temporal_adj_r_squared)
       }
+      setTxtProgressBar(pb, j)
+
+    }
+
+    close(pb)
+    row.names(temporal_matrix) <- fixed_width
+    temporal_colnames <- as.vector(seq(from = 1,
+      to = ncol(temporal_matrix), by = 1))
+    colnames(temporal_matrix) <- temporal_colnames
+  }
+
+  # A.3 method == "brnn"
+  # For a description see A.1
+  if (fixed_width != 0 & method == "brnn") {
+
+    temporal_matrix <- matrix(NA, nrow = 1,
+      ncol = (ncol(env_data) - fixed_width) + 1)
+
+    pb <- txtProgressBar(min = 0, max = (ncol(env_data) - fixed_width), style = 3)
+
+
+    for (j in 0: (ncol(env_data) - fixed_width)) {
+      x <- rowMeans(env_data[1:nrow(env_data),
+        (1 + j): (j + fixed_width)], na.rm = TRUE)
+      x <- matrix(x, nrow = nrow(env_data), ncol = 1)
+      temporal_df <- data.frame(cbind(x, response))
+      capture.output(temporal_model <- try(brnn(x ~ ., data = temporal_df,
+                                 neurons = neurons, tol = 1e-6),
+                            silent = TRUE))
+      temporal_predictions <- try(predict.brnn(temporal_model, temporal_df),
+                                  silent = TRUE)
+
+      if (class(temporal_model)[[1]] != "try-error"){
+
+        temporal_r_squared <- 1 - (sum((x[, 1] - temporal_predictions) ^ 2) /
+                                     sum((x[, 1] - mean(x[, 1])) ^ 2))
+        temporal_adj_r_squared <- 1 - ((1 - temporal_r_squared) *
+                                         ((nrow(x) - 1)) /
+                                         (nrow(x) -
+                                            ncol(as.data.frame(response[, 1]))
+                                          -  1))
+
+        if (measure == "r.squared"){
+          temporal_matrix[1, j + 1] <- temporal_r_squared
+          # print(temporal_r_squared)
+        }
+
+        if (measure == "adj.r.squared"){
+          temporal_matrix[1, j + 1] <- temporal_adj_r_squared
+          # print(temporal_adj_r_squared)
+        } else {
+
+          temporal_matrix[1, j + 1] <- NA
+        }
+        setTxtProgressBar(pb, j)
+
+      }
+
+      close(pb)
     }
 
     row.names(temporal_matrix) <- fixed_width
@@ -254,7 +362,6 @@ daily_response <- function(response, env_data, method = "lm",
       to = ncol(temporal_matrix), by = 1))
     colnames(temporal_matrix) <- temporal_colnames
   }
-
 
   # B fixed_width == 0, in this case, lower_limit and upper_limit arguments
   # will be used to define window width of a moving window.
@@ -273,20 +380,31 @@ daily_response <- function(response, env_data, method = "lm",
   # In each itteration, x is calculated and represents a response (dependent)
   # variable. x is a moving average, based on rowMeans function.
   # Next, statistical measure is calculated based on a selected method (cor,
-  # or lm). Calculation is stored in temporal matrix in a proper place.
+  # lm or brnn). Calculation is stored in temporal matrix in a proper place.
   # The position of stored calculation is informative later used for
   # indiciating optimal values.
 
+  pb <- txtProgressBar(min = 0, max = (upper_limit - lower_limit),
+                       style = 3)
+
+  b = 0
+
+
   for (k in lower_limit:upper_limit) {
+
+    b = b + 1
 
     for (j in 0: (ncol(env_data) - k)) {
       x <- rowMeans(env_data[1:nrow(env_data), (1 + j) : (j + k)], na.rm = T)
       x <- matrix(x, nrow = nrow(env_data), ncol = 1)
       temporal_correlation <- cor(response[, 1], x[, 1])
-      print(temporal_correlation)
+      # print(temporal_correlation)
       temporal_matrix[(k - lower_limit) + 1, j + 1] <- temporal_correlation
     }
+    setTxtProgressBar(pb, b)
   }
+
+  close(pb)
 
   # temporal_matrix is given rownames and colnames. Rownames represent a
   # window width used fot calculations. Colnames represent the position of
@@ -307,7 +425,15 @@ daily_response <- function(response, env_data, method = "lm",
     temporal_matrix <- matrix(NA, nrow = (upper_limit - lower_limit + 1),
       ncol = (ncol(env_data) - lower_limit) + 1)
 
+
+    pb <- txtProgressBar(min = 0, max = (upper_limit - lower_limit),
+                         style = 3)
+
+    b = 0
+
     for (k in lower_limit:upper_limit) {
+
+      b = b + 1
 
       for (j in 0: (ncol(env_data) - k)) {
         x <- rowMeans(env_data[1:nrow(env_data), (1 + j) : (j + k)],
@@ -322,17 +448,19 @@ daily_response <- function(response, env_data, method = "lm",
         if (measure == "r.squared"){
           temporal_matrix[(k - lower_limit) + 1, j + 1]  <-
             temporal_r_squared
-          print(temporal_r_squared)
+          # print(temporal_r_squared)
         }
 
         if (measure == "adj.r.squared"){
           temporal_matrix[(k - lower_limit) + 1, j + 1]  <-
             temporal_adj_r_squared
-          print(temporal_adj_r_squared)
+          # print(temporal_adj_r_squared)
         }
       }
+      setTxtProgressBar(pb, b)
     }
 
+    close(pb)
     temporal_rownames <- as.vector(seq(from = lower_limit, to = upper_limit,
       by = 1))
     row.names(temporal_matrix) <- temporal_rownames
@@ -342,6 +470,85 @@ daily_response <- function(response, env_data, method = "lm",
     colnames(temporal_matrix) <- temporal_colnames
   }
 
+  # B.3 method == "brnn"
+  # For a description see B.1
+  if (fixed_width == 0 & method == "brnn") {
+
+    temporal_matrix <- matrix(NA, nrow = (upper_limit - lower_limit + 1),
+      ncol = (ncol(env_data) - lower_limit) + 1)
+
+    pb <- txtProgressBar(min = 0, max = (upper_limit - lower_limit),
+                         style = 3)
+
+    b = 0
+
+    for (k in lower_limit:upper_limit) {
+
+      b = b + 1
+
+
+      for (j in 0: (ncol(env_data) - k)) {
+        x <- rowMeans(env_data[1:nrow(env_data), (1 + j) : (j + k)],
+          na.rm = T)
+        x <- matrix(x, nrow = nrow(env_data), ncol = 1)
+        temporal_df <- data.frame(cbind(x, response))
+        capture.output(temporal_model <- try(brnn(x ~ ., data = temporal_df, neurons = neurons,
+                                   tol = 1e-6), silent = TRUE))
+        temporal_predictions <- try(predict.brnn(temporal_model, temporal_df),
+                                    silent = TRUE)
+
+        if (class(temporal_model)[[1]] != "try-error"){
+
+          temporal_r_squared <- 1 - (sum((x[, 1] - temporal_predictions) ^ 2) /
+                                       sum((x[, 1] - mean(x[, 1])) ^ 2))
+          temporal_adj_r_squared <- 1 - ((1 - temporal_r_squared) *
+                                           ((nrow(x) - 1)) /
+                                           (nrow(x) -
+                                              ncol(as.data.frame(response[, 1]))
+                                            - 1))
+
+          if (measure == "r.squared"){
+            temporal_matrix[(k - lower_limit) + 1, j + 1]  <- temporal_r_squared
+           # print(temporal_r_squared)
+          }
+
+          if (measure == "adj.r.squared"){
+            temporal_matrix[(k - lower_limit) + 1, j + 1]  <-
+              temporal_adj_r_squared
+          # print(temporal_adj_r_squared)
+          }
+
+        } else {
+          temporal_matrix[(k - lower_limit) + 1, j + 1] <- NA
+
+        }
+      }
+      setTxtProgressBar(pb, b)
+    }
+
+    close(pb)
+    temporal_rownames <- as.vector(seq(from = lower_limit, to = upper_limit,
+      by = 1))
+    row.names(temporal_matrix) <- temporal_rownames
+
+    temporal_colnames <- as.vector(seq(from = 1,
+      to = ncol(temporal_matrix), by = 1))
+    colnames(temporal_matrix) <- temporal_colnames
+  }
+
+  # PART 3: smoothing function, if brnn method is used. It turnes out, that
+  # brnn sometimes (1 - 3 % of calculations) fails to construct a realistic
+  # result. In those cases, much lower r.squared (or adj.r.squared) are
+  # calculated. smooth_matrix function removes unrealistic calculations and
+  # replace them with an average of values in a window 3 x 3. Maximum value
+  # is not affected by any means.
+  # [i - 1, j - 1], [i - 1, j], [i - 1, j + 1]
+  # [    i, j - 1], [    i, j], [    i, j + 1]
+  # [i + 1, j - 1], [i + 1, j], [i + 1, j + 1]
+  if (method == "brnn" & brnn_smooth == TRUE){
+    temporal_matrix <- smooth_matrix(temporal_matrix, factor_drop = 0.7,
+      repeats = 2)
+  }
 
   # To enhance the visualisation, insignificant values
   # are removed if remove_insignificant == TRUE
@@ -364,15 +571,15 @@ daily_response <- function(response, env_data, method = "lm",
     # 2 negative correlations
     } else if (method == "cor" & (abs(overall_max) < abs(overall_min))) {
       temporal_matrix[temporal_matrix > -critical_threshold_cor] <- NA
-    # 3 lm and method
-      } else if (method == "lm") {
+    # 3 lm and brnn method
+      } else if (method == "lm" | method == "brnn") {
       temporal_matrix[temporal_matrix < critical_threshold_cor2] <- NA
       }
   }
 
   # PART 4: Final list is being created and returned as a function output
   # When metohod == "cor", different final_list is created
-  if (method == "lm") {
+  if (method == "lm" | method == "brnn") {
     final_list <- list(calculations = temporal_matrix, method = method,
       measure = measure)
   }
@@ -450,6 +657,33 @@ daily_response <- function(response, env_data, method = "lm",
     optimized_result <- temporal_summary$adj.r.squared
   }
 
+  if (method == "brnn" & measure == "r.squared"){
+    temporal_df <- data.frame(cbind(dataf, response))
+    capture.output(temporal_model <- brnn(Optimized.rowNames ~ ., data = temporal_df,
+                           neurons = neurons, tol = 1e-6))
+    temporal_predictions <- try(predict.brnn(temporal_model,
+                                             temporal_df), silent = TRUE)
+    optimized_result <- 1 - (sum((temporal_df[, 1] -
+                                    temporal_predictions) ^ 2) /
+                                 sum((temporal_df[, 1] -
+                                        mean(temporal_df[, 1])) ^ 2))
+  }
+
+  if (method == "brnn" & measure == "adj.r.squared"){
+    temporal_df <- data.frame(cbind(dataf, response))
+    capture.output(temporal_model <- brnn(Optimized.rowNames ~ .,
+                           data = temporal_df, neurons = neurons, tol = 1e-6))
+    temporal_predictions <- try(predict.brnn(temporal_model, temporal_df),
+                                silent = TRUE)
+    temporal_r_squared <- 1 - (sum((temporal_df[, 1] -
+                                      temporal_predictions) ^ 2) /
+                               sum((temporal_df[, 1] -
+                                      mean(temporal_df[, 1])) ^ 2))
+    optimized_result <- 1 - ((1 - temporal_r_squared) *
+                                     ((nrow(temporal_df) - 1)) /
+                               (nrow(temporal_df) -
+                                  ncol(as.data.frame(response[, 1])) - 1))
+  }
 
   if (method == "cor"){
     optimized_result <- cor(dataf, response)

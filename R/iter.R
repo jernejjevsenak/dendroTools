@@ -73,7 +73,7 @@ iter <- function(formula, dataset, k, neurons, MT_M, MT_N, MT_U, MT_R,
     list_MLR[[j]] <- calculations
 
     #ANN Model
-    ANN <- brnn(formula, data = train, neurons = neurons)
+    capture.output(ANN <- brnn(formula, data = train, neurons = neurons, verbose = FALSE))
     train_predicted <- predict(ANN, train)
     test_predicted <- predict(ANN, test)
     calculations <- calculate_measures(train_predicted, test_predicted,
@@ -104,10 +104,11 @@ iter <- function(formula, dataset, k, neurons, MT_M, MT_N, MT_U, MT_R,
     list_BMT[[j]] <- calculations
 
     ##Regression Tree with random forest, WEKA
-    RF <- make_Weka_classifier("weka/classifiers/trees/RandomForest")
-    RegTree_Weka <- RF(formula, data = train,
-                       control = Weka_control(P = RF_P, I = RF_I,
-                                              depth = RF_depth))
+    # RF <- make_Weka_classifier("weka/classifiers/trees/RandomForest")
+    #RegTree_Weka <- RF(formula, data = train,
+     #                  control = Weka_control(P = RF_P, I = RF_I,
+      #                                        depth = RF_depth))
+    RegTree_Weka <- randomForest(formula = formula, data = dataset, mtry = mtry, maxnodes = 4, ntree = 200)
     train_predicted <- predict(RegTree_Weka, train)
     test_predicted <- predict(RegTree_Weka, test)
     calculations <- calculate_measures(train_predicted, test_predicted,

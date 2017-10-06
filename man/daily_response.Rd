@@ -80,20 +80,22 @@ env_data = daily_temperatures_example, method = "lm", measure = "r.squared",
 lower_limit = 357, upper_limit = 358)
 
 Example1b <- daily_response(response = oxygen_isotope,
+env_data = daily_temperatures_example, method = "cor", measure = "adj.r.squared",
+lower_limit = 100, upper_limit = 200, remove_insignificant = TRUE)
+plot_heatmap(Example1b)
+
+Example1c <- daily_response(response = example_proxies_1,
 env_data = daily_temperatures_example, method = "lm", measure = "adj.r.squared",
-lower_limit = 350, upper_limit = 351, remove_insignificant = TRUE)
+lower_limit = 25, upper_limit = 35)
 
-Example1c <- daily_response(response = carbon_isotope,
-env_data = daily_temperatures_example, method = "lm", measure = "r.squared",
-lower_limit = 100, upper_limit = 104)
-
-Example2 <- daily_response(response = example_proxies_1,
-env_data = daily_temperatures_example, method = "cor",
-measure = "ad.j.r.squared", fixed_width = 120)
+Example2 <- daily_response(response = carbon_isotope,
+env_data = daily_temperatures_example, method = "lm",
+measure = "adj.r.squared", fixed_width = 5)
 
 Example3 <- daily_response(response = oxygen_isotope,
 env_data = daily_temperatures_example, method = "lm", lower_limit = 100,
 upper_limit = 150, remove_insignificant = TRUE)
+plot_heatmap(Example3)
 
 # Example with negative correlations. Data frames are automatically subset.
 data(example_proxies_2)

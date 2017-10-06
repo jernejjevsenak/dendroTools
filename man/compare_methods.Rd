@@ -4,10 +4,10 @@
 \alias{compare_methods}
 \title{compare_methods}
 \usage{
-compare_methods(formula, dataset, k = 3, repeats = 2, neurons = 1,
-  MT_M = 4, MT_N = F, MT_U = F, MT_R = F, BMT_P = 100, BMT_I = 100,
-  BMT_M = 4, BMT_N = F, BMT_U = F, BMT_R = F, RF_P = 100,
-  RF_I = 100, RF_depth = 0, multiply = 5)
+compare_methods(formula, dataset, k = 3, repeats = 2, use_caret = TRUE,
+  neurons = 1, MT_M = 4, MT_N = F, MT_U = F, MT_R = F, BMT_P = 100,
+  BMT_I = 100, BMT_M = 4, BMT_N = F, BMT_U = F, BMT_R = F,
+  RF_P = 100, RF_I = 100, RF_depth = 0, multiply = 5)
 }
 \arguments{
 \item{formula}{an object of class "formula" (or one that can be coerced
@@ -20,6 +20,9 @@ columns and (optional) years as row names.}
 
 \item{repeats}{number of cross-validation repeats. Should be equal or more
 than 2.}
+
+\item{use_caret}{if set to TRUE, the package caret will be used to tune parameters
+for regression methods}
 
 \item{neurons}{positive integer that indicates the number of neurons used
 for brnn method}

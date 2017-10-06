@@ -16,6 +16,8 @@
 #' @param k number of folds for cross-validation
 #' @param repeats number of cross-validation repeats. Should be equal or more
 #' than 2.
+#' @param use_caret if set to TRUE, the package caret will be used to tune parameters
+#' for regression methods
 #' @param neurons positive integer that indicates the number of neurons used
 #'  for brnn method
 #' @param multiply an intiger that will be used to change the seed options
@@ -78,7 +80,7 @@
 #'
 #' # An example with default settings of machine learning algorithms
 #' experiment_1 <- compare_methods(formula = MVA~.,
-#' dataset = example_dataset_1, k = 3, repeats = 2)
+#' dataset = example_dataset_1, k = 3, repeats = 10)
 #' experiment_1[[1]] # See a data frame results
 #' experiment_1[[2]] # See a ggplot of mean bias for validation data
 #'
@@ -96,6 +98,7 @@
 
 
 compare_methods <- function(formula, dataset, k = 3, repeats = 2,
+                            use_caret = TRUE,
                             neurons = 1, MT_M = 4, MT_N = F, MT_U = F,
                             MT_R = F, BMT_P = 100, BMT_I = 100, BMT_M = 4,
                             BMT_N = F, BMT_U = F, BMT_R = F, RF_P = 100,
@@ -129,13 +132,56 @@ list_RF_bias <- list()
 
 # Now, a for loop is used to calculate statistical measures with iter().
 # Results are stored in a temporary_df.
+
+# Here we use caret package to tune our parameters
+if (use_caret == TRUE){
+
+  model = NULL
+
+  # Optimization for ANN
+  capture.output(model <- train(formula, data = dataset, method = "brnn"))
+  neurons = as.numeric(model[[6]][1])
+
+  # Optimization for MT
+  capture.output(model <- train(formula, data = dataset, method = "M5"))
+  if (as.matrix(model[[6]][1][1]) == 'Yes'){
+    MT_N = FALSE
+  } else {
+    MT_N = TRUE
+  }
+
+  if (as.matrix(model[[6]][2]) == 'Yes'){
+    MT_U = FALSE
+  } else {
+    MT_U = TRUE
+  }
+
+  if (as.matrix(model[[6]][3]) == 'No'){
+    MT_R = FALSE
+  } else {
+    MT_R = TRUE
+  }
+
+  # Optimization for BMT, just take MT rezults
+  BMT_N <- MT_N
+  BMT_U <- MT_U
+  BMT_R <- MT_R
+
+  # Optimization for Random Forest
+  capture.output(model <- train(formula, data = dataset, method = "rf"))
+  mtry = as.numeric(model[[6]][1])
+
+}
+
+# create progress bar
+pb <- txtProgressBar(min = 0, max = repeats, style = 3)
+
 for (m in 1:repeats){
   temporary_df <- iter(formula = formula, dataset = dataset, k = k,
                        neurons = neurons, MT_M = MT_M, MT_N = MT_N,
                        MT_U = MT_U, MT_R = MT_R, BMT_P = BMT_P,
                        BMT_I = BMT_I, BMT_M = BMT_M, BMT_N = BMT_N,
-                       BMT_U = BMT_U, BMT_R = BMT_R, RF_P = RF_P,
-                       RF_I = RF_I, RF_depth = RF_depth, multiply = m)
+                       BMT_U = BMT_U, BMT_R = BMT_R, mtry = mtry, multiply = m)
 
   # temporary_df is called and results are stored in a pre-defined lists
   # This is repeated two times, because bias goes to seperate lists
@@ -153,7 +199,12 @@ for (m in 1:repeats){
 
   list_RF[[m]] <- temporary_df[[5]][k + 1]
   list_RF_bias[[m]] <- temporary_df[[5]][k + 1]
+
+  setTxtProgressBar(pb, m)
+
 }
+
+close(pb)
 
 # Here, lists are rearranged and measures are extracted
 listVec <- lapply(list_MLR, c, recursive = TRUE)

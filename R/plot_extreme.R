@@ -20,7 +20,7 @@
 #' plot_extreme(Example1)
 #'
 #' Example2 <- daily_response(response = example_proxies_1,
-#' env_data = daily_temperatures_example, method = "lm",
+#' env_data = daily_temperatures_example, method = "brnn",
 #' measure = "adj.r.squared", lower_limit = 50, upper_limit = 55, neurons = 1)
 #' plot_extreme(Example2)
 #'
@@ -195,9 +195,10 @@ plot_extreme <- function(result_daily_response, title = TRUE) {
       ylab("Correlation Coefficient")
   }
 
-  # plot for lm  method; using r.squared
+  # plot for lm and brnn method; using r.squared
   if ((nrow(temoporal_vector) > 366) &&  (plot_column > 366) &&
-      ((result_daily_response [[2]] == "lm")) &&
+      ((result_daily_response [[2]] == "lm") |
+          (result_daily_response [[2]] == "brnn")) &&
       (result_daily_response [[3]] == "r.squared")) {
     final_plot <- final_plot +
       ggtitle(paste("Maximal R squared:", calculated_measure,
@@ -209,7 +210,8 @@ plot_extreme <- function(result_daily_response, title = TRUE) {
   }
 
   if ((nrow(temoporal_vector) > 366) && (plot_column < 366) &&
-     (result_daily_response[[2]] == "lm") &&
+     (result_daily_response[[2]] == "lm" |
+          result_daily_response[[2]] == "brnn") &&
       result_daily_response[[3]] == "r.squared") {
     final_plot <- final_plot +
       ggtitle(paste("Maximal R squared:", calculated_measure,
@@ -221,7 +223,8 @@ plot_extreme <- function(result_daily_response, title = TRUE) {
   }
 
   if (nrow(temoporal_vector) < 366 &&
-     (result_daily_response[[2]] == "lm") &&
+     (result_daily_response[[2]] == "lm" |
+          result_daily_response[[2]] == "brnn") &&
       result_daily_response[[3]] == "r.squared") {
     final_plot <- final_plot +
       ggtitle(paste("Maximal R squared:", calculated_measure,
@@ -232,9 +235,10 @@ plot_extreme <- function(result_daily_response, title = TRUE) {
       ylab("Explained Variance")
   }
 
-  # plot for lm method; using adj.r.squared
+  # plot for lm and brnn method; using adj.r.squared
   if ((nrow(temoporal_vector) > 366) && (plot_column > 366) &&
-     (result_daily_response[[2]] == "lm") &&
+     (result_daily_response[[2]] == "lm" |
+          result_daily_response[[2]] == "brnn") &&
       (result_daily_response[[3]] == "adj.r.squared")) {
     final_plot <- final_plot +
       ggtitle(paste("Maximal Adjusted R squared:", calculated_measure,
@@ -246,7 +250,8 @@ plot_extreme <- function(result_daily_response, title = TRUE) {
   }
 
   if ((nrow(temoporal_vector) > 366) &&  (plot_column < 366) &&
-      (result_daily_response [[2]] == "lm") &&
+      ((result_daily_response [[2]] == "lm" |
+          result_daily_response [[2]] == "brnn")) &&
       (result_daily_response [[3]] == "adj.r.squared")) {
     final_plot <- final_plot +
       ggtitle(paste("Maximal Adjusted R squared:", calculated_measure,
@@ -258,7 +263,8 @@ plot_extreme <- function(result_daily_response, title = TRUE) {
   }
 
   if ((nrow(temoporal_vector) < 366) &&
-      (result_daily_response [[2]] == "lm") &&
+      (result_daily_response [[2]] == "lm" |
+          result_daily_response [[2]] == "brnn") &&
       (result_daily_response [[3]] == "adj.r.squared")) {
     final_plot <- final_plot +
       ggtitle(paste("Maximal Adjusted R squared:", calculated_measure,
