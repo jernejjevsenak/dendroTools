@@ -19,9 +19,15 @@
 #' plot_heatmap(Example1)
 #'
 #' Example2 <- daily_response(response = example_proxies_1,
-#' env_data = daily_temperatures_example, method = "lm",
+#' env_data = daily_temperatures_example, method = "brnn",
 #' measure = "adj.r.squared", lower_limit = 50, upper_limit = 55)
 #' plot_heatmap(Example2)
+#'
+#' oxygen_isotope <- select(example_proxies_1, O)
+#' Example3 <- daily_response(response = oxygen_isotope,
+#' env_data = daily_temperatures_example, method = "cor", lower_limit = 50,
+#' upper_limit = 55, previous_year = TRUE)
+#' plot_heatmap(Example3)
 #' }
 
 plot_heatmap <- function(result_daily_response){
@@ -74,8 +80,7 @@ plot_heatmap <- function(result_daily_response){
   journal_theme <- theme_bw() +
     theme(axis.text = element_text(size = 16, face = "bold"),
           axis.title = element_text(size = 18), text = element_text(size = 18),
-          legend.position = "bottom", legend.key.width = unit(3, "line"),
-          plot.title = element_blank())
+          legend.position = "bottom", legend.key.width = unit(3, "line"))
 
   final_plot <- ggplot(result_daily_element1_melted,
     aes_(x = ~as.numeric(variable), y = ~as.numeric(temp_row_names),
@@ -105,13 +110,35 @@ plot_heatmap <- function(result_daily_response){
                          breaks = pretty_breaks())
   }
 
-
   # If previous_year == TRUE(function daily_response), different xlab
   # is needed
   if (ncol(result_daily_element1) > 366) {
     final_plot <- final_plot +
       xlab("Day of Year  (Including Previous Year)")
   }
+
+
+  # Here we add titles, based on different methods
+  if (result_daily_response [[2]] == "cor") {
+    final_plot <- final_plot +
+      ggtitle(paste("Method: Correlation Coefficients"))
+  }
+
+  if (result_daily_response [[2]] == "lm") {
+    final_plot <- final_plot +
+      ggtitle(paste("Method: Linear Regression"))
+  }
+
+  if (result_daily_response [[2]] == "brnn") {
+    final_plot <- final_plot +
+      ggtitle(paste("Method: ANN with Bayesian Regularization"))
+  }
+
+
+
+
+
+
 
   final_plot
 }

@@ -22,16 +22,18 @@
 #' @param BMT_N unpruned (argument for bagging of model trees)
 #' @param BMT_U unsmoothed (argument for bagging of model trees)
 #' @param BMT_R use regression trees (argument for bagging of model trees)
-#' @param RF_P bagSizePercent (argument for random forest)
-#' @param RF_I number of iterations (argument for random forest)
-#' @param RF_depth maxDepth (argument for random forest)
+#' @param RF_mtry Number of variables randomly sampled as candidates at each split (argument for random forest)
+#' @param RF_maxnodes Maximum number of terminal nodes trees in the forest can have (argument for random forest)
+#' @param RF_ntree Number of trees to grow (argument for random forest)
 #'
 #' @return list with data frames of calculated measures for different methods
+#'
+#' @keywords internal
 
 
 iter <- function(formula, dataset, k, neurons, MT_M, MT_N, MT_U, MT_R,
-                BMT_P, BMT_I, BMT_M, BMT_N, BMT_U, BMT_R, RF_P, RF_I, RF_depth,
-                multiply) {
+                BMT_P, BMT_I, BMT_M, BMT_N, BMT_U, BMT_R, RF_mtry,
+                RF_maxnodes, RF_ntree, multiply) {
 
   # Here, idex of dependent variable is extracted and later used to locate the
   # observed values
@@ -107,8 +109,8 @@ iter <- function(formula, dataset, k, neurons, MT_M, MT_N, MT_U, MT_R,
     # RF <- make_Weka_classifier("weka/classifiers/trees/RandomForest")
     #RegTree_Weka <- RF(formula, data = train,
      #                  control = Weka_control(P = RF_P, I = RF_I,
-      #                                        depth = RF_depth))
-    RegTree_Weka <- randomForest(formula = formula, data = dataset, mtry = mtry, maxnodes = 4, ntree = 200)
+    RegTree_Weka <- randomForest(formula = formula, data = dataset, RF_mtry = RF_mtry,
+                                 RF_maxnodes = RF_maxnodes, RF_ntree = RF_ntree)
     train_predicted <- predict(RegTree_Weka, train)
     test_predicted <- predict(RegTree_Weka, test)
     calculations <- calculate_measures(train_predicted, test_predicted,

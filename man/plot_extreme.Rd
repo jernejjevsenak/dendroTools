@@ -29,7 +29,7 @@ fixed_width = 90, previous_year = TRUE)
 plot_extreme(Example1)
 
 Example2 <- daily_response(response = example_proxies_1,
-env_data = daily_temperatures_example, method = "lm",
+env_data = daily_temperatures_example, method = "brnn",
 measure = "adj.r.squared", lower_limit = 50, upper_limit = 55, neurons = 1)
 plot_extreme(Example2)
 

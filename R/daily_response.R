@@ -74,47 +74,47 @@
 #' env_data = daily_temperatures_example, method = "lm", measure = "adj.r.squared",
 #' lower_limit = 25, upper_limit = 35)
 #'
-#' Example2 <- daily_response(response = carbon_isotope,
+#' Example2a <- daily_response(response = carbon_isotope,
 #' env_data = daily_temperatures_example, method = "lm",
 #' measure = "adj.r.squared", fixed_width = 10)
 #'
-#' Example3 <- daily_response(response = oxygen_isotope,
+#' Example2b <- daily_response(response = oxygen_isotope,
 #' env_data = daily_temperatures_example, method = "brnn", lower_limit = 100,
 #' upper_limit = 150, remove_insignificant = TRUE)
 #' plot_heatmap(Example3)
 #'
 #' # Example with negative correlations. Data frames are automatically subset.
 #' data(example_proxies_2)
-#' Example4 <- daily_response(response = example_proxies_2,
+#' Example3 <- daily_response(response = example_proxies_2,
 #' env_data = daily_temperatures_example, method = "brnn",
 #' lower_limit = 30, upper_limit = 40, row_names_subset = TRUE)
 #'
-#' # Now brnn examples
-#' Example1a <- daily_response(response = carbon_isotope,
+#' # brnn examples
+#' Example4a <- daily_response(response = carbon_isotope,
 #' env_data = daily_temperatures_example, method = "brnn", measure = "r.squared",
 #' lower_limit = 357, upper_limit = 358)
 #'
-#' Example1b <- daily_response(response = oxygen_isotope,
+#' Example4b <- daily_response(response = oxygen_isotope,
 #' env_data = daily_temperatures_example, method = "brnn", measure = "adj.r.squared",
 #' lower_limit = 100, upper_limit = 200, remove_insignificant = TRUE)
 #' plot_heatmap(Example1b)
 #'
-#' Example1c <- daily_response(response = example_proxies_1,
+#' Example4c <- daily_response(response = example_proxies_1,
 #' env_data = daily_temperatures_example, method = "brnn", measure = "adj.r.squared",
 #' lower_limit = 25, upper_limit = 35)
 #'
-#' Example2x <- daily_response(response = carbon_isotope,
+#' Example5a <- daily_response(response = carbon_isotope,
 #' env_data = daily_temperatures_example, method = "brnn",
-#' measure = "adj.r.squared", fixed_width = 10)
+#' measure = "adj.r.squared", fixed_width = 30)
 #'
-#' Example3 <- daily_response(response = oxygen_isotope,
+#' Example5b <- daily_response(response = oxygen_isotope,
 #' env_data = daily_temperatures_example, method = "brnn", lower_limit = 100,
 #' upper_limit = 150, remove_insignificant = TRUE)
 #' plot_heatmap(Example3)
 #'
 #' # Example with negative correlations. Data frames are automatically subset.
 #' data(example_proxies_2)
-#' Example4 <- daily_response(response = example_proxies_2,
+#' Example6 <- daily_response(response = example_proxies_2,
 #' env_data = daily_temperatures_example, method = "brnn",
 #' lower_limit = 30, upper_limit = 40, row_names_subset = TRUE)
 #' }
@@ -227,14 +227,13 @@ daily_response <- function(response, env_data, method = "lm",
       temporal_matrix <- matrix(NA, nrow = 1,
         ncol = (ncol(env_data) - fixed_width) + 1)
 
-      pb <- txtProgressBar(min = 0, max = (ncol(env_data) - fixed_width), style = 3)
-
       # An iterating loop. In each itteration x is calculated and represents
       # response (dependent) variable. X is a moving average. Window width of
       # a moving window is fixed_width. Next, statistical measure is calculated
       # based on a selected method (cor, lm or brnn). Calculation is stored in
       # temporal matrix.
       for (j in 0: (ncol(env_data) - fixed_width)) {
+
         x <- rowMeans(env_data[1:nrow(env_data),
          (1 + j): (j + fixed_width)], na.rm = TRUE)
 
@@ -253,11 +252,7 @@ daily_response <- function(response, env_data, method = "lm",
         #print (temporal_correlation)
         temporal_matrix[1, j + 1] <- temporal_correlation
 
-        setTxtProgressBar(pb, j)
-
       }
-
-      close(pb)
 
      # temporal_matrix is given rownames and colnames. Rownames represent a
      # window width used fot calculations. Colnames represent the position of
@@ -275,10 +270,9 @@ daily_response <- function(response, env_data, method = "lm",
     temporal_matrix <- matrix(NA, nrow = 1,
       ncol = (ncol(env_data) - fixed_width) + 1)
 
-    pb <- txtProgressBar(min = 0, max = (ncol(env_data) - fixed_width), style = 3)
-
     for (j in 0:(ncol(env_data) - fixed_width)) {
-      x <- rowMeans(env_data[1:nrow(env_data),
+
+       x <- rowMeans(env_data[1:nrow(env_data),
         (1 + j) : (j + fixed_width)], na.rm = TRUE)
       x <- matrix(x, nrow = nrow(env_data), ncol = 1)
       temporal_df <- data.frame(cbind(x, response))
@@ -296,11 +290,11 @@ daily_response <- function(response, env_data, method = "lm",
         temporal_matrix[1, j + 1] <- temporal_adj_r_squared
         # print(temporal_adj_r_squared)
       }
-      setTxtProgressBar(pb, j)
+
 
     }
 
-    close(pb)
+
     row.names(temporal_matrix) <- fixed_width
     temporal_colnames <- as.vector(seq(from = 1,
       to = ncol(temporal_matrix), by = 1))
@@ -314,10 +308,10 @@ daily_response <- function(response, env_data, method = "lm",
     temporal_matrix <- matrix(NA, nrow = 1,
       ncol = (ncol(env_data) - fixed_width) + 1)
 
-    pb <- txtProgressBar(min = 0, max = (ncol(env_data) - fixed_width), style = 3)
+     for (j in 0: (ncol(env_data) - fixed_width)) {
 
 
-    for (j in 0: (ncol(env_data) - fixed_width)) {
+
       x <- rowMeans(env_data[1:nrow(env_data),
         (1 + j): (j + fixed_width)], na.rm = TRUE)
       x <- matrix(x, nrow = nrow(env_data), ncol = 1)
@@ -327,6 +321,7 @@ daily_response <- function(response, env_data, method = "lm",
                             silent = TRUE))
       temporal_predictions <- try(predict.brnn(temporal_model, temporal_df),
                                   silent = TRUE)
+
 
       if (class(temporal_model)[[1]] != "try-error"){
 
@@ -340,7 +335,7 @@ daily_response <- function(response, env_data, method = "lm",
 
         if (measure == "r.squared"){
           temporal_matrix[1, j + 1] <- temporal_r_squared
-          # print(temporal_r_squared)
+           print(temporal_r_squared)
         }
 
         if (measure == "adj.r.squared"){
@@ -350,11 +345,10 @@ daily_response <- function(response, env_data, method = "lm",
 
           temporal_matrix[1, j + 1] <- NA
         }
-        setTxtProgressBar(pb, j)
+
 
       }
 
-      close(pb)
     }
 
     row.names(temporal_matrix) <- fixed_width

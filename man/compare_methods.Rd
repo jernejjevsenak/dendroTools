@@ -7,7 +7,7 @@
 compare_methods(formula, dataset, k = 3, repeats = 2, use_caret = TRUE,
   neurons = 1, MT_M = 4, MT_N = F, MT_U = F, MT_R = F, BMT_P = 100,
   BMT_I = 100, BMT_M = 4, BMT_N = F, BMT_U = F, BMT_R = F,
-  RF_P = 100, RF_I = 100, RF_depth = 0, multiply = 5)
+  RF_mtry = 0, RF_maxnodes = 4, RF_ntree = 200, multiply = 5)
 }
 \arguments{
 \item{formula}{an object of class "formula" (or one that can be coerced
@@ -47,11 +47,11 @@ for brnn method}
 
 \item{BMT_R}{use regression trees (argument for bagging of model trees)}
 
-\item{RF_P}{bagSizePercent (argument for random forest)}
+\item{RF_mtry}{Number of variables randomly sampled as candidates at each split (argument for random forest)}
 
-\item{RF_I}{number of iterations (argument for random forest)}
+\item{RF_maxnodes}{Maximum number of terminal nodes trees in the forest can have (argument for random forest)}
 
-\item{RF_depth}{maxDepth (argument for random forest)}
+\item{RF_ntree}{Number of trees to grow (argument for random forest)}
 
 \item{multiply}{an intiger that will be used to change the seed options
 for different repeats. set.seed(multiply*5)}
@@ -79,20 +79,23 @@ data(example_dataset_1)
 
 # An example with default settings of machine learning algorithms
 experiment_1 <- compare_methods(formula = MVA~.,
-dataset = example_dataset_1, k = 3, repeats = 2)
+dataset = example_dataset_1, k = 3, repeats = 10)
 experiment_1[[1]] # See a data frame results
 experiment_1[[2]] # See a ggplot of mean bias for validation data
 
 experiment_2 <- compare_methods(formula = MVA~.,
-dataset = example_dataset_1, k = 3, repeats = 2, neurons = 1,
+dataset = example_dataset_1, k = 10, repeats = 100, neurons = 1,
 MT_M = 4, MT_N = FALSE, MT_U = FALSE, MT_R = FALSE, BMT_P = 100,
 BMT_I = 100, BMT_M = 4, BMT_N = FALSE, BMT_U = FALSE, BMT_R = FALSE,
-RF_P = 100, RF_I = 100, RF_depth= 0, multiply = 5)
+RF_mtry = 0, RF_maxnodes = 4, RF_ntree = 200, multiply = 5)
 experiment_2[[1]] # See a data frame results
 experiment_2[[2]] # See a ggplot of mean bias for validation data
 
 experiment_4 <- compare_methods(formula = MVA~.,
-dataset = example_dataset_1, k = 2, repeats = 2)
+dataset = example_dataset_1, k = 10, repeats = 10,
+use_caret = TRUE)
+experiment_4[[1]]
+experiment_4[[2]]
 }
 }
 \references{

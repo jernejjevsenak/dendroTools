@@ -32,9 +32,9 @@
 #' @param BMT_N unpruned (argument for bagging of model trees)
 #' @param BMT_U unsmoothed (argument for bagging of model trees)
 #' @param BMT_R use regression trees (argument for bagging of model trees)
-#' @param RF_P bagSizePercent (argument for random forest)
-#' @param RF_I number of iterations (argument for random forest)
-#' @param RF_depth maxDepth (argument for random forest)
+#' @param RF_mtry Number of variables randomly sampled as candidates at each split (argument for random forest)
+#' @param RF_maxnodes Maximum number of terminal nodes trees in the forest can have (argument for random forest)
+#' @param RF_ntree Number of trees to grow (argument for random forest)
 #'
 #' @return a list with two elements. Element one is a data frame with
 #' calculated measures for five regression methods. For each regression method
@@ -85,15 +85,18 @@
 #' experiment_1[[2]] # See a ggplot of mean bias for validation data
 #'
 #' experiment_2 <- compare_methods(formula = MVA~.,
-#' dataset = example_dataset_1, k = 3, repeats = 2, neurons = 1,
+#' dataset = example_dataset_1, k = 10, repeats = 100, neurons = 1,
 #' MT_M = 4, MT_N = FALSE, MT_U = FALSE, MT_R = FALSE, BMT_P = 100,
 #' BMT_I = 100, BMT_M = 4, BMT_N = FALSE, BMT_U = FALSE, BMT_R = FALSE,
-#' RF_P = 100, RF_I = 100, RF_depth= 0, multiply = 5)
+#' RF_mtry = 0, RF_maxnodes = 4, RF_ntree = 200, multiply = 5)
 #' experiment_2[[1]] # See a data frame results
 #' experiment_2[[2]] # See a ggplot of mean bias for validation data
 #'
 #' experiment_4 <- compare_methods(formula = MVA~.,
-#' dataset = example_dataset_1, k = 2, repeats = 2)
+#' dataset = example_dataset_1, k = 10, repeats = 10,
+#' use_caret = TRUE)
+#' experiment_4[[1]]
+#' experiment_4[[2]]
 #' }
 
 
@@ -101,8 +104,8 @@ compare_methods <- function(formula, dataset, k = 3, repeats = 2,
                             use_caret = TRUE,
                             neurons = 1, MT_M = 4, MT_N = F, MT_U = F,
                             MT_R = F, BMT_P = 100, BMT_I = 100, BMT_M = 4,
-                            BMT_N = F, BMT_U = F, BMT_R = F, RF_P = 100,
-                            RF_I = 100, RF_depth = 0, multiply = 5) {
+                            BMT_N = F, BMT_U = F, BMT_R = F, RF_mtry = 0,
+                            RF_maxnodes = 4, RF_ntree = 200, multiply = 5) {
 
 # This function is used to calculate measures r, RMSE, RRSE, d, RE, CE and bias
 # for train and test data
@@ -169,7 +172,7 @@ if (use_caret == TRUE){
 
   # Optimization for Random Forest
   capture.output(model <- train(formula, data = dataset, method = "rf"))
-  mtry = as.numeric(model[[6]][1])
+  RF_mtry = as.numeric(model[[6]][1])
 
 }
 
@@ -181,7 +184,7 @@ for (m in 1:repeats){
                        neurons = neurons, MT_M = MT_M, MT_N = MT_N,
                        MT_U = MT_U, MT_R = MT_R, BMT_P = BMT_P,
                        BMT_I = BMT_I, BMT_M = BMT_M, BMT_N = BMT_N,
-                       BMT_U = BMT_U, BMT_R = BMT_R, mtry = mtry, multiply = m)
+                       BMT_U = BMT_U, BMT_R = BMT_R, RF_mtry = RF_mtry, multiply = m)
 
   # temporary_df is called and results are stored in a pre-defined lists
   # This is repeated two times, because bias goes to seperate lists

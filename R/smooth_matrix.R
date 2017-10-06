@@ -13,13 +13,16 @@
 #'
 #' @return a matrix with replaced unrealistic values
 #'
+#' @export
+#'
 #' @examples
+#' library(dendroTools)
 #' data(daily_temperatures_example)
 #' data(example_proxies_1)
 #' Example1 <- daily_response(response = example_proxies_1,
 #' env_data = daily_temperatures_example, method = "brnn",
 #' measure = "r.squared", lower = 250, upper = 251,
-#' previous_year = FALSE, brnn_smooth = TRUE)
+#' previous_year = FALSE, brnn_smooth = TRUE, alpha = 0.1)
 #' smoothed <- smooth_matrix(mat = Example1[[1]])
 #'
 #' mat_1 <-  matrix(seq(1.01, 2, by = 0.01)  , ncol = 10, byrow = TRUE)
