@@ -23,7 +23,8 @@
 #' measure = "adj.r.squared", lower_limit = 50, upper_limit = 55)
 #' plot_heatmap(Example2)
 #'
-#' oxygen_isotope <- select(example_proxies_1, O)
+#' library(dplyr)
+#' oxygen_isotope <- dplyr::select(example_proxies_1, O)
 #' Example3 <- daily_response(response = oxygen_isotope,
 #' env_data = daily_temperatures_example, method = "cor", lower_limit = 50,
 #' upper_limit = 55, previous_year = TRUE)

@@ -53,14 +53,13 @@
 #' @export
 #'
 #' @examples
-
+#' \dontrun{
 #' data(daily_temperatures_example)
 #' data(example_proxies_1)
 #' library(dplyr)
-#' oxygen_isotope <- select(example_proxies_1, O)
+#' oxygen_isotope <- dplyr::select(example_proxies_1, O)
 #' carbon_isotope <- select(example_proxies_1, C)
 #'
-#' \dontrun{
 #' Example1a <- daily_response(response = carbon_isotope,
 #' env_data = daily_temperatures_example, method = "lm", measure = "r.squared",
 #' lower_limit = 357, upper_limit = 358)
@@ -81,7 +80,7 @@
 #' Example2b <- daily_response(response = oxygen_isotope,
 #' env_data = daily_temperatures_example, method = "brnn", lower_limit = 100,
 #' upper_limit = 150, remove_insignificant = TRUE)
-#' plot_heatmap(Example3)
+#' plot_heatmap(Example2b)
 #'
 #' # Example with negative correlations. Data frames are automatically subset.
 #' data(example_proxies_2)
@@ -97,7 +96,7 @@
 #' Example4b <- daily_response(response = oxygen_isotope,
 #' env_data = daily_temperatures_example, method = "brnn", measure = "adj.r.squared",
 #' lower_limit = 100, upper_limit = 200, remove_insignificant = TRUE)
-#' plot_heatmap(Example1b)
+#' plot_heatmap(Example4b)
 #'
 #' Example4c <- daily_response(response = example_proxies_1,
 #' env_data = daily_temperatures_example, method = "brnn", measure = "adj.r.squared",
@@ -110,7 +109,7 @@
 #' Example5b <- daily_response(response = oxygen_isotope,
 #' env_data = daily_temperatures_example, method = "brnn", lower_limit = 100,
 #' upper_limit = 150, remove_insignificant = TRUE)
-#' plot_heatmap(Example3)
+#' plot_heatmap(Example5b)
 #'
 #' # Example with negative correlations. Data frames are automatically subset.
 #' data(example_proxies_2)

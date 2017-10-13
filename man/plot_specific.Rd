@@ -35,5 +35,11 @@ env_data = daily_temperatures_example, method = "brnn",
 measure = "adj.r.squared", lower_limit = 150, upper_limit = 155,
 neurons = 1)
 plot_specific(Example2, window_width = 153, title = TRUE)
+
+Example3 <- daily_response(response = example_proxies_1,
+env_data = daily_temperatures_example, method = "brnn",
+measure = "adj.r.squared", lower_limit = 150, upper_limit = 155,
+neurons = 1, previous_year = TRUE)
+plot_specific(Example3, window_width = 153, title = TRUE)
 }
 }

@@ -18,6 +18,8 @@
 #' new_data <- years_to_rownames(data = data, column_year = "years")
 
 years_to_rownames <- function(data, column_year) {
+  data <- data.frame(data) # Data needs to of class data.frame!
+
   year_index <- grep(column_year, colnames(data))
 
   names <- colnames(data)

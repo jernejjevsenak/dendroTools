@@ -11,7 +11,7 @@
 #' @export
 #'
 #' @examples
-#'\dontrun{
+#' \dontrun{
 #' data(daily_temperatures_example)
 #' data(example_proxies_1)
 #' Example1 <- daily_response(response = example_proxies_1,

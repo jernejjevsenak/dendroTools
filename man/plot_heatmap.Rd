@@ -27,8 +27,15 @@ fixed_width = 90, previous_year = TRUE)
 plot_heatmap(Example1)
 
 Example2 <- daily_response(response = example_proxies_1,
-env_data = daily_temperatures_example, method = "lm",
+env_data = daily_temperatures_example, method = "brnn",
 measure = "adj.r.squared", lower_limit = 50, upper_limit = 55)
 plot_heatmap(Example2)
+
+library(dplyr)
+oxygen_isotope <- dplyr::select(example_proxies_1, O)
+Example3 <- daily_response(response = oxygen_isotope,
+env_data = daily_temperatures_example, method = "cor", lower_limit = 50,
+upper_limit = 55, previous_year = TRUE)
+plot_heatmap(Example3)
 }
 }
