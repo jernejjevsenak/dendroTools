@@ -20,25 +20,24 @@ Graphs a line plot of a row with the highest measure in a matrix, produced by
 \code{\link{daily_response}} function.
 }
 \examples{
-\dontrun{
-data(daily_temperatures_example)
+data(LJ_daily_temperatures)
 data(example_proxies_1)
 Example1 <- daily_response(response = example_proxies_1,
-env_data = daily_temperatures_example, method = "lm", measure = "r.squared",
+env_data = LJ_daily_temperatures, method = "lm", measure = "r.squared",
 fixed_width = 90, previous_year = TRUE)
 plot_extreme(Example1)
 
 Example2 <- daily_response(response = example_proxies_1,
-env_data = daily_temperatures_example, method = "brnn",
-measure = "adj.r.squared", lower_limit = 50, upper_limit = 55, neurons = 1)
+env_data = LJ_daily_temperatures, method = "brnn",
+measure = "adj.r.squared", lower_limit = 50, upper_limit = 55, neurons = 1,
+row_names_subset = TRUE)
 plot_extreme(Example2)
 
-#' # Example with negative correlations
+# Example with negative correlations
 data(example_proxies_2)
-daily_temperatures_example_subset = daily_temperatures_example[-c(53:55), ]
+LJ_daily_temperatures_subset = LJ_daily_temperatures[-c(53:55), ]
 Example3 <- daily_response(response = example_proxies_2,
-env_data = daily_temperatures_example_subset, method = "cor",
+env_data = LJ_daily_temperatures_subset, method = "cor",
 lower_limit = 35, upper_limit = 40)
 plot_extreme(Example3)
-}
 }

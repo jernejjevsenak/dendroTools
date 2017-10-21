@@ -61,6 +61,8 @@ a list with four elements:
   3. measure is a string indicating a calculated measure
   4. optimized_result is aggregated daily data, that returned the best
   calculated measure
+  5. String specifying the analysed period based on the information from
+  row names. If there is no row names, this argument is given as NA.
 }
 \description{
 Function calculates all possible values of a selected statistical measure
@@ -76,67 +78,72 @@ matrix of daily sequences of environmental data (column names).
 }
 \examples{
 \dontrun{
-data(daily_temperatures_example)
+data(LJ_daily_temperatures)
 data(example_proxies_1)
 library(dplyr)
-oxygen_isotope <- dplyr::select(example_proxies_1, O)
-carbon_isotope <- select(example_proxies_1, C)
+oxygen_isotope <- dplyr::select(example_proxies_1, O18)
+MVA_parameter <- dplyr::select(example_proxies_1, MVA)
 
-Example1a <- daily_response(response = carbon_isotope,
-env_data = daily_temperatures_example, method = "lm", measure = "r.squared",
-lower_limit = 357, upper_limit = 358)
+Example1a <- daily_response(response = MVA_parameter,
+env_data = LJ_daily_temperatures, method = "lm", measure = "r.squared",
+lower_limit = 357, upper_limit = 358, row_names_subset = TRUE)
 
-Example1b <- daily_response(response = oxygen_isotope,
-env_data = daily_temperatures_example, method = "cor", measure = "adj.r.squared",
-lower_limit = 100, upper_limit = 200, remove_insignificant = TRUE)
+Example1b <- daily_response(response = MVA_parameter,
+env_data = LJ_daily_temperatures, method = "cor", measure = "adj.r.squared",
+lower_limit = 100, upper_limit = 200, remove_insignificant = TRUE,
+row_names_subset = TRUE)
 plot_heatmap(Example1b)
 
 Example1c <- daily_response(response = example_proxies_1,
-env_data = daily_temperatures_example, method = "lm", measure = "adj.r.squared",
-lower_limit = 25, upper_limit = 35)
+env_data = LJ_daily_temperatures, method = "lm", measure = "adj.r.squared",
+lower_limit = 25, upper_limit = 35, row_names_subset = TRUE)
 
-Example2a <- daily_response(response = carbon_isotope,
-env_data = daily_temperatures_example, method = "lm",
-measure = "adj.r.squared", fixed_width = 10)
+Example2a <- daily_response(response = MVA_parameter,
+env_data = LJ_daily_temperatures, method = "lm",
+measure = "adj.r.squared", fixed_width = 10, row_names_subset = TRUE)
 
-Example2b <- daily_response(response = oxygen_isotope,
-env_data = daily_temperatures_example, method = "brnn", lower_limit = 100,
-upper_limit = 150, remove_insignificant = TRUE)
+Example2b <- daily_response(response = MVA_parameter,
+env_data = LJ_daily_temperatures, method = "lm", lower_limit = 50,
+upper_limit = 70, remove_insignificant = TRUE, row_names_subset = TRUE,
+previous_year = TRUE)
 plot_heatmap(Example2b)
+plot_extreme(Example2b)
+plot_specific(Example2b, 60)
 
 # Example with negative correlations. Data frames are automatically subset.
 data(example_proxies_2)
 Example3 <- daily_response(response = example_proxies_2,
-env_data = daily_temperatures_example, method = "brnn",
+env_data = LJ_daily_temperatures, method = "brnn",
 lower_limit = 30, upper_limit = 40, row_names_subset = TRUE)
 
 # brnn examples
-Example4a <- daily_response(response = carbon_isotope,
-env_data = daily_temperatures_example, method = "brnn", measure = "r.squared",
-lower_limit = 357, upper_limit = 358)
+Example4a <- daily_response(response = MVA_parameter,
+env_data = LJ_daily_temperatures, method = "brnn", measure = "r.squared",
+lower_limit = 357, upper_limit = 358, row_names_subset = TRUE)
 
-Example4b <- daily_response(response = oxygen_isotope,
-env_data = daily_temperatures_example, method = "brnn", measure = "adj.r.squared",
-lower_limit = 100, upper_limit = 200, remove_insignificant = TRUE)
+Example4b <- daily_response(response = MVA_parameter,
+env_data = LJ_daily_temperatures, method = "brnn", measure = "adj.r.squared",
+lower_limit = 100, upper_limit = 200, remove_insignificant = TRUE,
+row_names_subset = TRUE)
 plot_heatmap(Example4b)
 
 Example4c <- daily_response(response = example_proxies_1,
-env_data = daily_temperatures_example, method = "brnn", measure = "adj.r.squared",
-lower_limit = 25, upper_limit = 35)
+env_data = LJ_daily_temperatures, method = "brnn", measure = "adj.r.squared",
+lower_limit = 25, upper_limit = 35, row_names_subset = TRUE)
 
-Example5a <- daily_response(response = carbon_isotope,
-env_data = daily_temperatures_example, method = "brnn",
-measure = "adj.r.squared", fixed_width = 30)
+Example5a <- daily_response(response = MVA_parameter,
+env_data = LJ_daily_temperatures, method = "brnn",
+measure = "adj.r.squared", fixed_width = 30, row_names_subset = TRUE)
 
-Example5b <- daily_response(response = oxygen_isotope,
-env_data = daily_temperatures_example, method = "brnn", lower_limit = 100,
-upper_limit = 150, remove_insignificant = TRUE)
+Example5b <- daily_response(response = MVA_parameter,
+env_data = LJ_daily_temperatures, method = "brnn", lower_limit = 100,
+upper_limit = 150, remove_insignificant = TRUE, row_names_subset = TRUE)
 plot_heatmap(Example5b)
 
 # Example with negative correlations. Data frames are automatically subset.
 data(example_proxies_2)
 Example6 <- daily_response(response = example_proxies_2,
-env_data = daily_temperatures_example, method = "brnn",
+env_data = LJ_daily_temperatures, method = "brnn",
 lower_limit = 30, upper_limit = 40, row_names_subset = TRUE)
 }
 }

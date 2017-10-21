@@ -26,10 +26,10 @@ determined by a factor_drop.
 }
 \examples{
 library(dendroTools)
-data(daily_temperatures_example)
+data(LJ_daily_temperatures)
 data(example_proxies_1)
 Example1 <- daily_response(response = example_proxies_1,
-env_data = daily_temperatures_example, method = "brnn",
+env_data = LJ_daily_temperatures, method = "brnn",
 measure = "r.squared", lower = 250, upper = 251,
 previous_year = FALSE, brnn_smooth = TRUE, alpha = 0.1)
 smoothed <- smooth_matrix(mat = Example1[[1]])

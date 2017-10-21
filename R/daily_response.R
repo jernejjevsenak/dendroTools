@@ -49,72 +49,79 @@
 #'   3. measure is a string indicating a calculated measure
 #'   4. optimized_result is aggregated daily data, that returned the best
 #'   calculated measure
+#'   5. String specifying the analysed period based on the information from
+#'   row names. If there is no row names, this argument is given as NA.
 #'
 #' @export
 #'
 #' @examples
 #' \dontrun{
-#' data(daily_temperatures_example)
+#' data(LJ_daily_temperatures)
 #' data(example_proxies_1)
 #' library(dplyr)
-#' oxygen_isotope <- dplyr::select(example_proxies_1, O)
-#' carbon_isotope <- select(example_proxies_1, C)
+#' oxygen_isotope <- dplyr::select(example_proxies_1, O18)
+#' MVA_parameter <- dplyr::select(example_proxies_1, MVA)
 #'
-#' Example1a <- daily_response(response = carbon_isotope,
-#' env_data = daily_temperatures_example, method = "lm", measure = "r.squared",
-#' lower_limit = 357, upper_limit = 358)
+#' Example1a <- daily_response(response = MVA_parameter,
+#' env_data = LJ_daily_temperatures, method = "lm", measure = "r.squared",
+#' lower_limit = 357, upper_limit = 358, row_names_subset = TRUE)
 #'
-#' Example1b <- daily_response(response = oxygen_isotope,
-#' env_data = daily_temperatures_example, method = "cor", measure = "adj.r.squared",
-#' lower_limit = 100, upper_limit = 200, remove_insignificant = TRUE)
+#' Example1b <- daily_response(response = MVA_parameter,
+#' env_data = LJ_daily_temperatures, method = "cor", measure = "adj.r.squared",
+#' lower_limit = 100, upper_limit = 200, remove_insignificant = TRUE,
+#' row_names_subset = TRUE)
 #' plot_heatmap(Example1b)
 #'
 #' Example1c <- daily_response(response = example_proxies_1,
-#' env_data = daily_temperatures_example, method = "lm", measure = "adj.r.squared",
-#' lower_limit = 25, upper_limit = 35)
+#' env_data = LJ_daily_temperatures, method = "lm", measure = "adj.r.squared",
+#' lower_limit = 25, upper_limit = 35, row_names_subset = TRUE)
 #'
-#' Example2a <- daily_response(response = carbon_isotope,
-#' env_data = daily_temperatures_example, method = "lm",
-#' measure = "adj.r.squared", fixed_width = 10)
+#' Example2a <- daily_response(response = MVA_parameter,
+#' env_data = LJ_daily_temperatures, method = "lm",
+#' measure = "adj.r.squared", fixed_width = 10, row_names_subset = TRUE)
 #'
-#' Example2b <- daily_response(response = oxygen_isotope,
-#' env_data = daily_temperatures_example, method = "brnn", lower_limit = 100,
-#' upper_limit = 150, remove_insignificant = TRUE)
+#' Example2b <- daily_response(response = MVA_parameter,
+#' env_data = LJ_daily_temperatures, method = "lm", lower_limit = 50,
+#' upper_limit = 70, remove_insignificant = TRUE, row_names_subset = TRUE,
+#' previous_year = TRUE)
 #' plot_heatmap(Example2b)
+#' plot_extreme(Example2b)
+#' plot_specific(Example2b, 60)
 #'
 #' # Example with negative correlations. Data frames are automatically subset.
 #' data(example_proxies_2)
 #' Example3 <- daily_response(response = example_proxies_2,
-#' env_data = daily_temperatures_example, method = "brnn",
+#' env_data = LJ_daily_temperatures, method = "brnn",
 #' lower_limit = 30, upper_limit = 40, row_names_subset = TRUE)
 #'
 #' # brnn examples
-#' Example4a <- daily_response(response = carbon_isotope,
-#' env_data = daily_temperatures_example, method = "brnn", measure = "r.squared",
-#' lower_limit = 357, upper_limit = 358)
+#' Example4a <- daily_response(response = MVA_parameter,
+#' env_data = LJ_daily_temperatures, method = "brnn", measure = "r.squared",
+#' lower_limit = 357, upper_limit = 358, row_names_subset = TRUE)
 #'
-#' Example4b <- daily_response(response = oxygen_isotope,
-#' env_data = daily_temperatures_example, method = "brnn", measure = "adj.r.squared",
-#' lower_limit = 100, upper_limit = 200, remove_insignificant = TRUE)
+#' Example4b <- daily_response(response = MVA_parameter,
+#' env_data = LJ_daily_temperatures, method = "brnn", measure = "adj.r.squared",
+#' lower_limit = 100, upper_limit = 200, remove_insignificant = TRUE,
+#' row_names_subset = TRUE)
 #' plot_heatmap(Example4b)
 #'
 #' Example4c <- daily_response(response = example_proxies_1,
-#' env_data = daily_temperatures_example, method = "brnn", measure = "adj.r.squared",
-#' lower_limit = 25, upper_limit = 35)
+#' env_data = LJ_daily_temperatures, method = "brnn", measure = "adj.r.squared",
+#' lower_limit = 25, upper_limit = 35, row_names_subset = TRUE)
 #'
-#' Example5a <- daily_response(response = carbon_isotope,
-#' env_data = daily_temperatures_example, method = "brnn",
-#' measure = "adj.r.squared", fixed_width = 30)
+#' Example5a <- daily_response(response = MVA_parameter,
+#' env_data = LJ_daily_temperatures, method = "brnn",
+#' measure = "adj.r.squared", fixed_width = 30, row_names_subset = TRUE)
 #'
-#' Example5b <- daily_response(response = oxygen_isotope,
-#' env_data = daily_temperatures_example, method = "brnn", lower_limit = 100,
-#' upper_limit = 150, remove_insignificant = TRUE)
+#' Example5b <- daily_response(response = MVA_parameter,
+#' env_data = LJ_daily_temperatures, method = "brnn", lower_limit = 100,
+#' upper_limit = 150, remove_insignificant = TRUE, row_names_subset = TRUE)
 #' plot_heatmap(Example5b)
 #'
 #' # Example with negative correlations. Data frames are automatically subset.
 #' data(example_proxies_2)
 #' Example6 <- daily_response(response = example_proxies_2,
-#' env_data = daily_temperatures_example, method = "brnn",
+#' env_data = LJ_daily_temperatures, method = "brnn",
 #' lower_limit = 30, upper_limit = 40, row_names_subset = TRUE)
 #' }
 
@@ -590,7 +597,7 @@ daily_response <- function(response, env_data, method = "lm",
   # For more detailed description see plot_extreme()
 
   if(is.finite(mean(temporal_matrix, na.rm = TRUE)) == FALSE){
-    stop("All calculations are insignificant!")
+    stop("All calculations are insignificant! Change the alpha argument!")
   }
 
   overall_max <- max(temporal_matrix, na.rm = TRUE)
@@ -682,5 +689,28 @@ daily_response <- function(response, env_data, method = "lm",
     optimized_result <- cor(dataf, response)
   }
 
+  # Here we create the fifth element of the final list: Analysed period in the
+  # form of min(year) - max(year), e.g. 1950 - 2015
+  min_env_data <- min(as.numeric(row.names(env_data)))
+  min_response <- min(as.numeric(row.names(response)))
+
+  max_env_data <- max(as.numeric(row.names(env_data)))
+  max_response <- max(as.numeric(row.names(response)))
+
+  min_together <- min(min_env_data, min_response)
+  max_together <- min(max_env_data, max_response)
+
+
+  analysed_period <- paste(as.character(min_together),
+                           as.character(max_together),
+                           sep = " - ")
+  if (nchar(analysed_period) < 9) {
+    analysed_period <- NA
+    }
+
+  final_list[[5]] <- analysed_period
+
   return(final_list)
 }
+
+

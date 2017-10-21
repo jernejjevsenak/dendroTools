@@ -1,10 +1,11 @@
-#' Daily mean temperatures for Ljubljana from 2015 - 1961
+#' Daily mean temperatures for Ljubljana from 2017 - 1955
 #'
-#' A dataset of daily mean temperatures in Ljubljana (Slovenia). The first row
-#' represents temperatures in 1961. The first column represents the first day
+#' A dataset of daily mean temperatures in Kredarica (Slovenia). The first row
+#' represents temperatures in 1955. The first column represents the first day
 #' of a year, the second column represents the second day of a year, etc.
+#' Row names represent years.
 #'
-#' @format A data frame with 55 rows and 366 variables:
+#' @format A data frame with 63 rows and 366 variables:
 #' \describe{
 #'   \item{X1}{Temperatures on the day 1 of a year}
 #'   \item{X2}{Temperatures on the day 2 of a year}
@@ -375,4 +376,4 @@
 #' }
 #' @source \url{http://meteo.arso.gov.si/met/sl/archive/}
 #' @export
-"daily_temperatures_example"
+"KRE_daily_temperatures"

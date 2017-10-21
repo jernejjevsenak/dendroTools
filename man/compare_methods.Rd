@@ -5,10 +5,12 @@
 \title{compare_methods}
 \usage{
 compare_methods(formula, dataset, k = 3, repeats = 2, use_caret = TRUE,
-  neurons = 1, MT_M = 4, MT_N = F, MT_U = F, MT_R = F, BMT_P = 100,
-  BMT_I = 100, BMT_M = 4, BMT_N = F, BMT_U = F, BMT_R = F,
-  RF_mtry = 0, RF_maxnodes = 4, RF_ntree = 200, multiply = 5,
-  returns = c("Calibration", "Validation"))
+  ANN_neurons = 1, MT_M = 4, MT_N = F, MT_U = F, MT_R = F,
+  BMT_P = 100, BMT_I = 100, BMT_M = 4, BMT_N = F, BMT_U = F,
+  BMT_R = F, RF_mtry = 0, RF_maxnodes = 4, RF_ntree = 200,
+  multiply = 5, returns = c("Calibration", "Validation"), digits = 3,
+  MLR_step = FALSE, MLR_step_scale = 0, MLR_step_direction = "both",
+  MLR_step_steps = 1000)
 }
 \arguments{
 \item{formula}{an object of class "formula" (or one that can be coerced
@@ -25,7 +27,7 @@ than 2.}
 \item{use_caret}{if set to TRUE, the package caret will be used to tune parameters
 for regression methods}
 
-\item{neurons}{positive integer that indicates the number of neurons used
+\item{ANN_neurons}{positive integer that indicates the number of neurons used
 for brnn method}
 
 \item{MT_M}{minimum number of instances used by model trees}
@@ -61,9 +63,26 @@ for different repeats. set.seed(multiply*5)}
 
 \item{returns}{A character vector that specifies, wheter a calibration and/ or
 validation results should be returned.}
+
+\item{digits}{intiger of number of digits to be displayed in the final
+result tabels}
+
+\item{MLR_step}{logical, if set to TRUE, stepwise selection of predictors will
+be used to fit MLR model}
+
+\item{MLR_step_scale}{used in the definition of the AIC statistic for selecting the
+models, currently only for lm, aov and glm models. The default value, 0,
+indicates the scale should be estimated: see extractAIC.}
+
+\item{MLR_step_direction}{the mode of stepwise search, can be one of "both",
+"backward", or "forward", with a default of "both". Values can be abbreviated.}
+
+\item{MLR_step_steps}{the maximum number of steps to be considered. The default is
+1000 (essentially as many as required). It is typically used to stop the
+process early.}
 }
 \value{
-a list with four elements. Element one is a data frame with
+a list with five elements. Element one is a data frame with
 calculated measures for five regression methods. For each regression method
 and each calculated measure, mean and standard deviation are given.
 Element two is similar to element one: a data frame with ranks of calculated
@@ -71,7 +90,8 @@ measures: average rank and share of rank 1 are given. Element three and four
 are ggplot objects of mean bias for calibration (element 3) and validation
 (element 4) data. If returns argument is set to return only "Calibration" or
 "Validation" results, only the three relevant elements will be returned in the
-list
+list. Element five is a data frame with specifications of parameters used for
+different regression methods.
 }
 \description{
 Calculates performance measures for train and test data of different
@@ -84,35 +104,38 @@ of agreement (d), reduction of error (RE), coefficient of efficiency
 (CE) and mean bias.
 }
 \examples{
+\dontrun{
 data(example_dataset_1)
 
 # An example with default settings of machine learning algorithms
 experiment_1 <- compare_methods(formula = MVA~.,
-dataset = example_dataset_1, k = 3, repeats = 50,
-returns = c("Calibration", "Validation"))
+dataset = example_dataset_1, k = 10, repeats = 10,
+returns = c("Calibration", "Validation"), MLR_step = TRUE)
 experiment_1[[1]] # See a data frame results of mean and standard deviation
 # for different methods
 experiment_1[[2]] # See a data frame results of average rank and share of
 # rank 1 for different methods
 experiment_1[[3]] # See a ggplot of mean bias for calibration data
 experiment_1[[4]] # See a ggplot of mean bias for validation data
+experiment_1[[5]] # Data frame with parameters used for regression methods
 
-experiment_2 <- compare_methods(formula = MVA~.,
-dataset = example_dataset_1, k = 10, repeats = 100, neurons = 1,
+experiment_2 <- compare_methods(formula = MVA ~ .,
+dataset = example_dataset_1, k = 5, repeats = 100, ANN_neurons = 1,
 MT_M = 4, MT_N = FALSE, MT_U = FALSE, MT_R = FALSE, BMT_P = 100,
 BMT_I = 100, BMT_M = 4, BMT_N = FALSE, BMT_U = FALSE, BMT_R = FALSE,
 RF_mtry = 0, RF_maxnodes = 4, RF_ntree = 200, multiply = 5,
-returns = c("Calibration"))
+returns = c("Calibration"), MLR_step = TRUE)
 experiment_2[[1]]
 experiment_2[[2]]
 experiment_2[[3]]
 
 experiment_3 <- compare_methods(formula = MVA~.,
-dataset = example_dataset_1, k = 10, repeats = 10,
+dataset = example_dataset_1, k = 5, repeats = 10,
 use_caret = TRUE, returns = c("Validation"))
 experiment_3[[1]]
 experiment_3[[2]]
 experiment_3[[3]]
+}
 }
 \references{
 Bishop, C.M., 1995. Neural Networks for Pattern Recognition. Oxford

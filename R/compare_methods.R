@@ -18,7 +18,7 @@
 #' than 2.
 #' @param use_caret if set to TRUE, the package caret will be used to tune parameters
 #' for regression methods
-#' @param neurons positive integer that indicates the number of neurons used
+#' @param ANN_neurons positive integer that indicates the number of neurons used
 #'  for brnn method
 #' @param MT_M minimum number of instances used by model trees
 #' @param MT_N unpruned (argument for model trees)
@@ -39,8 +39,20 @@
 #' for different repeats. set.seed(multiply*5)
 #' @param returns A character vector that specifies, wheter a calibration and/ or
 #' validation results should be returned.
+#' @param digits intiger of number of digits to be displayed in the final
+#' result tabels
+#' @param MLR_step logical, if set to TRUE, stepwise selection of predictors will
+#' be used to fit MLR model
+#' @param MLR_step_scale used in the definition of the AIC statistic for selecting the
+#' models, currently only for lm, aov and glm models. The default value, 0,
+#' indicates the scale should be estimated: see extractAIC.
+#' @param MLR_step_direction the mode of stepwise search, can be one of "both",
+#' "backward", or "forward", with a default of "both". Values can be abbreviated.
+#' @param MLR_step_steps the maximum number of steps to be considered. The default is
+#' 1000 (essentially as many as required). It is typically used to stop the
+#' process early.
 #'
-#' @return a list with four elements. Element one is a data frame with
+#' @return a list with five elements. Element one is a data frame with
 #' calculated measures for five regression methods. For each regression method
 #' and each calculated measure, mean and standard deviation are given.
 #' Element two is similar to element one: a data frame with ranks of calculated
@@ -48,7 +60,8 @@
 #' are ggplot objects of mean bias for calibration (element 3) and validation
 #' (element 4) data. If returns argument is set to return only "Calibration" or
 #' "Validation" results, only the three relevant elements will be returned in the
-#' list
+#' list. Element five is a data frame with specifications of parameters used for
+#' different regression methods.
 #'
 #' @export
 #'
@@ -83,43 +96,48 @@
 #' Scientific, Hobart, pp. 343-348.
 #'
 #' @examples
+#' \dontrun{
 #' data(example_dataset_1)
 #'
 #' # An example with default settings of machine learning algorithms
 #' experiment_1 <- compare_methods(formula = MVA~.,
-#' dataset = example_dataset_1, k = 3, repeats = 50,
-#' returns = c("Calibration", "Validation"))
+#' dataset = example_dataset_1, k = 10, repeats = 10,
+#' returns = c("Calibration", "Validation"), MLR_step = TRUE)
 #' experiment_1[[1]] # See a data frame results of mean and standard deviation
 #' # for different methods
 #' experiment_1[[2]] # See a data frame results of average rank and share of
 #' # rank 1 for different methods
 #' experiment_1[[3]] # See a ggplot of mean bias for calibration data
 #' experiment_1[[4]] # See a ggplot of mean bias for validation data
+#' experiment_1[[5]] # Data frame with parameters used for regression methods
 #'
-#' experiment_2 <- compare_methods(formula = MVA~.,
-#' dataset = example_dataset_1, k = 10, repeats = 100, neurons = 1,
+#' experiment_2 <- compare_methods(formula = MVA ~ .,
+#' dataset = example_dataset_1, k = 5, repeats = 100, ANN_neurons = 1,
 #' MT_M = 4, MT_N = FALSE, MT_U = FALSE, MT_R = FALSE, BMT_P = 100,
 #' BMT_I = 100, BMT_M = 4, BMT_N = FALSE, BMT_U = FALSE, BMT_R = FALSE,
 #' RF_mtry = 0, RF_maxnodes = 4, RF_ntree = 200, multiply = 5,
-#' returns = c("Calibration"))
+#' returns = c("Calibration"), MLR_step = TRUE)
 #' experiment_2[[1]]
 #' experiment_2[[2]]
 #' experiment_2[[3]]
 #'
 #' experiment_3 <- compare_methods(formula = MVA~.,
-#' dataset = example_dataset_1, k = 10, repeats = 10,
+#' dataset = example_dataset_1, k = 5, repeats = 10,
 #' use_caret = TRUE, returns = c("Validation"))
 #' experiment_3[[1]]
 #' experiment_3[[2]]
 #' experiment_3[[3]]
+#' }
 
 compare_methods <- function(formula, dataset, k = 3, repeats = 2,
                             use_caret = TRUE,
-                            neurons = 1, MT_M = 4, MT_N = F, MT_U = F,
+                            ANN_neurons = 1, MT_M = 4, MT_N = F, MT_U = F,
                             MT_R = F, BMT_P = 100, BMT_I = 100, BMT_M = 4,
                             BMT_N = F, BMT_U = F, BMT_R = F, RF_mtry = 0,
                             RF_maxnodes = 4, RF_ntree = 200, multiply = 5,
-                            returns = c("Calibration", "Validation")) {
+                            returns = c("Calibration", "Validation"),
+                            digits = 3, MLR_step = FALSE, MLR_step_scale = 0,
+                            MLR_step_direction = "both", MLR_step_steps = 1000) {
 
 dataset <- data.frame(dataset) # dataset needs to be of class data.frame!
 
@@ -143,13 +161,14 @@ list_RF <- list()
 # Results are stored in a temporary_df.
 
 # Here we use caret package to tune our parameters
+
 if (use_caret == TRUE){
 
   model = NULL
 
   # Optimization for ANN
   capture.output(model <- train(formula, data = dataset, method = "brnn"))
-  neurons = as.numeric(model[[6]][1])
+  ANN_neurons = as.numeric(model[[6]][1])
 
   # Optimization for MT
   capture.output(model <- train(formula, data = dataset, method = "M5"))
@@ -217,17 +236,32 @@ for (j in 1:k){
   train <- dataset[-testIndexes, ]
 
   #MLR MODEL
-  MLR <- lm(formula, data = train)
-  train_predicted <- predict(MLR, train)
-  test_predicted <- predict(MLR, test)
-  train_observed <- train[, DepIndex]
-  test_observed <- test[, DepIndex]
-  calculations <- calculate_measures(train_predicted, test_predicted,
-                                     train_observed, test_observed)
-  list_MLR[[b]] <- calculations
+  if (MLR_step == TRUE){
+    MLR <- stats::step(lm(as.formula(formula), data = train), direction = MLR_step_direction,
+                scales = MLR_step_scale, steps = MLR_step_steps, trace = TRUE)
+    train_predicted <- predict(MLR, train)
+    test_predicted <- predict(MLR, test)
+    train_observed <- train[, DepIndex]
+    test_observed <- test[, DepIndex]
+    calculations <- calculate_measures(train_predicted, test_predicted,
+                                       train_observed, test_observed)
+    list_MLR[[b]] <- calculations
+
+    } else if (MLR_step == FALSE){
+      MLR <- lm(formula, data = train)
+      train_predicted <- predict(MLR, train)
+      test_predicted <- predict(MLR, test)
+      train_observed <- train[, DepIndex]
+      test_observed <- test[, DepIndex]
+      calculations <- calculate_measures(train_predicted, test_predicted,
+                                         train_observed, test_observed)
+      list_MLR[[b]] <- calculations
+    } else {
+    stop("The argument MLR_step should be TRUE or FALSE!")
+  }
 
   #ANN Model
-  capture.output(ANN <- brnn(formula, data = train, neurons = neurons, verbose = FALSE))
+  capture.output(ANN <- brnn(formula, data = train, ANN_neurons = ANN_neurons, verbose = FALSE))
   train_predicted <- predict(ANN, train)
   test_predicted <- predict(ANN, test)
   calculations <- calculate_measures(train_predicted, test_predicted,
@@ -354,13 +388,13 @@ rownames(df_RF_avg) <- c("r_cal", "r_val", "RMSE_cal", "RMSE_val", "RSSE_cal",
                       "CE_cal", "CE_val")
 
 # Here, all data frames are binded together
-df_all_avg <- round(cbind(df_MLR_avg, df_ANN_avg, df_MT_avg, df_BMT_avg, df_RF_avg), 4)
+df_all_avg <- round(cbind(df_MLR_avg, df_ANN_avg, df_MT_avg, df_BMT_avg, df_RF_avg), 8)
 
 
 
 #######################
 # Calculation of ranks
-df_all <- round(rbind(df_MLR_rank, df_ANN_rank, df_MT_rank, df_BMT_rank, df_RF_rank), 4)
+df_all <- round(rbind(df_MLR_rank, df_ANN_rank, df_MT_rank, df_BMT_rank, df_RF_rank), 8)
 
 
 # Now, all measures (except bias) are extracted for calibration and validation
@@ -510,6 +544,10 @@ ranks_together$Measure <- c("r", "r", "r", "r", "r", "r", "r", "r", "r", "r",
                            "RE", "RE", "RE", "RE", "CE", "CE", "CE", "CE",
                            "CE", "CE", "CE", "CE", "CE", "CE")
 
+
+
+
+
 colnames(ranks_together)[1] <- "Avg_rank"
 togeter_AVG_rank <- reshape::cast(ranks_together,
                                   formula = Measure + Period ~ Method,
@@ -586,18 +624,25 @@ bias_together <- rbind(df_MLR_bias,
                        df_BMT_bias,
                        df_RF_bias)
 
-levels(bias_together$Method) <- c("MLR", "ANN", "MT", "BMT", "RF")
-
 
 bias_together <- melt(bias_together, id.vars = c("Period", "Method"))
+
+
 
 bias_together_calibration <- dplyr::filter(bias_together, Period == "Calibration")
 bias_together_validation<- dplyr::filter(bias_together, Period == "Validation")
 
+bias_together_calibration$Method <- factor(bias_together_calibration$Method,
+                                 levels = c("MLR", "ANN", "MT", "BMT", "RF"),
+                                 ordered = TRUE)
+bias_together_validation$Method <- factor(bias_together_validation$Method,
+                                            levels = c("MLR", "ANN", "MT", "BMT", "RF"),
+                                           ordered = TRUE)
+
 gg_object_cal <- ggplot(bias_together_calibration, aes(value)) +
   geom_density(aes(group = Method)) +
   geom_vline(xintercept = 0) +
-  facet_grid(Method ~ Period) +
+  facet_grid(Method ~ ., scales = "free") +
   theme_bw() +
   theme(legend.position = "NONE", legend.title = element_blank(),
         text = element_text(size = 15))
@@ -605,10 +650,15 @@ gg_object_cal <- ggplot(bias_together_calibration, aes(value)) +
 gg_object_val <- ggplot(bias_together_validation, aes(value)) +
   geom_density(aes(group = Method)) +
   geom_vline(xintercept = 0) +
-  facet_grid(Method ~ Period) +
+  facet_grid(Method ~ .) +
   theme_bw() +
   theme(legend.position = "NONE", legend.title = element_blank(),
         text = element_text(size = 15))
+
+##### Here both data frames are subset with round_df function #############
+
+Rezults_mean_std <- round_df(Rezults_mean_std, digits = digits)
+Rezults_ranks <- round_df(Rezults_ranks, digits = digits)
 
 # Here, Calibration Validation subset is
 a <- 0
@@ -624,21 +674,37 @@ if ("Validation" %in% returns){
 
 c <- a + b
 
+# Here, all optimized parameters are saved in a data frame, which will be saved as
+# a fifth elemnt of the final_list
+parameters <- data.frame(
+  Method = c("ANN", "MT", "MT", "MT", "MT", "BMT", "BMT", "BMT", "BMT", "BMT", "BMT",
+             "RF", "RF", "RF"),
+  Parameter = c("ANN_neurons", "MT_M", "MT_N", "MT_U", "MT_R", "BMT_P", "BMT_I", "BMT_M",
+                "BMT_N", "BMT_U", "BMT_R", "RF_mtry", "RF_maxnodes", "RF_ntree"),
+  Value = c(ANN_neurons, MT_M,
+            ifelse(MT_N == 1, as.character("TRUE"), as.character("FALSE")),
+            ifelse(MT_U == 1, as.character("TRUE"), as.character("FALSE")),
+            ifelse(MT_R == 1, as.character("TRUE"), as.character("FALSE")), BMT_P, BMT_I, BMT_M,
+            ifelse(BMT_N == 1, as.character("TRUE"), as.character("FALSE")),
+            ifelse(BMT_U == 1, as.character("TRUE"), as.character("FALSE")),
+            ifelse(BMT_R == 1, as.character("TRUE"), as.character("FALSE")),
+            RF_mtry, RF_maxnodes, RF_ntree))
+
 # If Calibration and Validation data should be returned, then this is our final results
 if (c == 4){
-  final_list <- list(Rezults_mean_std, Rezults_ranks, gg_object_cal, gg_object_val)
+  final_list <- list(Rezults_mean_std, Rezults_ranks, gg_object_cal, gg_object_val, parameters)
 }
 
 if (c == 1){
   Rezults_mean_std <- dplyr::filter(Rezults_mean_std, Period == "cal")
   Rezults_ranks <- dplyr::filter(Rezults_ranks, Period == "cal")
-  final_list <- list(Rezults_mean_std, Rezults_ranks, gg_object_cal)
+  final_list <- list(Rezults_mean_std, Rezults_ranks, gg_object_cal, parameters)
 }
 
 if (c == 3){
   Rezults_mean_std <- dplyr::filter(Rezults_mean_std, Period == "val")
   Rezults_ranks <- dplyr::filter(Rezults_ranks, Period == "val")
-  final_list <- list(Rezults_mean_std, Rezults_ranks, gg_object_val)
+  final_list <- list(Rezults_mean_std, Rezults_ranks, gg_object_val, parameters)
 }
 
 final_list
