@@ -86,6 +86,7 @@
 #' Scientific, Hobart, pp. 343-348.
 #'
 #' @examples
+#' \dontrun{
 #' data(example_dataset_1)
 #'
 #' # An example with default settings of machine learning algorithms
@@ -116,6 +117,7 @@
 #' experiment_3[[1]]
 #' experiment_3[[2]]
 #' experiment_3[[3]]
+#' }
 
 compare_methods <- function(formula, dataset, k = 3, repeats = 2,
                             use_caret = TRUE,

@@ -88,6 +88,7 @@ of agreement (d), reduction of error (RE), coefficient of efficiency
 (CE) and mean bias.
 }
 \examples{
+\dontrun{
 data(example_dataset_1)
 
 # An example with default settings of machine learning algorithms
@@ -118,6 +119,7 @@ use_caret = TRUE, returns = c("Validation"))
 experiment_3[[1]]
 experiment_3[[2]]
 experiment_3[[3]]
+}
 }
 \references{
 Bishop, C.M., 1995. Neural Networks for Pattern Recognition. Oxford
