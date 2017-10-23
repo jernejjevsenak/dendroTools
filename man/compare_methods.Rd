@@ -104,13 +104,12 @@ of agreement (d), reduction of error (RE), coefficient of efficiency
 (CE) and mean bias.
 }
 \examples{
-\dontrun{
 data(example_dataset_1)
 
 # An example with default settings of machine learning algorithms
 experiment_1 <- compare_methods(formula = MVA~.,
 dataset = example_dataset_1, k = 10, repeats = 10,
-returns = c("Calibration", "Validation"), MLR_step = TRUE)
+returns = c("Calibration", "Validation"), MLR_step = FALSE)
 experiment_1[[1]] # See a data frame results of mean and standard deviation
 # for different methods
 experiment_1[[2]] # See a data frame results of average rank and share of
@@ -124,7 +123,7 @@ dataset = example_dataset_1, k = 5, repeats = 100, ANN_neurons = 1,
 MT_M = 4, MT_N = FALSE, MT_U = FALSE, MT_R = FALSE, BMT_P = 100,
 BMT_I = 100, BMT_M = 4, BMT_N = FALSE, BMT_U = FALSE, BMT_R = FALSE,
 RF_mtry = 0, RF_maxnodes = 4, RF_ntree = 200, multiply = 5,
-returns = c("Calibration"), MLR_step = TRUE)
+returns = c("Calibration"), MLR_step = FALSE)
 experiment_2[[1]]
 experiment_2[[2]]
 experiment_2[[3]]
@@ -135,7 +134,6 @@ use_caret = TRUE, returns = c("Validation"))
 experiment_3[[1]]
 experiment_3[[2]]
 experiment_3[[3]]
-}
 }
 \references{
 Bishop, C.M., 1995. Neural Networks for Pattern Recognition. Oxford

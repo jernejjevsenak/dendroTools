@@ -96,13 +96,12 @@
 #' Scientific, Hobart, pp. 343-348.
 #'
 #' @examples
-#' \dontrun{
 #' data(example_dataset_1)
 #'
 #' # An example with default settings of machine learning algorithms
 #' experiment_1 <- compare_methods(formula = MVA~.,
 #' dataset = example_dataset_1, k = 10, repeats = 10,
-#' returns = c("Calibration", "Validation"), MLR_step = TRUE)
+#' returns = c("Calibration", "Validation"), MLR_step = FALSE)
 #' experiment_1[[1]] # See a data frame results of mean and standard deviation
 #' # for different methods
 #' experiment_1[[2]] # See a data frame results of average rank and share of
@@ -116,7 +115,7 @@
 #' MT_M = 4, MT_N = FALSE, MT_U = FALSE, MT_R = FALSE, BMT_P = 100,
 #' BMT_I = 100, BMT_M = 4, BMT_N = FALSE, BMT_U = FALSE, BMT_R = FALSE,
 #' RF_mtry = 0, RF_maxnodes = 4, RF_ntree = 200, multiply = 5,
-#' returns = c("Calibration"), MLR_step = TRUE)
+#' returns = c("Calibration"), MLR_step = FALSE)
 #' experiment_2[[1]]
 #' experiment_2[[2]]
 #' experiment_2[[3]]
@@ -127,7 +126,6 @@
 #' experiment_3[[1]]
 #' experiment_3[[2]]
 #' experiment_3[[3]]
-#' }
 
 compare_methods <- function(formula, dataset, k = 3, repeats = 2,
                             use_caret = TRUE,

@@ -6,7 +6,7 @@
 \usage{
 daily_response(response, env_data, method = "lm", measure = "r.squared",
   lower_limit = 30, upper_limit = 270, fixed_width = 0,
-  previous_year = FALSE, neurons = 2, brnn_smooth = TRUE,
+  previous_year = FALSE, neurons = 1, brnn_smooth = TRUE,
   remove_insignificant = TRUE, alpha = 0.05, row_names_subset = FALSE)
 }
 \arguments{
@@ -77,7 +77,6 @@ in the matrix is indicating a window width (row names) and a location in a
 matrix of daily sequences of environmental data (column names).
 }
 \examples{
-\dontrun{
 data(LJ_daily_temperatures)
 data(example_proxies_1)
 library(dplyr)
@@ -145,5 +144,4 @@ data(example_proxies_2)
 Example6 <- daily_response(response = example_proxies_2,
 env_data = LJ_daily_temperatures, method = "brnn",
 lower_limit = 30, upper_limit = 40, row_names_subset = TRUE)
-}
 }
