@@ -31,7 +31,7 @@ This is a basic example which demonstrates how to use the daily\_response():
 library(dendroTools)
 data(LJ_daily_temperatures) 
 data(example_proxies_1)
-result1 <- daily_response(response = example_proxies_1, env_data = daily_temperatures_example, 
+result1 <- daily_response(response = example_proxies_1, env_data = LJ_daily_temperatures, 
                             method = "lm", measure = "r.squared", lower_limit = 30, upper_limit = 270, remove_insignificant = TRUE, row_names_subset = TRUE)
 ```
 
@@ -70,6 +70,7 @@ experiment_1 <- compare_methods(formula = MVA ~ ., dataset = example_dataset_1, 
 #> Warning: package 'brnn' was built under R version 3.4.1
 #> Loading required package: Formula
 #> Warning: package 'Formula' was built under R version 3.4.1
+#> Warning: package 'RWeka' was built under R version 3.4.2
 #> randomForest 4.6-12
 #> Type rfNews() to see new features/changes/bug fixes.
 #> 
