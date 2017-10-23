@@ -1,10 +1,9 @@
 ##  Resubmission
-* This is a resubmission of the package dendroTools
-
+* This is a resubmission of the package dendroTools.
 
 ## Test environments
 * local OS X install, R 3.4.0
-* Ubuntu precise (Ubuntu 14.04.5 LTS) (on travis-ci), R version 3.4.1 (2017-01-27)
+* Ubuntu precise (Ubuntu 14.04.5 LTS) (on travis-ci), R version 3.4.2 (2017-01-27)
 * win-builder R Under development (unstable) (2017-09-12 r73242)
 
 ## R CMD check results
