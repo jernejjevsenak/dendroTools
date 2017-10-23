@@ -77,6 +77,7 @@ in the matrix is indicating a window width (row names) and a location in a
 matrix of daily sequences of environmental data (column names).
 }
 \examples{
+\dontrun{
 data(LJ_daily_temperatures)
 data(example_proxies_1)
 library(dplyr)
@@ -144,4 +145,5 @@ data(example_proxies_2)
 Example6 <- daily_response(response = example_proxies_2,
 env_data = LJ_daily_temperatures, method = "brnn",
 lower_limit = 30, upper_limit = 40, row_names_subset = TRUE)
+}
 }

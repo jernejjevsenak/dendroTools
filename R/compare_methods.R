@@ -41,16 +41,6 @@
 #' validation results should be returned.
 #' @param digits intiger of number of digits to be displayed in the final
 #' result tabels
-#' @param MLR_step logical, if set to TRUE, stepwise selection of predictors will
-#' be used to fit MLR model
-#' @param MLR_step_scale used in the definition of the AIC statistic for selecting the
-#' models, currently only for lm, aov and glm models. The default value, 0,
-#' indicates the scale should be estimated: see extractAIC.
-#' @param MLR_step_direction the mode of stepwise search, can be one of "both",
-#' "backward", or "forward", with a default of "both". Values can be abbreviated.
-#' @param MLR_step_steps the maximum number of steps to be considered. The default is
-#' 1000 (essentially as many as required). It is typically used to stop the
-#' process early.
 #'
 #' @return a list with five elements. Element one is a data frame with
 #' calculated measures for five regression methods. For each regression method
@@ -100,8 +90,8 @@
 #'
 #' # An example with default settings of machine learning algorithms
 #' experiment_1 <- compare_methods(formula = MVA~.,
-#' dataset = example_dataset_1, k = 10, repeats = 10,
-#' returns = c("Calibration", "Validation"), MLR_step = FALSE)
+#' dataset = example_dataset_1, k = 10, repeats = 2,
+#' returns = c("Calibration", "Validation"))
 #' experiment_1[[1]] # See a data frame results of mean and standard deviation
 #' # for different methods
 #' experiment_1[[2]] # See a data frame results of average rank and share of
@@ -115,7 +105,7 @@
 #' MT_M = 4, MT_N = FALSE, MT_U = FALSE, MT_R = FALSE, BMT_P = 100,
 #' BMT_I = 100, BMT_M = 4, BMT_N = FALSE, BMT_U = FALSE, BMT_R = FALSE,
 #' RF_mtry = 0, RF_maxnodes = 4, RF_ntree = 200, multiply = 5,
-#' returns = c("Calibration"), MLR_step = FALSE)
+#' returns = c("Calibration"))
 #' experiment_2[[1]]
 #' experiment_2[[2]]
 #' experiment_2[[3]]
@@ -134,8 +124,7 @@ compare_methods <- function(formula, dataset, k = 3, repeats = 2,
                             BMT_N = F, BMT_U = F, BMT_R = F, RF_mtry = 0,
                             RF_maxnodes = 4, RF_ntree = 200, multiply = 5,
                             returns = c("Calibration", "Validation"),
-                            digits = 3, MLR_step = FALSE, MLR_step_scale = 0,
-                            MLR_step_direction = "both", MLR_step_steps = 1000) {
+                            digits = 3) {
 
 dataset <- data.frame(dataset) # dataset needs to be of class data.frame!
 
@@ -234,29 +223,14 @@ for (j in 1:k){
   train <- dataset[-testIndexes, ]
 
   #MLR MODEL
-  if (MLR_step == TRUE){
-    MLR <- stats::step(lm(as.formula(formula), data = train), direction = MLR_step_direction,
-                scales = MLR_step_scale, steps = MLR_step_steps, trace = TRUE)
-    train_predicted <- predict(MLR, train)
-    test_predicted <- predict(MLR, test)
-    train_observed <- train[, DepIndex]
-    test_observed <- test[, DepIndex]
-    calculations <- calculate_measures(train_predicted, test_predicted,
-                                       train_observed, test_observed)
-    list_MLR[[b]] <- calculations
-
-    } else if (MLR_step == FALSE){
-      MLR <- lm(formula, data = train)
-      train_predicted <- predict(MLR, train)
-      test_predicted <- predict(MLR, test)
-      train_observed <- train[, DepIndex]
-      test_observed <- test[, DepIndex]
-      calculations <- calculate_measures(train_predicted, test_predicted,
+  MLR <- lm(formula, data = train)
+  train_predicted <- predict(MLR, train)
+  test_predicted <- predict(MLR, test)
+  train_observed <- train[, DepIndex]
+  test_observed <- test[, DepIndex]
+  calculations <- calculate_measures(train_predicted, test_predicted,
                                          train_observed, test_observed)
-      list_MLR[[b]] <- calculations
-    } else {
-    stop("The argument MLR_step should be TRUE or FALSE!")
-  }
+  list_MLR[[b]] <- calculations
 
   #ANN Model
   capture.output(ANN <- brnn(formula, data = train, ANN_neurons = ANN_neurons, verbose = FALSE))

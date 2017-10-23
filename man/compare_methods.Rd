@@ -8,9 +8,7 @@ compare_methods(formula, dataset, k = 3, repeats = 2, use_caret = TRUE,
   ANN_neurons = 1, MT_M = 4, MT_N = F, MT_U = F, MT_R = F,
   BMT_P = 100, BMT_I = 100, BMT_M = 4, BMT_N = F, BMT_U = F,
   BMT_R = F, RF_mtry = 0, RF_maxnodes = 4, RF_ntree = 200,
-  multiply = 5, returns = c("Calibration", "Validation"), digits = 3,
-  MLR_step = FALSE, MLR_step_scale = 0, MLR_step_direction = "both",
-  MLR_step_steps = 1000)
+  multiply = 5, returns = c("Calibration", "Validation"), digits = 3)
 }
 \arguments{
 \item{formula}{an object of class "formula" (or one that can be coerced
@@ -66,20 +64,6 @@ validation results should be returned.}
 
 \item{digits}{intiger of number of digits to be displayed in the final
 result tabels}
-
-\item{MLR_step}{logical, if set to TRUE, stepwise selection of predictors will
-be used to fit MLR model}
-
-\item{MLR_step_scale}{used in the definition of the AIC statistic for selecting the
-models, currently only for lm, aov and glm models. The default value, 0,
-indicates the scale should be estimated: see extractAIC.}
-
-\item{MLR_step_direction}{the mode of stepwise search, can be one of "both",
-"backward", or "forward", with a default of "both". Values can be abbreviated.}
-
-\item{MLR_step_steps}{the maximum number of steps to be considered. The default is
-1000 (essentially as many as required). It is typically used to stop the
-process early.}
 }
 \value{
 a list with five elements. Element one is a data frame with
@@ -108,8 +92,8 @@ data(example_dataset_1)
 
 # An example with default settings of machine learning algorithms
 experiment_1 <- compare_methods(formula = MVA~.,
-dataset = example_dataset_1, k = 10, repeats = 10,
-returns = c("Calibration", "Validation"), MLR_step = FALSE)
+dataset = example_dataset_1, k = 10, repeats = 2,
+returns = c("Calibration", "Validation"))
 experiment_1[[1]] # See a data frame results of mean and standard deviation
 # for different methods
 experiment_1[[2]] # See a data frame results of average rank and share of
@@ -123,7 +107,7 @@ dataset = example_dataset_1, k = 5, repeats = 100, ANN_neurons = 1,
 MT_M = 4, MT_N = FALSE, MT_U = FALSE, MT_R = FALSE, BMT_P = 100,
 BMT_I = 100, BMT_M = 4, BMT_N = FALSE, BMT_U = FALSE, BMT_R = FALSE,
 RF_mtry = 0, RF_maxnodes = 4, RF_ntree = 200, multiply = 5,
-returns = c("Calibration"), MLR_step = FALSE)
+returns = c("Calibration"))
 experiment_2[[1]]
 experiment_2[[2]]
 experiment_2[[3]]

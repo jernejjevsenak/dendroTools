@@ -1,6 +1,5 @@
 # dendroTools 0.0.4.
 
-* New feature is added, the option of using a stepwise selection of predictors for MLR in the compare_methods() 
 * Fifth element is given to the compare_methods() output list. This is a data frame with the final values of parameters used by different regression methods. 
 * New function is added: round_df(). This function rounds all numeric columns in a data frame. 
 * Datasets are updated

@@ -20,6 +20,7 @@ Graphs a line plot of a row with the highest measure in a matrix, produced by
 \code{\link{daily_response}} function.
 }
 \examples{
+\dontrun{
 data(LJ_daily_temperatures)
 data(example_proxies_1)
 Example1 <- daily_response(response = example_proxies_1,
@@ -40,4 +41,5 @@ Example3 <- daily_response(response = example_proxies_2,
 env_data = LJ_daily_temperatures_subset, method = "cor",
 lower_limit = 35, upper_limit = 40)
 plot_extreme(Example3)
+}
 }

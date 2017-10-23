@@ -55,6 +55,7 @@
 #' @export
 #'
 #' @examples
+#' \dontrun{
 #' data(LJ_daily_temperatures)
 #' data(example_proxies_1)
 #' library(dplyr)
@@ -122,6 +123,7 @@
 #' Example6 <- daily_response(response = example_proxies_2,
 #' env_data = LJ_daily_temperatures, method = "brnn",
 #' lower_limit = 30, upper_limit = 40, row_names_subset = TRUE)
+#' }
 
 daily_response <- function(response, env_data, method = "lm",
                            measure = "r.squared", lower_limit = 30,
