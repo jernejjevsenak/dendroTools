@@ -16,6 +16,7 @@
 #' @export
 #'
 #' @examples
+#' \dontrun{
 #' library(dendroTools)
 #' data(LJ_daily_temperatures)
 #' data(example_proxies_1)
@@ -24,6 +25,7 @@
 #' measure = "r.squared", lower = 250, upper = 251,
 #' previous_year = FALSE, brnn_smooth = TRUE, alpha = 0.1)
 #' smoothed <- smooth_matrix(mat = Example1[[1]])
+#' }
 #'
 #' mat_1 <-  matrix(seq(1.01, 2, by = 0.01)  , ncol = 10, byrow = TRUE)
 #' mat_1[5 ,5] <- -1
