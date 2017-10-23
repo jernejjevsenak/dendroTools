@@ -59,11 +59,11 @@ have (argument for random forest)}
 \item{multiply}{an intiger that will be used to change the seed options
 for different repeats. set.seed(multiply*5)}
 
-\item{returns}{A character vector that specifies, wheter a calibration and/ or
+\item{returns}{A character vector that specifies, whether a calibration and/ or
 validation results should be returned.}
 
 \item{digits}{intiger of number of digits to be displayed in the final
-result tabels}
+result tables}
 }
 \value{
 a list with five elements. Element one is a data frame with

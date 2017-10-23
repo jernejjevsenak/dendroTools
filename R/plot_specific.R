@@ -37,7 +37,7 @@ plot_specific <- function(result_daily_response, window_width, title = TRUE) {
 
   # Short description of the function. It
   # - extracts matrix (the frst object of a list)
-  # - verification of whetere we deal with negative correlations. In this case
+  # - verification of whether we deal with negative correlations. In this case
   # we will expose globail minimum (and not maximum, as in the case of positive
   # correlations, r.squared and adj.r.squared)
   # - subseting extracted matrix to keep only row, as defined by the argument

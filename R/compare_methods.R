@@ -37,10 +37,10 @@
 #' @param RF_ntree Number of trees to grow (argument for random forest)
 #' @param multiply an intiger that will be used to change the seed options
 #' for different repeats. set.seed(multiply*5)
-#' @param returns A character vector that specifies, wheter a calibration and/ or
+#' @param returns A character vector that specifies, whether a calibration and/ or
 #' validation results should be returned.
 #' @param digits intiger of number of digits to be displayed in the final
-#' result tabels
+#' result tables
 #'
 #' @return a list with five elements. Element one is a data frame with
 #' calculated measures for five regression methods. For each regression method
