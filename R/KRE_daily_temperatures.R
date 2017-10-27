@@ -1,4 +1,4 @@
-#' Daily mean temperatures for Ljubljana from 2017 - 1955
+#' Daily mean temperatures for Kredarica (Alps in Slovenia) from 2017 - 1955
 #'
 #' A dataset of daily mean temperatures in Kredarica (Slovenia). The first row
 #' represents temperatures in 1955. The first column represents the first day
