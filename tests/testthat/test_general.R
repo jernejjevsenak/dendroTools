@@ -77,7 +77,7 @@ row.names(example_proxies_1_temporal)[1] <- "1520" # random year is assigned
 expect_warning(daily_response(response = example_proxies_1_temporal,
                             env_data = LJ_daily_temperatures,
                             method = "lm", lower = 260, upper = 270,
-                            previous_year = FALSE))
+                            previous_year = FALSE, remove_insignificant = FALSE))
 
 
 # The order of data is unimportant, if row_names_subset is set to TRUE and

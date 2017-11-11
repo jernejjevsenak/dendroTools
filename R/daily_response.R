@@ -42,6 +42,21 @@
 #' @param row_names_subset if set to TRUE, row.names are used to subset
 #' env_data and response data frames. Only years from both data frames are
 #' kept.
+#' @param PCA_transformation if set to TRUE, all variables in the response
+#' data frame will be transformed using a PCA transformation.
+#' @param log_preprocess if set to TRUE, variables will be transformed with
+#' logarithmic transformation before used in PCA
+#' @param components_selection string specifying how to select the Principal
+#' Components used as predictors.
+#' There are three options: "automatic", "manual" and "plot_selection". If
+#' parameter is set to automatic, all scores with eigenvalues above 1 will be
+#' selected. This threshold could be changed by changing the
+#' eigenvalues_threhold argument. If parameter is set to "manual", user should
+#' set the number of components with N_components argument. If component
+#' selection is se to "plot_selection", Scree plot will be shown and a user must
+#' manually enter the number of components used as predictors.
+#' @param eigenvalues_threhold threshold for automatic selection of Principal Components
+#' @param N_components number of Principal Components used as predictors
 #'
 #' @return a list with four elements:
 #'   1. calculations is a matrix with all calculated results,
@@ -123,14 +138,51 @@
 #' Example6 <- daily_response(response = example_proxies_2,
 #' env_data = LJ_daily_temperatures, method = "brnn",
 #' lower_limit = 30, upper_limit = 40, row_names_subset = TRUE)
+#'
+#' # Example with individual chronologies, PCA transformation is used,
+#' # Plot selection of Principal Components
+#' data(example_proxies_individual)
+#' Example7 <- daily_response(response = example_proxies_individual,
+#' env_data = LJ_daily_temperatures, method = "lm",
+#' lower_limit = 30, upper_limit = 90, row_names_subset = TRUE,
+#' PCA_transformation = TRUE, components_selection = 'plot_selection',
+#' remove_insignificant = FALSE)
+#' plot_extreme(Example7)
+#' plot_heatmap(Example7)
 #' }
+#'
+#' # Example with individual chronologies, PCA transformation is used,
+#' # Automatic selection of Principal Components
+#' data(example_proxies_individual)
+#' Example8 <- daily_response(response = example_proxies_individual,
+#' env_data = LJ_daily_temperatures, method = "lm",
+#' lower_limit = 30, upper_limit = 95, row_names_subset = TRUE,
+#' PCA_transformation = TRUE, components_selection = 'automatic',
+#' eigenvalues_threhold = 1)
+#' plot_extreme(Example8)
+#' plot_heatmap(Example8)
+#'
+#' # Example with individual chronologies, PCA transformation is used,
+#' # Manual selection of Principal Components
+#' data(example_proxies_individual)
+#' Example9 <- daily_response(response = example_proxies_individual,
+#' env_data = LJ_daily_temperatures, method = "lm",
+#' lower_limit = 30, upper_limit = 90, row_names_subset = TRUE,
+#' PCA_transformation = TRUE, components_selection = 'manual',
+#' N_components = 4)
+#' plot_extreme(Example9)
+
 
 daily_response <- function(response, env_data, method = "lm",
                            measure = "r.squared", lower_limit = 30,
                            upper_limit = 270, fixed_width = 0,
                            previous_year = FALSE, neurons = 1,
                            brnn_smooth = TRUE, remove_insignificant = TRUE,
-                           alpha = .05, row_names_subset = FALSE) {
+                           alpha = .05, row_names_subset = FALSE,
+                           PCA_transformation = FALSE, log_preprocess = TRUE,
+                           components_selection = 'automatic',
+                           eigenvalues_threhold = 1,
+                           N_components = 2) {
 
   # PART 1 - general data arrangements, warnings abd stops
 
@@ -211,6 +263,38 @@ daily_response <- function(response, env_data, method = "lm",
     env_data <- cbind(env_data_previous, env_data_current)
     response <- data.frame(response)
     env_data <- data.frame(env_data)
+  }
+
+  # If PCA_transformation = TRUE, PCA is performed
+  if (PCA_transformation == TRUE) {
+
+    # Logarithmic transformation before PCA
+    if (log_preprocess == TRUE) {
+      response <- data.frame(log(response))
+    }
+
+    PCA_result <- princomp(response, cor = TRUE)
+
+    if (components_selection == 'automatic'){
+      subset_vector <- PCA_result$sdev > eigenvalues_threhold
+      response <- as.data.frame(PCA_result$scores[, subset_vector])
+    }
+
+    if (components_selection == 'manual'){
+      response <- as.data.frame(PCA_result$scores[, 1:N_components])
+    }
+
+    if (components_selection == 'plot_selection'){
+      plot(PCA_result, type = 'l')
+
+      fun <- function(){
+        N_PC <- readline("What number of PC scores should be used as predictors? ")
+        return(N_PC)
+      }
+
+      N_PC <- fun()
+      response <- as.data.frame(PCA_result$scores[, 1:as.numeric(N_PC)])
+    }
   }
 
   # PART 2 - Based on the selected function arguments, different chunks of code

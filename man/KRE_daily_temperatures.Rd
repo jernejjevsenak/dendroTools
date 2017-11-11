@@ -3,7 +3,7 @@
 \docType{data}
 \name{KRE_daily_temperatures}
 \alias{KRE_daily_temperatures}
-\title{Daily mean temperatures for Ljubljana from 2017 - 1955}
+\title{Daily mean temperatures for Kredarica (Alps in Slovenia) from 2017 - 1955}
 \format{A data frame with 63 rows and 366 variables:
 \describe{
   \item{X1}{Temperatures on the day 1 of a year}

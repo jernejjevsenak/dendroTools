@@ -41,6 +41,8 @@
 #' validation results should be returned.
 #' @param digits intiger of number of digits to be displayed in the final
 #' result tables
+#' @param blocked_CV default is FALSE, if changed to TRUE, blocked cross-validation
+#' will be used to compare regression methods.
 #'
 #' @return a list with five elements. Element one is a data frame with
 #' calculated measures for five regression methods. For each regression method
@@ -91,8 +93,8 @@
 #'
 #' # An example with default settings of machine learning algorithms
 #' experiment_1 <- compare_methods(formula = MVA~.,
-#' dataset = example_dataset_1, k = 10, repeats = 2,
-#' returns = c("Calibration", "Validation"))
+#' dataset = example_dataset_1, k = 20, repeats = 1,
+#' returns = c("Calibration", "Validation"), blocked_CV = TRUE)
 #' experiment_1[[1]] # See a data frame results of mean and standard deviation
 #' # for different methods
 #' experiment_1[[2]] # See a data frame results of average rank and share of
@@ -126,7 +128,7 @@ compare_methods <- function(formula, dataset, k = 3, repeats = 2,
                             BMT_N = F, BMT_U = F, BMT_R = F, RF_mtry = 0,
                             RF_maxnodes = 4, RF_ntree = 200, multiply = 5,
                             returns = c("Calibration", "Validation"),
-                            digits = 3) {
+                            digits = 3, blocked_CV = FALSE) {
 
 dataset <- data.frame(dataset) # dataset needs to be of class data.frame!
 
@@ -189,6 +191,10 @@ if (use_caret == TRUE){
   RF_mtry = as.numeric(model[[6]][1])
 
 }
+
+# Normal cross-validation with repeats.
+
+if (blocked_CV == FALSE){
 
 # create progress bar
 pb <- txtProgressBar(min = 0, max = repeats, style = 3)
@@ -628,6 +634,456 @@ gg_object_val <- ggplot(bias_together_validation, aes(value)) +
   theme_bw() +
   theme(legend.position = "NONE", legend.title = element_blank(),
         text = element_text(size = 15))
+
+
+}
+
+###################################################################################
+##### And now the second option: Blocked cross-validation #########################
+###################################################################################
+
+if (blocked_CV == TRUE){
+
+  # create progress bar
+  pb <- txtProgressBar(min = 0, max = k, style = 3)
+
+  b = 0 # place holder for saving rezults
+
+  # Here, idex of dependent variable is extracted and later used to locate the
+  # observed values
+  DepIndex <- grep(as.character(formula[[2]]), colnames(dataset))
+
+    foldi <- seq(1:k)
+    #foldi <- paste("fold_", foldi)
+    folds <- cut(seq(1, nrow(dataset)), breaks = k, labels = FALSE)
+
+    #Perform k fold cross validation
+
+    for (m in 1:k){
+
+      b <- b + 1
+      #Segement your data by fold using the which() function
+      testIndexes <- which(folds == m, arr.ind = TRUE)
+      test <- dataset[testIndexes, ]
+      train <- dataset[-testIndexes, ]
+
+      #MLR MODEL
+      MLR <- lm(formula, data = train)
+      train_predicted <- predict(MLR, train)
+      test_predicted <- predict(MLR, test)
+      train_observed <- train[, DepIndex]
+      test_observed <- test[, DepIndex]
+      calculations <- calculate_measures(train_predicted, test_predicted,
+                                         train_observed, test_observed)
+      list_MLR[[b]] <- calculations
+
+      #ANN Model
+      capture.output(ANN <- brnn(formula, data = train, ANN_neurons = ANN_neurons, verbose = FALSE))
+      train_predicted <- predict(ANN, train)
+      test_predicted <- predict(ANN, test)
+      calculations <- calculate_measures(train_predicted, test_predicted,
+                                         train_observed, test_observed)
+      list_ANN[[b]] <- calculations
+
+      #M5 Model tree
+      MT_model <- M5P(formula, data = train,
+                      control = Weka_control(M = MT_M, N =  MT_N, U = MT_U,
+                                             R = MT_R))
+      train_predicted <- predict(MT_model, train)
+      test_predicted <- predict(MT_model, test)
+      calculations <- calculate_measures(train_predicted, test_predicted,
+                                         train_observed, test_observed)
+      list_MT[[b]] <- calculations
+
+      #M5 Model with bagging
+      BMT_model <- Bagging(formula,
+                           data = train,
+                           control = Weka_control(P = BMT_P, I = BMT_I,
+                                                  W = list("weka.classifiers.trees.M5P",
+                                                           M = BMT_M, N = BMT_N,
+                                                           U = BMT_U, R = BMT_R)))
+      train_predicted <- predict(BMT_model, train)
+      test_predicted <- predict(BMT_model, test)
+      calculations <- calculate_measures(train_predicted, test_predicted,
+                                         train_observed, test_observed)
+      list_BMT[[b]] <- calculations
+
+      ##Regression Tree with random forest, WEKA
+      # RF <- make_Weka_classifier("weka/classifiers/trees/RandomForest")
+      #RegTree_Weka <- RF(formula, data = train,
+      #                  control = Weka_control(P = RF_P, I = RF_I,
+      RegTree_Weka <- randomForest(formula = formula, data = train, RF_mtry = RF_mtry,
+                                   RF_maxnodes = RF_maxnodes, RF_ntree = RF_ntree)
+      train_predicted <- predict(RegTree_Weka, train)
+      test_predicted <- predict(RegTree_Weka, test)
+      calculations <- calculate_measures(train_predicted, test_predicted,
+                                         train_observed, test_observed)
+      list_RF[[b]] <- calculations
+
+      setTxtProgressBar(pb, m)
+    }
+
+
+  close(pb)
+
+
+  ###########################################################################################
+  # Now the proces of extraction starts
+
+  position <- k
+
+  # Here, lists are rearranged and measures are extracted
+  listVec <- lapply(list_MLR, c, recursive = TRUE)
+  m <- do.call(cbind, listVec)
+  averages <- apply(m, 1, mean)
+  std <- apply(m, 1, sd)
+  m <- cbind(m, averages, std)
+  df_MLR <- data.frame(m)
+  df_MLR_bias <- df_MLR[c(13, 14), c(1: position)]
+  df_MLR_rank <- df_MLR[-c(13, 14), c(1: position)]
+  df_MLR_avg <- df_MLR[-c(13, 14), c(position + 1, position + 2)]
+  rownames(df_MLR_avg) <- c("r_cal", "r_val", "RMSE_cal", "RMSE_val", "RSSE_cal",
+                            "RSSE_val", "d_cal", "d_val", "RE_cal", "RE_val",
+                            "CE_cal", "CE_val")
+
+  listVec <- lapply(list_ANN, c, recursive = TRUE)
+  m <- do.call(cbind, listVec)
+  averages <- apply(m, 1, mean)
+  std <- apply(m, 1, sd)
+  m <- cbind(m, averages, std)
+  df_ANN <- data.frame(m)
+  df_ANN_bias <- df_ANN[c(13, 14), c(1: position)]
+  df_ANN_rank <- df_ANN[-c(13, 14), c(1: position)]
+  df_ANN_avg <- df_ANN[-c(13, 14), c(position + 1, position + 2)]
+  rownames(df_ANN_avg) <- c("r_cal", "r_val", "RMSE_cal", "RMSE_val", "RSSE_cal",
+                            "RSSE_val", "d_cal", "d_val", "RE_cal", "RE_val",
+                            "CE_cal", "CE_val")
+
+
+  listVec <- lapply(list_MT, c, recursive = TRUE)
+  m <- do.call(cbind, listVec)
+  averages <- apply(m, 1, mean)
+  std <- apply(m, 1, sd)
+  m <- cbind(m, averages, std)
+  df_MT <- data.frame(m)
+  df_MT_bias <- df_MT[c(13, 14), c(1: position)]
+  df_MT_rank <- df_MT[-c(13, 14), c(1: position)]
+  df_MT_avg <- df_MT[-c(13, 14), c(position + 1, position + 2)]
+  rownames(df_MT_avg) <- c("r_cal", "r_val", "RMSE_cal", "RMSE_val", "RSSE_cal",
+                           "RSSE_val", "d_cal", "d_val", "RE_cal", "RE_val",
+                           "CE_cal", "CE_val")
+
+
+
+  listVec <- lapply(list_BMT, c, recursive = TRUE)
+  m <- do.call(cbind, listVec)
+  averages <- apply(m, 1, mean)
+  std <- apply(m, 1, sd)
+  m <- cbind(m, averages, std)
+  df_BMT <- data.frame(m)
+  df_BMT_bias <- df_BMT[c(13, 14), c(1: position)]
+  df_BMT_rank <- df_BMT[-c(13, 14), c(1: position)]
+  df_BMT_avg <- df_BMT[-c(13, 14), c(position + 1, position + 2)]
+  rownames(df_BMT_avg) <- c("r_cal", "r_val", "RMSE_cal", "RMSE_val", "RSSE_cal",
+                            "RSSE_val", "d_cal", "d_val", "RE_cal", "RE_val",
+                            "CE_cal", "CE_val")
+
+
+
+  listVec <- lapply(list_RF, c, recursive = TRUE)
+  m <- do.call(cbind, listVec)
+  averages <- apply(m, 1, mean)
+  std <- apply(m, 1, sd)
+  m <- cbind(m, averages, std)
+  df_RF <- data.frame(m)
+  df_RF_bias <- df_RF[c(13, 14), c(1: position)]
+  df_RF_rank <- df_RF[-c(13, 14), c(1: position)]
+  df_RF_avg <- df_RF[-c(13, 14), c(position + 1, position + 2)]
+  rownames(df_RF_avg) <- c("r_cal", "r_val", "RMSE_cal", "RMSE_val", "RSSE_cal",
+                           "RSSE_val", "d_cal", "d_val", "RE_cal", "RE_val",
+                           "CE_cal", "CE_val")
+
+  # Here, all data frames are binded together
+  df_all_avg <- round(cbind(df_MLR_avg, df_ANN_avg, df_MT_avg, df_BMT_avg, df_RF_avg), 8)
+
+
+
+  #######################
+  # Calculation of ranks
+  df_all <- round(rbind(df_MLR_rank, df_ANN_rank, df_MT_rank, df_BMT_rank, df_RF_rank), 8)
+
+
+  # Now, all measures (except bias) are extracted for calibration and validation
+  # data.
+  r_cal <- df_all[c(seq(1, 60, by = 12)), ]
+  r_val <- df_all[c(seq(2, 60, by = 12)), ]
+
+  RMSE_cal <- df_all[c(seq(3, 60, by = 12)), ]
+  RMSE_val <- df_all[c(seq(4, 60, by = 12)), ]
+
+  RSSE_cal <- df_all[c(seq(5, 60, by = 12)), ]
+  RSSE_val <- df_all[c(seq(6, 60, by = 12)), ]
+
+  d_cal <- df_all[c(seq(7, 60, by = 12)), ]
+  d_val <- df_all[c(seq(8, 60, by = 12)), ]
+
+  RE_cal <- df_all[c(seq(9, 60, by = 12)), ]
+  RE_val <- df_all[c(seq(10, 60, by = 12)), ]
+
+  CE_cal <- df_all[c(seq(11, 60, by = 12)), ]
+  CE_val <- df_all[c(seq(12, 60, by = 12)), ]
+
+
+  # Average rank and share of rank 1 is calculated
+  AVG_rank <- data.frame(rowMeans(apply(-r_cal, 2, rank, ties.method = "min")))
+  shareOne <- data.frame(apply(apply(-r_cal, 2, rank, ties.method = "min"), 1,
+                               count_ones) /  position)
+  r_cal_ranks <- cbind(AVG_rank, shareOne)
+  names(r_cal_ranks) <- c("Average Rank", "Share of Rank 1")
+
+  AVG_rank <- data.frame(rowMeans(apply(-r_val, 2, rank, ties.method =  "min")))
+  shareOne <- data.frame(apply(apply(-r_val, 2, rank, ties.method =  "min"), 1,
+                               count_ones) /  position)
+  r_val_ranks <- cbind(AVG_rank, shareOne)
+  names(r_val_ranks) <-  c("Average Rank",  "Share of Rank 1")
+
+  AVG_rank <- data.frame(rowMeans(apply(RMSE_cal, 2, rank,
+                                        ties.method =  "min")))
+  shareOne <- data.frame(apply(apply(RMSE_cal, 2, rank, ties.method =  "min"),
+                               1, count_ones) /  position)
+  RMSE_cal_ranks <- cbind(AVG_rank, shareOne)
+  names(RMSE_cal_ranks) <-  c("Average Rank", "Share of Rank 1")
+
+  AVG_rank <- data.frame(rowMeans(apply(RMSE_val, 2, rank,
+                                        ties.method = "min")))
+  shareOne <- data.frame(apply(apply(RMSE_val, 2, rank, ties.method = "min"), 1,
+                               count_ones) /  position)
+  RMSE_val_ranks <- cbind(AVG_rank, shareOne)
+  names(RMSE_val_ranks) <-  c("Average Rank", "Share of Rank 1")
+
+  AVG_rank <- data.frame(rowMeans(apply(RSSE_cal, 2, rank, ties.method = "min")))
+  shareOne <- data.frame(apply(apply(RSSE_cal, 2, rank, ties.method = "min"), 1,
+                               count_ones) /  position)
+  RSSE_cal_ranks <- cbind(AVG_rank, shareOne)
+  names(RSSE_cal_ranks) <-  c("Average Rank", "Share of Rank 1")
+
+  AVG_rank <- data.frame(rowMeans(apply(RSSE_val, 2, rank, ties.method = "min")))
+  shareOne <- data.frame(apply(apply(RSSE_val, 2, rank, ties.method = "min"), 1,
+                               count_ones) /  position)
+  RSSE_val_ranks <- cbind(AVG_rank, shareOne)
+  names(RSSE_val_ranks) <-  c("Average Rank", "Share of Rank 1")
+
+  AVG_rank <- data.frame(rowMeans(apply(-d_cal, 2, rank, ties.method = "min")))
+  shareOne <- data.frame(apply(apply(-d_cal, 2, rank, ties.method = "min"), 1,
+                               count_ones) /  position)
+  d_cal_ranks <- cbind(AVG_rank, shareOne)
+  names(d_cal_ranks) <-  c("Average Rank",  "Share of Rank 1")
+
+  AVG_rank <- data.frame(rowMeans(apply(-d_val, 2, rank, ties.method = "min")))
+  shareOne <- data.frame(apply(apply(-d_val, 2, rank, ties.method = "min"), 1,
+                               count_ones) /  position)
+  d_val_ranks <- cbind(AVG_rank, shareOne)
+  names(d_val_ranks) <-  c("Average Rank",  "Share of Rank 1")
+
+  AVG_rank <- data.frame(rowMeans(apply(-RE_cal, 2, rank, ties.method = "min")))
+  shareOne <- data.frame(apply(apply(-RE_cal, 2, rank, ties.method = "min"), 1,
+                               count_ones) /  position)
+  RE_cal_ranks <- cbind(AVG_rank, shareOne)
+  names(RE_cal_ranks) <-  c("Average Rank", "Share of Rank 1")
+
+  AVG_rank <- data.frame(rowMeans(apply(-RE_val, 2, rank, ties.method = "min")))
+  shareOne <- data.frame(apply(apply(-RE_val, 2, rank, ties.method = "min"),
+                               1, count_ones) /  position)
+  RE_val_ranks <- cbind(AVG_rank, shareOne)
+  names(RE_val_ranks) <-  c("Average Rank", "Share of Rank 1")
+
+  AVG_rank <- data.frame(rowMeans(apply(-CE_cal, 2, rank, ties.method = "min")))
+  shareOne <- data.frame(apply(apply(-CE_cal, 2, rank, ties.method = "min"), 1,
+                               count_ones) /  position)
+  CE_cal_ranks <- cbind(AVG_rank, shareOne)
+  names(CE_cal_ranks) <- c("Average Rank",  "Share of Rank 1")
+
+  AVG_rank <- data.frame(rowMeans(apply(-CE_val, 2, rank, ties.method = "min")))
+  shareOne <- data.frame(apply(apply(-CE_val, 2, rank, ties.method = "min"), 1,
+                               count_ones) /  position)
+  CE_val_ranks <- cbind(AVG_rank, shareOne)
+  names(CE_val_ranks) <-  c("Average Rank",  "Share of Rank 1")
+
+  # Results are rbinded together
+  ranks_together <- rbind(r_cal_ranks, r_val_ranks,
+                          RMSE_cal_ranks, RMSE_val_ranks,
+                          RSSE_cal_ranks, RSSE_val_ranks,
+                          d_cal_ranks, d_val_ranks,
+                          RE_cal_ranks, RE_val_ranks,
+                          CE_cal_ranks, CE_val_ranks)
+
+  # Those variables have to be defined, solution suggest on Stackoverflow.com
+  ANN <- NULL
+  ANN_AR <- NULL
+  ANN_M <- NULL
+  ANN_S1 <- NULL
+  ANN_SD <- NULL
+  BMT <- NULL
+  BMT_AR <- NULL
+  BMT_S1 <- NULL
+  BMT_SD <- NULL
+  MLR <- NULL
+  MLR_AR <- NULL
+  MLR_M <- NULL
+  MLR_S1 <- NULL
+  MLR_SD <- NULL
+  MT <- NULL
+  MT_AR <- NULL
+  MT_S1 <- NULL
+  MT_SD <- NULL
+  Measure <- NULL
+  Period <- NULL
+  RF <- NULL
+  RF_AR <- NULL
+  RF_M <- NULL
+  RF_S1 <- NULL
+  RF_SD <- NULL
+
+  bias <- NULL
+  Method <- NULL
+  value <- NULL
+
+  ranks_together$Method <- c("MLR", "ANN", "MT", "BMT", "RF")
+  ranks_together$Period <- c("cal", "cal", "cal", "cal", "cal", "val", "val",
+                             "val", "val", "val")
+  ranks_together$Measure <- c("r", "r", "r", "r", "r", "r", "r", "r", "r", "r",
+                              "RMSE", "RMSE", "RMSE", "RMSE", "RMSE", "RMSE",
+                              "RMSE", "RMSE", "RMSE", "RMSE", "RSSE", "RSSE",
+                              "RSSE", "RSSE", "RSSE", "RSSE", "RSSE", "RSSE",
+                              "RSSE", "RSSE", "d", "d", "d", "d", "d", "d", "d",
+                              "d", "d", "d", "RE", "RE", "RE", "RE", "RE", "RE",
+                              "RE", "RE", "RE", "RE", "CE", "CE", "CE", "CE",
+                              "CE", "CE", "CE", "CE", "CE", "CE")
+
+
+
+
+
+  colnames(ranks_together)[1] <- "Avg_rank"
+  togeter_AVG_rank <- reshape::cast(ranks_together,
+                                    formula = Measure + Period ~ Method,
+                                    value = c("Avg_rank"))
+  togeter_AVG_rank$Measure  <- factor(togeter_AVG_rank$Measure,
+                                      levels = c("r", "RMSE", "RSSE", "d",
+                                                 "RE", "CE"))
+  togeter_AVG_rank <- togeter_AVG_rank[order(togeter_AVG_rank$Measure), ]
+  togeter_AVG_rank <- dplyr::select(togeter_AVG_rank, Measure, Period, MLR, ANN,
+                                    MT, BMT, RF)
+
+  colnames(ranks_together)[2] <- "Share_rank1"
+  together_share1 <- reshape::cast(ranks_together,
+                                   formula = Measure + Period ~ Method,
+                                   value = c("Share_rank1"))
+
+  together_share1$Measure  <- factor(together_share1$Measure,
+                                     levels = c("r", "RMSE", "RSSE", "d",
+                                                "RE", "CE"))
+
+  together_share1 <- together_share1[order(together_share1$Measure), ]
+  together_share1 <- dplyr::select(together_share1, Measure, Period, MLR, ANN,
+                                   MT, BMT, RF)
+
+  ###############################################################################
+
+  colnames(df_all_avg) <- c("Mean MLR", "Std MLR", "Mean ANN", "Std ANN", "Mean MT",
+                            "Std MT", "Mean BMT", "Std BMT", "Mean RF", "Std RF")
+  df_all_avg$Period <- c("cal", "val")
+  df_all_avg$Measure <- c("r", "r", "RMSE", "RMSE", "RSSE", "RSSE",
+                          "d", "d", "RE", "RE", "CE", "CE")
+  row.names(df_all_avg) <- NULL
+
+  Rezults_mean_std <- dplyr::select(df_all_avg, Measure, Period, "Mean MLR", "Std MLR", "Mean ANN",
+                                    "Std ANN", "Mean MT", "Std MT", "Mean BMT", "Std BMT",
+                                    "Mean RF", "Std RF")
+
+
+
+  together_share1 <- together_share1[, -c(1,2)]
+  colnames(togeter_AVG_rank) <- c("Measure", "Period", "Avg rank MLR", "Avg rank ANN", "Avg rank MT", "Avg rank BMT",
+                                  "Avg rank RF")
+  colnames(together_share1) <- c("Share of rank 1 MLR", "Share of rank 1 ANN",
+                                 "Share of rank 1 MT", "Share of rank 1 BMT", "Share of rank 1 RF")
+  ranks <- cbind(togeter_AVG_rank, together_share1)
+  Rezults_ranks <- dplyr::select(ranks, Measure, Period, "Avg rank MLR", "Share of rank 1 MLR",
+                                 "Avg rank ANN", "Share of rank 1 ANN",
+                                 "Avg rank MT", "Share of rank 1 MT",
+                                 "Avg rank BMT", "Share of rank 1 BMT",
+                                 "Avg rank RF", "Share of rank 1 RF")
+
+
+
+  ##################################################################
+  # Here is a function to calculate bias
+  df_MLR_bias$Period <- c("Calibration", "Validation")
+  df_MLR_bias$Method <- "MLR"
+
+  df_ANN_bias$Period <- c("Calibration", "Validation")
+  df_ANN_bias$Method <- "ANN"
+
+  df_MT_bias$Period <- c("Calibration", "Validation")
+  df_MT_bias$Method <- "MT"
+
+  df_BMT_bias$Period <- c("Calibration", "Validation")
+  df_BMT_bias$Method <- "BMT"
+
+  df_RF_bias$Period <- c("Calibration", "Validation")
+  df_RF_bias$Method <- "RF"
+
+  bias_together <- rbind(df_MLR_bias,
+                         df_ANN_bias,
+                         df_MT_bias,
+                         df_BMT_bias,
+                         df_RF_bias)
+
+
+  bias_together <- melt(bias_together, id.vars = c("Period", "Method"))
+
+
+
+  bias_together_calibration <- dplyr::filter(bias_together, Period == "Calibration")
+  bias_together_validation<- dplyr::filter(bias_together, Period == "Validation")
+
+  bias_together_calibration$Method <- factor(bias_together_calibration$Method,
+                                             levels = c("MLR", "ANN", "MT", "BMT", "RF"),
+                                             ordered = TRUE)
+  bias_together_validation$Method <- factor(bias_together_validation$Method,
+                                            levels = c("MLR", "ANN", "MT", "BMT", "RF"),
+                                            ordered = TRUE)
+
+  gg_object_cal <- ggplot(bias_together_calibration, aes(value)) +
+    geom_density(aes(group = Method)) +
+    geom_vline(xintercept = 0) +
+    facet_grid(Method ~ ., scales = "free") +
+    theme_bw() +
+    theme(legend.position = "NONE", legend.title = element_blank(),
+          text = element_text(size = 15))
+
+  gg_object_val <- ggplot(bias_together_validation, aes(value)) +
+    geom_density(aes(group = Method)) +
+    geom_vline(xintercept = 0) +
+    facet_grid(Method ~ .) +
+    theme_bw() +
+    theme(legend.position = "NONE", legend.title = element_blank(),
+          text = element_text(size = 15))
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
 
 ##### Here both data frames are subset with round_df function #############
 
