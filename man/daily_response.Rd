@@ -8,8 +8,9 @@ daily_response(response, env_data, method = "lm", measure = "r.squared",
   lower_limit = 30, upper_limit = 270, fixed_width = 0,
   previous_year = FALSE, neurons = 1, brnn_smooth = TRUE,
   remove_insignificant = TRUE, alpha = 0.05, row_names_subset = FALSE,
-  PCA_transformation = FALSE, components_selection = "automatic",
-  eigenvalues_threhold = 1, N_components = 2)
+  PCA_transformation = FALSE, log_preprocess = TRUE,
+  components_selection = "automatic", eigenvalues_threhold = 1,
+  N_components = 2)
 }
 \arguments{
 \item{response}{a data frame with tree-ring proxy variables as columns and
@@ -58,6 +59,9 @@ kept.}
 
 \item{PCA_transformation}{if set to TRUE, all variables in the response
 data frame will be transformed using a PCA transformation.}
+
+\item{log_preprocess}{if set to TRUE, variables will be transformed with
+logarithmic transformation before used in PCA}
 
 \item{components_selection}{string specifying how to select the Principal
 Components used as predictors.
@@ -168,29 +172,33 @@ lower_limit = 30, upper_limit = 40, row_names_subset = TRUE)
 # Example with individual chronologies, PCA transformation is used,
 # Plot selection of Principal Components
 data(example_proxies_individual)
-Example6 <- daily_response(response = example_proxies_individual,
+Example7 <- daily_response(response = example_proxies_individual,
 env_data = LJ_daily_temperatures, method = "lm",
 lower_limit = 30, upper_limit = 90, row_names_subset = TRUE,
 PCA_transformation = TRUE, components_selection = 'plot_selection',
 remove_insignificant = FALSE)
-plot_extreme(Example6)
+plot_extreme(Example7)
+plot_heatmap(Example7)
 }
 
 # Example with individual chronologies, PCA transformation is used,
 # Automatic selection of Principal Components
 data(example_proxies_individual)
-Example6 <- daily_response(response = example_proxies_individual,
+Example8 <- daily_response(response = example_proxies_individual,
 env_data = LJ_daily_temperatures, method = "lm",
-lower_limit = 60, upper_limit = 65, row_names_subset = TRUE,
+lower_limit = 30, upper_limit = 95, row_names_subset = TRUE,
 PCA_transformation = TRUE, components_selection = 'automatic',
-eigenvalues_threhold = 0.8)
+eigenvalues_threhold = 1)
+plot_extreme(Example8)
+plot_heatmap(Example8)
 
 # Example with individual chronologies, PCA transformation is used,
 # Manual selection of Principal Components
 data(example_proxies_individual)
-Example6 <- daily_response(response = example_proxies_individual,
+Example9 <- daily_response(response = example_proxies_individual,
 env_data = LJ_daily_temperatures, method = "lm",
-lower_limit = 60, upper_limit = 65, row_names_subset = TRUE,
+lower_limit = 30, upper_limit = 90, row_names_subset = TRUE,
 PCA_transformation = TRUE, components_selection = 'manual',
-N_components = 5)
+N_components = 4)
+plot_extreme(Example9)
 }

@@ -95,5 +95,7 @@ calculate_measures <- function(train_predicted, test_predicted,
   colnames(test_measures) <- c("cor", "RMSE", "RRSE", "d", "RE", "CE", "bias")
 
   measures <- round(rbind(train_measures, test_measures),  4)
+  row.names(measures) <- c("train", "test")
+
   measures
 }

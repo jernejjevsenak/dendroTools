@@ -41,5 +41,11 @@ Example3 <- daily_response(response = example_proxies_2,
 env_data = LJ_daily_temperatures_subset, method = "cor",
 lower_limit = 35, upper_limit = 40)
 plot_extreme(Example3)
+
+Example4 <- daily_response(response = example_proxies_1,
+env_data = LJ_daily_temperatures, method = "lm",
+measure = "r.squared", lower_limit = 30, upper_limit = 120, neurons = 1,
+row_names_subset = TRUE)
+plot_extreme(Example4)
 }
 }
