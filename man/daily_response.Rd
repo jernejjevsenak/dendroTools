@@ -4,13 +4,17 @@
 \alias{daily_response}
 \title{daily_response}
 \usage{
-daily_response(response, env_data, method = "lm", measure = "r.squared",
+daily_response(response, env_data, method = "lm", metric = "r.squared",
   lower_limit = 30, upper_limit = 270, fixed_width = 0,
   previous_year = FALSE, neurons = 1, brnn_smooth = TRUE,
   remove_insignificant = TRUE, alpha = 0.05, row_names_subset = FALSE,
   PCA_transformation = FALSE, log_preprocess = TRUE,
   components_selection = "automatic", eigenvalues_threhold = 1,
-  N_components = 2)
+  N_components = 2, use_median = FALSE,
+  temporal_stability_check = "sequential", k = 5,
+  cross_validation_type = "randomized", subset_yars = NULL,
+  plot_specific_window = NULL, ylimits = NULL, seed = NULL,
+  tidy_env_data = FALSE)
 }
 \arguments{
 \item{response}{a data frame with tree-ring proxy variables as columns and
@@ -18,16 +22,20 @@ daily_response(response, env_data, method = "lm", measure = "r.squared",
 env_data data frame. If not, set row_names_subset = TRUE.}
 
 \item{env_data}{a data frame of daily sequences of environmental data as
-columns and (optional) years as row names. Each row represents a year and
+columns and years as row names. Each row represents a year and
 each column represents a day of a year. Row.names should be matched with
-those from a response data frame. If not, set row_names_subset = TRUE.}
+those from a response data frame. If not, set row_names_subset = TRUE.
+Alternatively, env_data could be a tidy data with three columns,
+i.e. Year, DOY and third column representing values of mean temperatures,
+sum of precipitation etc. If tidy data is passed to the function, set the argument
+tidy_env_data to TRUE.}
 
-\item{method}{a string specifying which method to use. Current possibilities
-are "cor", "lm" and "brnn".}
+\item{method}{a character string specifying which method to use. Current
+possibilities are "cor", "lm" and "brnn".}
 
-\item{measure}{a string specifying which measure to use. Current
+\item{metric}{a character string specifying which metric to use. Current
 possibilities are "r.squared" and "adj.r.squared". If method = "cor",
-measure is not relevant.}
+metric is not relevant.}
 
 \item{lower_limit}{lower limit of window width}
 
@@ -38,7 +46,7 @@ assigned a value, upper_limit and lower_limit will be ignored}
 
 \item{previous_year}{if set to TRUE, env_data and response variables will be
 rearranged in a way, that also previous year will be used for calculations of
-selected statistical measure.}
+selected statistical metric.}
 
 \item{neurons}{positive integer that indicates the number of neurons used
 for brnn method}
@@ -58,147 +66,159 @@ env_data and response data frames. Only years from both data frames are
 kept.}
 
 \item{PCA_transformation}{if set to TRUE, all variables in the response
-data frame will be transformed using a PCA transformation.}
+data frame will be transformed using PCA transformation.}
 
 \item{log_preprocess}{if set to TRUE, variables will be transformed with
 logarithmic transformation before used in PCA}
 
-\item{components_selection}{string specifying how to select the Principal
+\item{components_selection}{character string specifying how to select the Principal
 Components used as predictors.
 There are three options: "automatic", "manual" and "plot_selection". If
-parameter is set to automatic, all scores with eigenvalues above 1 will be
+argument is set to automatic, all scores with eigenvalues above 1 will be
 selected. This threshold could be changed by changing the
 eigenvalues_threhold argument. If parameter is set to "manual", user should
-set the number of components with N_components argument. If component
-selection is se to "plot_selection", Scree plot will be shown and a user must
-manually enter the number of components used as predictors.}
+set the number of components with N_components argument. If components
+selection is set to "plot_selection", Scree plot will be shown and a user must
+manually enter the number of components to be used as predictors.}
 
 \item{eigenvalues_threhold}{threshold for automatic selection of Principal Components}
 
 \item{N_components}{number of Principal Components used as predictors}
+
+\item{use_median}{if set to TRUE, median will be used insted of mean to calculate
+averages of various ranges of env_data.}
+
+\item{temporal_stability_check}{character string, specifying, how temporal stability
+between the optimal selection and response variables will be analysed. Current
+possibilities are "sequential" and "progressive". Sequential check will split data into
+k splits and calculate selected metric for each split. Progressive check will split data
+into k splits, calculate metric for the first split and then progressively add 1 split at
+a time and calculate selected metric.}
+
+\item{k}{integer, number of breaks (splits) for temporal stability and cross validation
+analysis.}
+
+\item{cross_validation_type}{character string, specifying, how to perform cross validation
+between the optimal selection and response variables. If the argument is set to "blocked",
+years will not be shuffled. If the argument is set to "randomized", years will be shuffled.}
+
+\item{subset_yars}{a subset of years to be analyzed. Should be given in the form of
+subset_yars = c(1980, 2005)}
+
+\item{plot_specific_window}{integer representing window width to be displayed
+for plot_specific}
+
+\item{ylimits}{limit of the y axes for plot_extreme and plot_specific. It should be
+given in the form of: ylimits = c(0,1)}
+
+\item{seed}{optional seed argument for reproducible results}
+
+\item{tidy_env_data}{if set to TRUE, env_data should be inserted as a data frame with three
+columns: "Year", "DOY", "Precipitation/Temperature/etc."}
 }
 \value{
-a list with four elements:
-  1. calculations is a matrix with all calculated results,
-  2. method is a string indicating method that was used
-  3. measure is a string indicating a calculated measure
-  4. optimized_result is aggregated daily data, that returned the best
-  calculated measure
-  5. String specifying the analysed period based on the information from
-  row names. If there is no row names, this argument is given as NA.
+a list with 13 elements:
+  $calculations, a matrix with calculated metrics
+  $method, the character string of a method
+  $metric, the character string indicating the metric used for calculations
+  $analysed_period, the character string specifying the analysed period based on the
+   information from row names. If there are no row names, this argument is given as NA.
+  $optimized_return, data frame with two columns, response varaible and aggregated
+   (averaged) daily data that return the optimal results. This data.frame could be
+   directly used to calibrate a model for climate reconstruction.
+  $optimized_return_all, a data frame with aggregated daily data, that returned the optimal
+  result for the entire env_data (and not only subset of analysed years)
+  $transfer_function, a ggplot object: scatter plot of optimized return and a transfer
+   line of the selected method
+  $temporal_stability, a data frame with calculations of selected metric for different
+   temporal subsets
+  $cross_validation, a data frame with cross validation results
+  $plot_heatmap, ggplot2 object: a heatmap of calculated metrics
+  $plot_extreme, ggplot2 object: line plot of a row with the highest value in a matrix
+   of calculated metrics
+  $plot_specific, ggplot2 object: line plot of a row with a selected window width in a
+   matrix of calculated metrics
+  $PCA_output, princomp object: the result output of the PCA analysis
 }
 \description{
-Function calculates all possible values of a selected statistical measure
+Function calculates all possible values of a selected statistical metric
 between one or more response variables and daily sequences of environmental
 data. Calculations are based on moving window which is defined with two
 arguments: window width and a location in a matrix of daily sequences of
 environmental data. Window width could be fixed (use fixed_width) or
 variable width (use lower_limit and upper_limit arguments). In this case,
 all window widths between lower and upper limit will be used. All calculated
-measures are stored in a matrix. The location of stored calculated measure
+metrics are stored in a matrix. The location of stored calculated metric
 in the matrix is indicating a window width (row names) and a location in a
 matrix of daily sequences of environmental data (column names).
 }
 \examples{
-\dontrun{
-data(LJ_daily_temperatures)
+# Load the dendroTools R package
+library(dendroTools)
+
+# Load data
+data(data_MVA)
+data(data_TRW)
+data(data_TRW_1)
+data(example_proxies_individual)
 data(example_proxies_1)
-library(dplyr)
-oxygen_isotope <- dplyr::select(example_proxies_1, O18)
-MVA_parameter <- dplyr::select(example_proxies_1, MVA)
+data(LJ_daily_temperatures)
 
-Example1a <- daily_response(response = MVA_parameter,
-env_data = LJ_daily_temperatures, method = "lm", measure = "r.squared",
-lower_limit = 357, upper_limit = 358, row_names_subset = TRUE)
+# 1 Example with fixed width
+example_fixed_width <- daily_response(response = data_MVA, env_data = LJ_daily_temperatures,
+                                     method = "brnn", fixed_width = 60,
+                                     row_names_subset = TRUE, remove_insignificant = TRUE,
+                                     alpha = 0.05)
+example_fixed_width$plot_extreme
 
-Example1b <- daily_response(response = MVA_parameter,
-env_data = LJ_daily_temperatures, method = "cor", measure = "adj.r.squared",
-lower_limit = 100, upper_limit = 200, remove_insignificant = TRUE,
-row_names_subset = TRUE)
-plot_heatmap(Example1b)
+# 2 Example for past and present
+example_MVA_past <- daily_response(response = data_MVA, env_data = LJ_daily_temperatures,
+method = "cor", lower_limit = 21, upper_limit = 180,
+row_names_subset = TRUE, previous_year = TRUE,
+remove_insignificant = TRUE, alpha = 0.05,
+plot_specific_window = 60, subset_yars = c(1940, 1980))
+example_MVA_present <- daily_response(response = data_MVA, env_data = LJ_daily_temperatures,
+                                      method = "cor", lower_limit = 21, upper_limit = 180,
+                                      row_names_subset = TRUE, previous_year = TRUE,
+                                      remove_insignificant = TRUE, alpha = 0.05,
+                                      plot_specific_window = 60, subset_yars = c(1981, 2010))
 
-Example1c <- daily_response(response = example_proxies_1,
-env_data = LJ_daily_temperatures, method = "lm", measure = "adj.r.squared",
-lower_limit = 25, upper_limit = 35, row_names_subset = TRUE)
+example_MVA_past$plot_heatmap
+example_MVA_present$plot_heatmap
+example_MVA_past$plot_specific
+example_MVA_present$plot_specific
 
-Example2a <- daily_response(response = MVA_parameter,
-env_data = LJ_daily_temperatures, method = "lm",
-measure = "adj.r.squared", fixed_width = 10, row_names_subset = TRUE)
+# 3 Example PCA
+example_PCA <- daily_response(response = example_proxies_individual,
+                              env_data = LJ_daily_temperatures, method = "lm",
+                              lower_limit = 21, upper_limit = 180,
+                              row_names_subset = TRUE, remove_insignificant = TRUE,
+                              alpha = 0.01, PCA_transformation = TRUE,
+                              components_selection = "manual", N_components = 2)
 
-Example2b <- daily_response(response = MVA_parameter,
-env_data = LJ_daily_temperatures, method = "lm", lower_limit = 50,
-upper_limit = 70, remove_insignificant = TRUE, row_names_subset = TRUE,
-previous_year = TRUE)
-plot_heatmap(Example2b)
-plot_extreme(Example2b)
-plot_specific(Example2b, 60)
+summary(example_PCA$PCA_output)
+example_PCA$plot_heatmap
 
-# Example with negative correlations. Data frames are automatically subset.
-data(example_proxies_2)
-Example3 <- daily_response(response = example_proxies_2,
-env_data = LJ_daily_temperatures, method = "brnn",
-lower_limit = 30, upper_limit = 40, row_names_subset = TRUE)
+# 4 Example negative correlations
+example_neg_cor <- daily_response(response = data_TRW_1, env_data = LJ_daily_temperatures,
+                                  method = "cor", lower_limit = 21, upper_limit = 180,
+                                  row_names_subset = TRUE, remove_insignificant = TRUE,
+                                  alpha = 0.05)
 
-# brnn examples
-Example4a <- daily_response(response = MVA_parameter,
-env_data = LJ_daily_temperatures, method = "brnn", measure = "r.squared",
-lower_limit = 357, upper_limit = 358, row_names_subset = TRUE)
+example_neg_cor$plot_heatmap
+example_neg_cor$plot_extreme
+example_neg_cor$temporal_stability
 
-Example4b <- daily_response(response = MVA_parameter,
-env_data = LJ_daily_temperatures, method = "brnn", measure = "adj.r.squared",
-lower_limit = 100, upper_limit = 200, remove_insignificant = TRUE,
-row_names_subset = TRUE)
-plot_heatmap(Example4b)
+# 5 Example of multiproxy analysis
+summary(example_proxies_1)
+cor(example_proxies_1)
 
-Example4c <- daily_response(response = example_proxies_1,
-env_data = LJ_daily_temperatures, method = "brnn", measure = "adj.r.squared",
-lower_limit = 25, upper_limit = 35, row_names_subset = TRUE)
+example_multiproxy <- daily_response(response = example_proxies_1,
+                                     env_data = LJ_daily_temperatures,
+                                     method = "lm", metric = "adj.r.squared",
+                                     lower_limit = 21, upper_limit = 180,
+                                     row_names_subset = TRUE, previous_year = FALSE,
+                                     remove_insignificant = TRUE, alpha = 0.05)
 
-Example5a <- daily_response(response = MVA_parameter,
-env_data = LJ_daily_temperatures, method = "brnn",
-measure = "adj.r.squared", fixed_width = 30, row_names_subset = TRUE)
-
-Example5b <- daily_response(response = MVA_parameter,
-env_data = LJ_daily_temperatures, method = "brnn", lower_limit = 100,
-upper_limit = 150, remove_insignificant = TRUE, row_names_subset = TRUE)
-plot_heatmap(Example5b)
-
-# Example with negative correlations. Data frames are automatically subset.
-data(example_proxies_2)
-Example6 <- daily_response(response = example_proxies_2,
-env_data = LJ_daily_temperatures, method = "brnn",
-lower_limit = 30, upper_limit = 40, row_names_subset = TRUE)
-
-# Example with individual chronologies, PCA transformation is used,
-# Plot selection of Principal Components
-data(example_proxies_individual)
-Example7 <- daily_response(response = example_proxies_individual,
-env_data = LJ_daily_temperatures, method = "lm",
-lower_limit = 30, upper_limit = 90, row_names_subset = TRUE,
-PCA_transformation = TRUE, components_selection = 'plot_selection',
-remove_insignificant = FALSE)
-plot_extreme(Example7)
-plot_heatmap(Example7)
-}
-
-# Example with individual chronologies, PCA transformation is used,
-# Automatic selection of Principal Components
-data(example_proxies_individual)
-Example8 <- daily_response(response = example_proxies_individual,
-env_data = LJ_daily_temperatures, method = "lm",
-lower_limit = 30, upper_limit = 95, row_names_subset = TRUE,
-PCA_transformation = TRUE, components_selection = 'automatic',
-eigenvalues_threhold = 1)
-plot_extreme(Example8)
-plot_heatmap(Example8)
-
-# Example with individual chronologies, PCA transformation is used,
-# Manual selection of Principal Components
-data(example_proxies_individual)
-Example9 <- daily_response(response = example_proxies_individual,
-env_data = LJ_daily_temperatures, method = "lm",
-lower_limit = 30, upper_limit = 90, row_names_subset = TRUE,
-PCA_transformation = TRUE, components_selection = 'manual',
-N_components = 4)
-plot_extreme(Example9)
+example_multiproxy$plot_heatmap
 }

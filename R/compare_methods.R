@@ -1,10 +1,11 @@
 #' compare_methods
 #'
-#' Calculates performance measures for train and test data of different
-#' regression methods: multiple linear regression (MLR), artificial neural
-#' networks with Bayesian regularization training algorithm (ANN), M5P model
-#' trees (MT), model trees with bagging (BMT) and random forest of regression
-#' trees (RF). Calculated performance measures are correlation coefficient,
+#' Calculates performance metrics for train and test data of different
+#' regression methods: multiple linear regression (MLR), ridge and lasso
+#' regression, artificial neural networks with Bayesian regularization
+#' training algorithm (ANN), M5P model trees (MT), model trees with bagging
+#' (BMT), polynomial regression (POLY) and random forest of regression
+#' trees (RF). Calculated performance metrics are correlation coefficient,
 #' root mean squared error (RMSE), root relative squared error (RSSE), index
 #' of agreement (d), reduction of error (RE), coefficient of efficiency
 #' (CE) and mean bias.
@@ -37,8 +38,8 @@
 #' @param RF_ntree Number of trees to grow (argument for random forest)
 #' @param RIDGE_lambda lambda argument for ridge regression
 #' @param LASSO_lambda lambda argument for lasso regression
-#' @param multiply an intiger that will be used to change the seed options
-#' for different repeats. set.seed(multiply*5)
+#' @param seed_factor an intiger that will be used to change the seed options
+#' for different repeats. set.seed(seed_factor*5)
 #' @param returns A character vector that specifies, whether a calibration and/ or
 #' validation results should be returned.
 #' @param digits intiger of number of digits to be displayed in the final
@@ -49,7 +50,7 @@
 #' transformed using PCA transformation.
 #' @param log_preprocess if set to TRUE, variables will be transformed with
 #' logarithmic transformation before used in PCA
-#' @param components_selection string specifying how to select the Principal
+#' @param components_selection character string specifying how to select the Principal
 #' Components used as predictors.
 #' There are three options: "automatic", "manual" and "plot_selection". If
 #' parameter is set to automatic, all scores with eigenvalues above 1 will be
@@ -61,18 +62,25 @@
 #' @param eigenvalues_threhold threshold for automatic selection of Principal Components
 #' @param N_components number of Principal Components used as predictors
 #' @param polynomial_formula a symbolic description of polinomial model to be fitted
+#' @param round_bias_cal number of digits for bias in calibration period. Effects
+#' the outlook of the final ggplot  of mean bias for calibration data (element 3 of
+#' the output list)
+#' @param round_bias_val number of digits for bias in validation period. Effects
+#' the outlook of the final ggplot of mean bias for validation data (element 4 of
+#' the output list)
 #'
-#' @return a list with five elements. Element one is a data frame with
-#' calculated measures for five regression methods. For each regression method
-#' and each calculated measure, mean and standard deviation are given.
-#' Element two is similar to element one: a data frame with ranks of calculated
-#' measures: average rank and %rank_1 are given. Element three and four
-#' are ggplot objects of mean bias for calibration (element 3) and validation
-#' (element 4) data. If returns argument is set to return only "Calibration" or
-#' "Validation" results, only the three relevant elements will be returned in the
-#' list. Element five is a data frame with specifications of parameters used for
-#' different regression methods.
-#'
+#' @return a list with five elements:
+#'          $mean_std,  data frame with calculated metrics for five regression methods.
+#'           For each regression method and each calculated metric, mean and standard
+#'           deviation are given.
+#'          $ranks, data frame with ranks of calculated metrics: average rank and %rank_1
+#'           are given.
+#'          $bias_cal, ggplot object of mean bias for calibration data.
+#'          $bias_val, ggplot object of mean bias for validation data. If returns argument
+#'           is set to return only "Calibration" or "Validation" results, only the three
+#'           relevant elements will be returned in the list.
+#'          $parameters, a data frame with specifications of parameters used for different
+#'           regression methods.
 #' @export
 #'
 #' @references
@@ -109,10 +117,11 @@
 #' data(example_dataset_1)
 #'
 #' # An example with default settings of machine learning algorithms
-#' experiment_1 <- compare_methods(formula = MVA~T_APR + T_aug_sep,
-#' dataset = example_dataset_1, k = 5, repeats = 5,
+#' experiment_1 <- compare_methods(formula = MVA~.,
+#' dataset = example_dataset_1, k = 5, repeats = 100,
 #' returns = c("Calibration", "Validation"), blocked_CV = TRUE, PCA_transformation = FALSE,
-#' components_selection = "plot_selection", use_caret = TRUE)
+#' components_selection = "plot_selection", use_caret = TRUE,
+#' polynomial_formula = "MVA ~ T_APR + T_aug_sep + T_APR^2")
 #' experiment_1[[1]] # See a data frame results of mean and standard deviation
 #' # for different methods
 #' experiment_1[[2]] # See a data frame results of average rank and share of
@@ -125,7 +134,7 @@
 #' dataset = example_dataset_1, k = 5, repeats = 100, ANN_neurons = 1,
 #' MT_M = 4, MT_N = FALSE, MT_U = FALSE, MT_R = FALSE, BMT_P = 100,
 #' BMT_I = 100, BMT_M = 4, BMT_N = FALSE, BMT_U = FALSE, BMT_R = FALSE,
-#' RF_mtry = 0, RF_maxnodes = 4, RF_ntree = 200, multiply = 5,
+#' RF_mtry = 0, RF_maxnodes = 4, RF_ntree = 200, seed_factor = 5,
 #' returns = c("Calibration"))
 #' experiment_2[[1]]
 #' experiment_2[[2]]
@@ -145,17 +154,17 @@ compare_methods <- function(formula, dataset, k = 3, repeats = 2,
                             BMT_N = F, BMT_U = F, BMT_R = F, RF_mtry = 0,
                             RF_maxnodes = 4, RF_ntree = 200, RIDGE_lambda = 0.1,
                             LASSO_lambda = 0.1, polynomial_formula = "",
-                            multiply = 5,
+                            seed_factor = 5,
                             returns = c("Calibration", "Validation"),
                             digits = 3, blocked_CV = FALSE,
                             PCA_transformation = FALSE, log_preprocess = TRUE,
                             components_selection = 'automatic',
-                            eigenvalues_threhold = 1,
-                            N_components = 2) {
+                            eigenvalues_threhold = 1, N_components = 2,
+                            round_bias_cal = 15, round_bias_val = 4) {
 
 dataset <- data.frame(dataset) # dataset needs to be of class data.frame!
 
-# This function is used to calculate measures r, RMSE, RRSE, d, RE, CE and bias
+# This function is used to calculate metrics r, RMSE, RRSE, d, RE, CE and bias
 # for train and test data
 
 #############################################################################
@@ -310,7 +319,7 @@ foldi <- seq(1:k)
 foldi <- paste("fold_", foldi)
 
 #Randomly shuffle the data
-set.seed(multiply * 5)
+set.seed(seed_factor * 5)
 dataset <- dataset[sample(nrow(dataset)), ]
 
 #Create 10 equally size folds
@@ -334,16 +343,16 @@ for (j in 1:k){
   test_predicted <- predict(MLR, test)
   train_observed <- train[, DepIndex]
   test_observed <- test[, DepIndex]
-  calculations <- calculate_measures(train_predicted, test_predicted,
-                                         train_observed, test_observed)
+  calculations <- calculate_metrics(train_predicted, test_predicted,
+                                         train_observed, test_observed, digits = 15)
   list_MLR[[b]] <- calculations
 
   #ANN Model
   capture.output(ANN <- brnn(formula, data = train, ANN_neurons = ANN_neurons, verbose = FALSE))
   train_predicted <- predict(ANN, train)
   test_predicted <- predict(ANN, test)
-  calculations <- calculate_measures(train_predicted, test_predicted,
-                                     train_observed, test_observed)
+  calculations <- calculate_metrics(train_predicted, test_predicted,
+                                     train_observed, test_observed, digits = 15)
   list_ANN[[b]] <- calculations
 
   # Model Trees
@@ -352,8 +361,8 @@ for (j in 1:k){
                                          R = MT_R))
   train_predicted <- predict(MT_model, train)
   test_predicted <- predict(MT_model, test)
-  calculations <- calculate_measures(train_predicted, test_predicted,
-                                     train_observed, test_observed)
+  calculations <- calculate_metrics(train_predicted, test_predicted,
+                                     train_observed, test_observed, digits = 15)
   list_MT[[b]] <- calculations
 
 
@@ -367,8 +376,8 @@ for (j in 1:k){
                                                        U = BMT_U, R = BMT_R)))
   train_predicted <- predict(BMT_model, train)
   test_predicted <- predict(BMT_model, test)
-  calculations <- calculate_measures(train_predicted, test_predicted,
-                                     train_observed, test_observed)
+  calculations <- calculate_metrics(train_predicted, test_predicted,
+                                     train_observed, test_observed, digits = 15)
   list_BMT[[b]] <- calculations
 
   # Random Forest
@@ -376,8 +385,8 @@ for (j in 1:k){
                                RF_maxnodes = RF_maxnodes, RF_ntree = RF_ntree)
   train_predicted <- predict(RF_model, train)
   test_predicted <- predict(RF_model, test)
-  calculations <- calculate_measures(train_predicted, test_predicted,
-                                     train_observed, test_observed)
+  calculations <- calculate_metrics(train_predicted, test_predicted,
+                                     train_observed, test_observed, digits = 15)
   list_RF[[b]] <- calculations
 
 
@@ -398,8 +407,8 @@ for (j in 1:k){
 
 
 
-  calculations <- calculate_measures(train_predicted, test_predicted,
-                                    train_observed, test_observed)
+  calculations <- calculate_metrics(train_predicted, test_predicted,
+                                    train_observed, test_observed, digits = 15)
   list_RIDGE[[b]] <- calculations
 
   # Lasso Regression
@@ -416,8 +425,8 @@ for (j in 1:k){
   test_predicted <- predict(lasso.mod, s = LASSO_lambda, newx = as.matrix(test[,-1]))
   }
 
-  calculations <- calculate_measures(train_predicted, test_predicted,
-                                     train_observed, test_observed)
+  calculations <- calculate_metrics(train_predicted, test_predicted,
+                                     train_observed, test_observed, digits = 15)
   list_LASSO[[b]] <- calculations
 
   # Polynomial regression
@@ -429,8 +438,8 @@ for (j in 1:k){
 
   train_predicted <- predict(poly_model, train)
   test_predicted <- predict(poly_model, test)
-  calculations <- calculate_measures(train_predicted, test_predicted,
-                                     train_observed, test_observed)
+  calculations <- calculate_metrics(train_predicted, test_predicted,
+                                     train_observed, test_observed, digits = 15)
   list_POLY[[b]] <- calculations
 
 
@@ -481,16 +490,16 @@ if (blocked_CV == TRUE){
     test_predicted <- predict(MLR, test)
     train_observed <- train[, DepIndex]
     test_observed <- test[, DepIndex]
-    calculations <- calculate_measures(train_predicted, test_predicted,
-                                       train_observed, test_observed)
+    calculations <- calculate_metrics(train_predicted, test_predicted,
+                                       train_observed, test_observed, digits = 15)
     list_MLR[[b]] <- calculations
 
     #ANN Model
     capture.output(ANN <- brnn(formula, data = train, ANN_neurons = ANN_neurons, verbose = FALSE))
     train_predicted <- predict(ANN, train)
     test_predicted <- predict(ANN, test)
-    calculations <- calculate_measures(train_predicted, test_predicted,
-                                       train_observed, test_observed)
+    calculations <- calculate_metrics(train_predicted, test_predicted,
+                                       train_observed, test_observed, digits = 15)
     list_ANN[[b]] <- calculations
 
     #M5 Model tree
@@ -499,8 +508,8 @@ if (blocked_CV == TRUE){
                                            R = MT_R))
     train_predicted <- predict(MT_model, train)
     test_predicted <- predict(MT_model, test)
-    calculations <- calculate_measures(train_predicted, test_predicted,
-                                       train_observed, test_observed)
+    calculations <- calculate_metrics(train_predicted, test_predicted,
+                                       train_observed, test_observed, digits = 15)
     list_MT[[b]] <- calculations
 
     #M5 Model with bagging
@@ -512,8 +521,8 @@ if (blocked_CV == TRUE){
                                                          U = BMT_U, R = BMT_R)))
     train_predicted <- predict(BMT_model, train)
     test_predicted <- predict(BMT_model, test)
-    calculations <- calculate_measures(train_predicted, test_predicted,
-                                       train_observed, test_observed)
+    calculations <- calculate_metrics(train_predicted, test_predicted,
+                                       train_observed, test_observed, digits = 15)
     list_BMT[[b]] <- calculations
 
     ##Random Forest
@@ -521,8 +530,8 @@ if (blocked_CV == TRUE){
                                  RF_maxnodes = RF_maxnodes, RF_ntree = RF_ntree)
     train_predicted <- predict(RegTree_Weka, train)
     test_predicted <- predict(RegTree_Weka, test)
-    calculations <- calculate_measures(train_predicted, test_predicted,
-                                       train_observed, test_observed)
+    calculations <- calculate_metrics(train_predicted, test_predicted,
+                                       train_observed, test_observed, digits = 15)
     list_RF[[b]] <- calculations
 
     # Ridge Regression!
@@ -541,8 +550,8 @@ if (blocked_CV == TRUE){
 
 
 
-    calculations <- calculate_measures(train_predicted, test_predicted,
-                                       train_observed, test_observed)
+    calculations <- calculate_metrics(train_predicted, test_predicted,
+                                       train_observed, test_observed, digits = 15)
     list_RIDGE[[b]] <- calculations
 
     # Lasso Regression
@@ -559,8 +568,8 @@ if (blocked_CV == TRUE){
       test_predicted <- predict(lasso.mod, s = LASSO_lambda, newx = as.matrix(test[,-1]))
     }
 
-    calculations <- calculate_measures(train_predicted, test_predicted,
-                                       train_observed, test_observed)
+    calculations <- calculate_metrics(train_predicted, test_predicted,
+                                       train_observed, test_observed, digits = 15)
     list_LASSO[[b]] <- calculations
 
     # Polynomial regression
@@ -571,8 +580,8 @@ if (blocked_CV == TRUE){
     }
     train_predicted <- predict(poly_model, train)
     test_predicted <- predict(poly_model, test)
-    calculations <- calculate_measures(train_predicted, test_predicted,
-                                       train_observed, test_observed)
+    calculations <- calculate_metrics(train_predicted, test_predicted,
+                                       train_observed, test_observed, digits = 15)
     list_POLY[[b]] <- calculations
 
     setTxtProgressBar(pb, m)
@@ -587,7 +596,7 @@ if (blocked_CV == TRUE){
 ###########################################################################################
 ###########################################################################################
 # Now the proces of extraction starts
-# Here, lists are rearranged and measures are extracted
+# Here, lists are rearranged and metrics are extracted
 
 listVec <- lapply(list_MLR, c, recursive = TRUE)
 m <- do.call(cbind, listVec)
@@ -719,7 +728,7 @@ df_all_avg <- round(cbind(df_MLR_avg, df_ANN_avg, df_MT_avg, df_BMT_avg, df_RF_a
 # Calculation of ranks
 df_all <- round(rbind(df_MLR_rank, df_ANN_rank, df_MT_rank, df_BMT_rank, df_RF_rank, df_RIDGE_rank, df_LASSO_rank, df_POLY_rank), 8)
 
-# Now, all measures (except bias) are extracted for calibration and validation
+# Now, all metrics (except bias) are extracted for calibration and validation
 # data.
 r_cal <- df_all[c(seq(1, 96, by = 12)), ]
 r_val <- df_all[c(seq(2, 96, by = 12)), ]
@@ -842,7 +851,7 @@ MT <- NULL
 MT_AR <- NULL
 MT_S1 <- NULL
 MT_SD <- NULL
-Measure <- NULL
+Metric <- NULL
 Period <- NULL
 RF <- NULL
 RF_AR <- NULL
@@ -870,7 +879,7 @@ value <- NULL
 
 ranks_together$Method <- c("MLR", "ANN", "MT", "BMT", "RF", "RIDGE", "LASSO", "POLY")
 ranks_together$Period <- c(rep("cal", 8), rep("val", 8))
-ranks_together$Measure <- c(rep("r", 16),
+ranks_together$Metric <- c(rep("r", 16),
                             rep("RMSE", 16),
                             rep("RRSE", 16),
                             rep("d", 16),
@@ -879,26 +888,26 @@ ranks_together$Measure <- c(rep("r", 16),
 
 colnames(ranks_together)[1] <- "Avg_rank"
 togeter_AVG_rank <- reshape::cast(ranks_together,
-                                  formula = Measure + Period ~ Method,
+                                  formula = Metric + Period ~ Method,
                                   value = c("Avg_rank"))
-togeter_AVG_rank$Measure  <- factor(togeter_AVG_rank$Measure,
+togeter_AVG_rank$Metric  <- factor(togeter_AVG_rank$Metric,
                                     levels = c("r", "RMSE", "RRSE", "d",
                                                "RE", "CE"))
-togeter_AVG_rank <- togeter_AVG_rank[order(togeter_AVG_rank$Measure), ]
-togeter_AVG_rank <- dplyr::select(togeter_AVG_rank, Measure, Period, MLR, RIDGE, LASSO, POLY,
+togeter_AVG_rank <- togeter_AVG_rank[order(togeter_AVG_rank$Metric), ]
+togeter_AVG_rank <- dplyr::select(togeter_AVG_rank, Metric, Period, MLR, RIDGE, LASSO, POLY,
                                   ANN, MT, BMT, RF)
 
 colnames(ranks_together)[2] <- "Share_rank1"
 together_share1 <- reshape::cast(ranks_together,
-                                 formula = Measure + Period ~ Method,
+                                 formula = Metric + Period ~ Method,
                                  value = c("Share_rank1"))
 
-together_share1$Measure  <- factor(together_share1$Measure,
+together_share1$Metric  <- factor(together_share1$Metric,
                                    levels = c("r", "RMSE", "RRSE", "d",
                                               "RE", "CE"))
 
-together_share1 <- together_share1[order(together_share1$Measure), ]
-together_share1 <- dplyr::select(together_share1, Measure, Period, MLR, RIDGE, LASSO, POLY, ANN,
+together_share1 <- together_share1[order(together_share1$Metric), ]
+together_share1 <- dplyr::select(together_share1, Metric, Period, MLR, RIDGE, LASSO, POLY, ANN,
                                  MT, BMT, RF)
 
 ###############################################################################
@@ -907,23 +916,23 @@ colnames(df_all_avg) <- c("Mean MLR", "Std MLR", "Mean ANN", "Std ANN", "Mean MT
                           "Std MT", "Mean BMT", "Std BMT", "Mean RF", "Std RF", "Mean RIDGE", "Std RIDGE",
                           "Mean LASSO", "Std LASSO", "Mean POLY", "Std POLY")
 df_all_avg$Period <- c("cal", "val")
-df_all_avg$Measure <- c("r", "r", "RMSE", "RMSE", "RRSE", "RRSE",
+df_all_avg$Metric <- c("r", "r", "RMSE", "RMSE", "RRSE", "RRSE",
                             "d", "d", "RE", "RE", "CE", "CE")
 row.names(df_all_avg) <- NULL
 
-Rezults_mean_std <- dplyr::select(df_all_avg, Measure, Period, "Mean MLR", "Std MLR",
+Rezults_mean_std <- dplyr::select(df_all_avg, Metric, Period, "Mean MLR", "Std MLR",
                                   "Mean RIDGE", "Std RIDGE", "Mean LASSO", "Std LASSO","Mean POLY", "Std POLY",
                                   "Mean ANN", "Std ANN",
                                   "Mean MT", "Std MT", "Mean BMT", "Std BMT", "Mean RF", "Std RF")
 
 together_share1 <- together_share1[, -c(1,2)]
-colnames(togeter_AVG_rank) <- c("Measure", "Period", "Avg rank MLR","Avg rank RIDGE", "Avg rank LASSO", "Avg rank POLY",
+colnames(togeter_AVG_rank) <- c("Metric", "Period", "Avg rank MLR","Avg rank RIDGE", "Avg rank LASSO", "Avg rank POLY",
                                 "Avg rank ANN", "Avg rank MT", "Avg rank BMT",
 "Avg rank RF")
 colnames(together_share1) <- c("%rank_1 MLR", "%rank_1 RIDGE","%rank_1 LASSO","%rank_1 POLY","%rank_1 ANN",
                                 "%rank_1 MT", "%rank_1 BMT", "%rank_1 RF")
 ranks <- cbind(togeter_AVG_rank, together_share1)
-Rezults_ranks <- dplyr::select(ranks, Measure, Period,
+Rezults_ranks <- dplyr::select(ranks, Metric, Period,
                                "Avg rank MLR", "%rank_1 MLR",
                                "Avg rank RIDGE", "%rank_1 RIDGE",
                                "Avg rank LASSO", "%rank_1 LASSO",
@@ -981,16 +990,17 @@ bias_together_validation$Method <- factor(bias_together_validation$Method,
                                             levels = c("MLR", "RIDGE", "LASSO","POLY", "ANN", "MT", "BMT", "RF"),
                                            ordered = TRUE)
 
-if (numIND < 2){
+if (polynomial_formula == ""){
   bias_together_validation <- dplyr::filter(bias_together_validation, Method != "POLY")
   bias_together_calibration <- dplyr::filter(bias_together_calibration, Method != "POLY")
 }
 
-if (polynomial_formula == ""){
+if (numIND < 2){
   bias_together_validation <- dplyr::filter(bias_together_validation, Method != "RIDGE" & Method != "LASSO")
   bias_together_calibration<- dplyr::filter(bias_together_calibration, Method != "RIDGE" & Method != "LASSO")
 }
 
+bias_together_calibration$value <- round(bias_together_calibration$value, round_bias_cal)
 
 gg_object_cal <- ggplot(bias_together_calibration, aes(value)) +
   geom_density(aes(group = Method)) +
@@ -999,6 +1009,8 @@ gg_object_cal <- ggplot(bias_together_calibration, aes(value)) +
   theme_bw() +
   theme(legend.position = "NONE", legend.title = element_blank(),
         text = element_text(size = 15))
+
+bias_together_validation$value <- round(bias_together_validation$value, round_bias_val)
 
 gg_object_val <- ggplot(bias_together_validation, aes(value)) +
   geom_density(aes(group = Method)) +
@@ -1055,19 +1067,23 @@ parameters <- data.frame(
 
 # If Calibration and Validation data should be returned, then this is our final results
 if (c == 4){
-  final_list <- list(Rezults_mean_std, Rezults_ranks, gg_object_cal, gg_object_val, parameters)
+  final_list <- list(mean_std <- Rezults_mean_std, ranks <- Rezults_ranks, bias_cal <- gg_object_cal,
+                     bias_val <- gg_object_val, parameter_values <- parameters)
 }
 
 if (c == 1){
   Rezults_mean_std <- dplyr::filter(Rezults_mean_std, Period == "cal")
   Rezults_ranks <- dplyr::filter(Rezults_ranks, Period == "cal")
   final_list <- list(Rezults_mean_std, Rezults_ranks, gg_object_cal, parameters)
+  final_list <- list(mean_std <- Rezults_mean_std, ranks <- Rezults_ranks, bias_cal <- gg_object_cal,
+                     bias_val <- gg_object_val)
 }
 
 if (c == 3){
   Rezults_mean_std <- dplyr::filter(Rezults_mean_std, Period == "val")
   Rezults_ranks <- dplyr::filter(Rezults_ranks, Period == "val")
-  final_list <- list(Rezults_mean_std, Rezults_ranks, gg_object_val, parameters)
+  final_list <- list(mean_std <- Rezults_mean_std, ranks <- Rezults_ranks,
+                     bias_val <- gg_object_val, parameter_values <- parameters)
 }
 
 final_list

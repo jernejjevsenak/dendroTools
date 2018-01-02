@@ -1,4 +1,4 @@
-#' years_to_rownames
+#'
 #'
 #' Function returns a data frame with row names as years
 #'
@@ -26,7 +26,7 @@ years_to_rownames <- function(data, column_year) {
   names <- names[-year_index]
 
   row.names(data) <- data[, year_index]
-  data <- as.data.frame(data[, -as.numeric(year_index)])
+  data <- as.data.frame(data[, -as.numeric(year_index), F])
 
   colnames(data) <- names
 

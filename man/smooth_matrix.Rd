@@ -31,7 +31,7 @@ data(LJ_daily_temperatures)
 data(example_proxies_1)
 Example1 <- daily_response(response = example_proxies_1,
 env_data = LJ_daily_temperatures, method = "brnn",
-measure = "r.squared", lower = 250, upper = 251,
+metric = "r.squared", lower = 250, upper = 251,
 previous_year = FALSE, brnn_smooth = TRUE, alpha = 0.1)
 smoothed <- smooth_matrix(mat = Example1[[1]])
 
@@ -40,3 +40,4 @@ mat_1[5 ,5] <- -1
 mat_2 <- smooth_matrix(mat_1)
 #' }
 }
+\keyword{internal}

@@ -18,24 +18,24 @@ Graphs a heatmap of values stored in a matrix, such as produced
 by \code{\link{daily_response}} function.
 }
 \examples{
-\dontrun{
 data(LJ_daily_temperatures)
 data(example_proxies_1)
 Example1 <- daily_response(response = example_proxies_1,
-env_data = LJ_daily_temperatures, method = "lm", measure = "r.squared",
-fixed_width = 90, previous_year = TRUE)
+env_data = LJ_daily_temperatures, method = "lm", metric = "r.squared",
+fixed_width = 90, previous_year = TRUE, row_names_subset = TRUE)
 plot_heatmap(Example1)
 
 Example2 <- daily_response(response = example_proxies_1,
 env_data = LJ_daily_temperatures, method = "brnn",
-measure = "adj.r.squared", lower_limit = 50, upper_limit = 55)
+metric = "adj.r.squared", lower_limit = 50, upper_limit = 55,
+row_names_subset = TRUE)
 plot_heatmap(Example2)
 
 library(dplyr)
 oxygen_isotope <- dplyr::select(example_proxies_1, O18)
 Example3 <- daily_response(response = oxygen_isotope,
 env_data = LJ_daily_temperatures, method = "cor", lower_limit = 50,
-upper_limit = 55, previous_year = TRUE)
+upper_limit = 55, previous_year = TRUE, row_names_subset = TRUE)
 plot_heatmap(Example3)
 }
-}
+\keyword{internal}

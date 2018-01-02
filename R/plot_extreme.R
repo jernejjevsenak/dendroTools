@@ -1,46 +1,46 @@
 #' plot_extreme
 #'
-#' Graphs a line plot of a row with the highest measure in a matrix, produced by
+#' Graphs a line plot of a row with the highest metric in a matrix, produced by
 #' \code{\link{daily_response}} function.
 #'
 #' @param result_daily_response a list with three objects as produced by
 #' daily_response function
 #' @param title logical, if set to FALSE, no plot title is displayed
+#' @param ylimits limit of the y axes. It should be given as ylimits = c(0,1)
 #'
 #' @return A ggplot2 object containing the plot display
-#' @export
 #'
 #' @examples
-#' \dontrun{
 #' data(LJ_daily_temperatures)
 #' data(example_proxies_1)
 #' Example1 <- daily_response(response = example_proxies_1,
-#' env_data = LJ_daily_temperatures, method = "lm", measure = "r.squared",
-#' fixed_width = 90, previous_year = TRUE)
+#' env_data = LJ_daily_temperatures, method = "lm", metric = "r.squared",
+#' fixed_width = 90, previous_year = TRUE, row_names_subset = TRUE)
 #' plot_extreme(Example1)
 #'
 #' Example2 <- daily_response(response = example_proxies_1,
 #' env_data = LJ_daily_temperatures, method = "brnn",
-#' measure = "adj.r.squared", lower_limit = 50, upper_limit = 55, neurons = 1,
-#' row_names_subset = TRUE)
+#' metric = "adj.r.squared", lower_limit = 50, upper_limit = 55, neurons = 1,
+#' row_names_subset = TRUE, previous_year = TRUE)
 #' plot_extreme(Example2)
 #'
 #' # Example with negative correlations
-#' data(example_proxies_2)
+#' data(data_TRW_1)
 #' LJ_daily_temperatures_subset = LJ_daily_temperatures[-c(53:55), ]
-#' Example3 <- daily_response(response = example_proxies_2,
-#' env_data = LJ_daily_temperatures_subset, method = "cor",
-#' lower_limit = 35, upper_limit = 40)
+#' Example3 <- daily_response(response = data_TRW_1,
+#' env_data = LJ_daily_temperatures_subset, method = "lm", metric = "adj.r.squared",
+#' lower_limit = 35, upper_limit = 40, previous_year = TRUE, row_names_subset = TRUE)
 #' plot_extreme(Example3)
 #'
 #' Example4 <- daily_response(response = example_proxies_1,
 #' env_data = LJ_daily_temperatures, method = "lm",
-#' measure = "r.squared", lower_limit = 30, upper_limit = 120, neurons = 1,
-#' row_names_subset = TRUE)
+#' metric = "r.squared", lower_limit = 30, upper_limit = 120, neurons = 1,
+#' row_names_subset = TRUE, previous_year = TRUE)
 #' plot_extreme(Example4)
-#' }
+#'
+#' @keywords internal
 
-plot_extreme <- function(result_daily_response, title = TRUE) {
+plot_extreme <- function(result_daily_response, title = TRUE, ylimits = NULL) {
 
   # Short description of the function. It
   # - extracts matrix (the frst object of a list)
@@ -48,7 +48,7 @@ plot_extreme <- function(result_daily_response, title = TRUE) {
   # highest minimum and maximum and compare its absolute values. If absolute
   # minimum is higher than maximum, we have to plot minimum correlations.
   # - query the information about windows width (row names of the matrix) and
-  # starting day of the mighest (absolute) measure (column names of the matrix).
+  # starting day of the highest (absolute) metric (column names of the matrix).
   # - draws a ggplot line plot.
 
   # A) Extracting a matrix from a list and converting it into a data frame
@@ -78,7 +78,7 @@ plot_extreme <- function(result_daily_response, title = TRUE) {
     row_index <- row.names(result_daily_element1)[max_index]
     temporal_vector <- unlist(result_daily_element1[max_index, ])
     temporal_vector <- data.frame(temporal_vector)
-    calculated_measure <- round(max(temporal_vector, na.rm = TRUE), 3)
+    calculated_metric <- round(max(temporal_vector, na.rm = TRUE), 3)
 
     # Here we remove missing values at the end of the temporal_vector.
     # It is important to remove missing values only at the end of the
@@ -108,9 +108,8 @@ plot_extreme <- function(result_daily_response, title = TRUE) {
     min_index <- which.min(result_daily_element1[, names(min_result)])
     row_index <- row.names(result_daily_element1)[min_index]
     temporal_vector <- unlist(result_daily_element1[min_index, ])
-    temporal_vector <- temporal_vector[!is.na(temporal_vector)]
     temporal_vector <- data.frame(temporal_vector)
-    calculated_measure <- round(min(temporal_vector, na.rm = TRUE), 3)
+    calculated_metric <- round(min(temporal_vector, na.rm = TRUE), 3)
 
     # Here we remove missing values at the end of the temporal_vector.
     # It is important to remove missing values only at the end of the
@@ -140,7 +139,7 @@ plot_extreme <- function(result_daily_response, title = TRUE) {
 
   # The final plot is being created. The first part of a plot is the same,
   # the second part is different, depending on temporal.vector, plot_column,
-  # method and measure string stored in result_daily_response. The second part
+  # method and metric string stored in result_daily_response. The second part
   # defines xlabs, xlabs and ggtitles.
 
   # The definition of theme
@@ -157,16 +156,16 @@ plot_extreme <- function(result_daily_response, title = TRUE) {
 
   # Here we define a data frame of dates and corresponing day of year (doi). Later
   # this dataframe will be used to describe tht optimal sequence od days
-  doy <- seq(1:366)
-  date <- seq(as.Date('2015-01-01'),as.Date('2015-12-31'), by = "+1 day")
-  date[366] <- as.Date('2015-12-31')
+  doy <- seq(1:731)
+  date <- seq(as.Date('2015-01-01'),as.Date('2016-12-31'), by = "+1 day")
+  # date[366] <- as.Date('2015-12-31')
   date <- format(date, "%b %d")
   date_codes <- data.frame(doy = doy, date = date)
 
 
   Optimal_string <- paste("\nOptimal Selection:",
-  as.character(date_codes[plot_column, 2]),"-",
-  as.character(date_codes[plot_column + as.numeric(row_index) - 1, 2]))
+  as.character(date_codes[plot_column_extra, 2]),"-",
+  as.character(date_codes[plot_column_extra + as.numeric(row_index) - 1, 2]))
 
   # in the next chunk, warnings are supressed. At the end of the vector,
   # there are always missing values, which are a result of changing window
@@ -178,12 +177,12 @@ plot_extreme <- function(result_daily_response, title = TRUE) {
      geom_vline(xintercept = plot_column, col = "red") +
      scale_x_continuous(breaks = sort(c(seq(0, nrow(temporal_vector), 50)), decreasing = FALSE),
        labels = sort(c(seq(0, nrow(temporal_vector), 50)))) +
-       annotate("label", label = as.character(calculated_measure),
-         y = calculated_measure, x = plot_column + 15) +
+     scale_y_continuous(limits = ylimits) +
+       annotate("label", label = as.character(calculated_metric),
+         y = calculated_metric, x = plot_column + 15) +
     annotate("label", label = paste("Day", as.character(plot_column), sep = " "),
              y = min(temporal_vector, na.rm = TRUE) + 0.2*min(temporal_vector, na.rm = TRUE), x = plot_column + 15) +
     journal_theme)
-
 
   # If previous_year = TRUE, we add a vertical line with labels of
   # previous and current years
@@ -191,26 +190,26 @@ plot_extreme <- function(result_daily_response, title = TRUE) {
     final_plot <- final_plot +
       annotate(fontface = "bold", label = 'Previous Year', geom = 'label',
                x = 366 - ncol(result_daily_element1) / 12.8,
-               y = calculated_measure - (calculated_measure/5)) +
+               y = calculated_metric - (calculated_metric/5)) +
       annotate(fontface = "bold", label = 'Current Year', geom = 'label',
                x = 366 + ncol(result_daily_element1) / 13.5,
-               y = calculated_measure -(calculated_measure/5)) +
+               y = calculated_metric -(calculated_metric/5)) +
       geom_vline(xintercept = 366, size = 1)
   }
 
 
   # Here we define titles. They differ importantly among methods and arguments
   # in the final output list from daily_response() function
-  if (is.na(result_daily_response[[5]])) {
+  if (is.na(result_daily_response[[4]])) {
 
     if ((nrow(temporal_vector) > 366) &&  (plot_column > 366) &&
         (result_daily_response [[2]] == "cor")) {
       final_plot <- final_plot +
-        ggtitle(paste("Maximal correlation coefficient:", calculated_measure,
-                      "\nOptimal window width:", as.numeric(row_index), "days",
-                      "\nStarting day of optimal window width: day",
-                      plot_column_extra, "of current year",
-                      Optimal_string, "(Previous Year)")) +
+        ggtitle(paste("Maximal Correlation Coefficient:", calculated_metric,
+                      "\nOptimal Window Width:", as.numeric(row_index), "Days",
+                      "\nStarting Day of Optimal Window Width: Day",
+                      plot_column_extra, "of Current Year",
+                      Optimal_string)) +
         xlab("Day of Year  (Including Previous Year)") +
         ylab("Correlation Coefficient")
     }
@@ -218,10 +217,10 @@ plot_extreme <- function(result_daily_response, title = TRUE) {
     if ((nrow(temporal_vector) > 366) &&  (plot_column < 366) &&
         (result_daily_response [[2]] == "cor")) {
       final_plot <- final_plot +
-        ggtitle(paste("Maximal correlation coefficient:", calculated_measure,
-                      "\nOptimal window width:", as.numeric(row_index), "days",
-                      "\nStarting day of optimal window width: day",
-                      plot_column_extra, "of previous year",
+        ggtitle(paste("Maximal Correlation Coefficient:", calculated_metric,
+                      "\nOptimal Window Width:", as.numeric(row_index), "Days",
+                      "\nStarting Day of Optimal Window Width: Day",
+                      plot_column_extra, "of Previous Year",
                       Optimal_string, "(Previous Year)")) +
         xlab("Day of Year (Including Previous Year)") +
         ylab("Correlation Coefficient")
@@ -230,9 +229,9 @@ plot_extreme <- function(result_daily_response, title = TRUE) {
     if ((nrow(temporal_vector) < 366) &&
         (result_daily_response [[2]] == "cor")) {
       final_plot <- final_plot +
-        ggtitle(paste("Maximal correlation coefficient:", calculated_measure,
-                      "\nOptimal window width:", as.numeric(row_index), "days",
-                      "\nStarting day of optimal window width: day", plot_column,
+        ggtitle(paste("Maximal Correlation Coefficient:", calculated_metric,
+                      "\nOptimal Window Width:", as.numeric(row_index), "Days",
+                      "\nStarting Day of Optimal Window Width: Day", plot_column,
                       Optimal_string)) +
         xlab("Day of Year") +
         ylab("Correlation Coefficient")
@@ -250,11 +249,11 @@ plot_extreme <- function(result_daily_response, title = TRUE) {
         (result_daily_response [[3]] == "r.squared")) {
       final_plot <- final_plot +
         ggtitle(paste("Method: Linear Regression",
-                      "\nMaximal R squared:", calculated_measure,
-                      "\nOptimal window width:", as.numeric(row_index), "days",
-                      "\nStarting day of optimal window width: day",
-                      plot_column_extra, "of current year",
-                      Optimal_string, "(Previous Year)")) +
+                      "\nMaximal R Squared:", calculated_metric,
+                      "\nOptimal Window Width:", as.numeric(row_index), "Days",
+                      "\nStarting Day of Optimal Window Width: Day",
+                      plot_column_extra, "of Current Year",
+                      Optimal_string)) +
         xlab("Day of Year (Including Previous Year)") +
         ylab("Explained Variance")
     }
@@ -265,10 +264,10 @@ plot_extreme <- function(result_daily_response, title = TRUE) {
         (result_daily_response [[3]] == "r.squared")) {
       final_plot <- final_plot +
         ggtitle(paste("Method: ANN with Bayesian Regularization",
-                      "\nMaximal R squared:", calculated_measure,
-                      "\nOptimal window width:", as.numeric(row_index), "days",
-                      "\nStarting day of optimal window width: day",
-                      plot_column_extra, "of current year",
+                      "\nMaximal R Squared:", calculated_metric,
+                      "\nOptimal Window Width:", as.numeric(row_index), "Days",
+                      "\nStarting Day of Optimal Window Width: Day",
+                      plot_column_extra, "of Current Year",
                       Optimal_string, "(Previous Year)")) +
         xlab("Day of Year (Including Previous Year)") +
         ylab("Explained Variance")
@@ -286,10 +285,10 @@ plot_extreme <- function(result_daily_response, title = TRUE) {
         result_daily_response[[3]] == "r.squared") {
       final_plot <- final_plot +
         ggtitle(paste("Method: Linear Regression",
-                      "\nMaximal R squared:", calculated_measure,
-                      "\nOptimal window width:", as.numeric(row_index), "days",
-                      "\nStarting day of optimal window width: day",
-                      plot_column_extra, "of previous year",
+                      "\nMaximal R Squared:", calculated_metric,
+                      "\nOptimal Window Width:", as.numeric(row_index), "Days",
+                      "\nStarting Day of Optimal Window Width: Day",
+                      plot_column_extra, "of Previous Year",
                       Optimal_string, "(Previous Year)")) +
         xlab("Day of Year (Including Previous Year)") +
         ylab("Explained Variance")
@@ -301,10 +300,10 @@ plot_extreme <- function(result_daily_response, title = TRUE) {
         result_daily_response[[3]] == "r.squared") {
       final_plot <- final_plot +
         ggtitle(paste("Method: ANN with Bayesian Regularization",
-                      "\nMaximal R squared:", calculated_measure,
-                      "\nOptimal window width:", as.numeric(row_index), "days",
-                      "\nStarting day of optimal window width: day",
-                      plot_column_extra, "of previous year",
+                      "\nMaximal R Squared:", calculated_metric,
+                      "\nOptimal Window Width:", as.numeric(row_index), "Days",
+                      "\nStarting Day of Optimal Window Width: Day",
+                      plot_column_extra, "of Previous Year",
                       Optimal_string)) +
         xlab("Day of Year (Including Previous Year)") +
         ylab("Explained Variance")
@@ -319,9 +318,9 @@ plot_extreme <- function(result_daily_response, title = TRUE) {
         result_daily_response[[3]] == "r.squared") {
       final_plot <- final_plot +
         ggtitle(paste("Method: Linear Regression",
-                      "\nMaximal R squared:", calculated_measure,
-                      "\nOptimal window width:", as.numeric(row_index), "days",
-                      "\nStarting day of optimal window width:  day",
+                      "\nMaximal R Squared:", calculated_metric,
+                      "\nOptimal Window Width:", as.numeric(row_index), "Days",
+                      "\nStarting Day of Optimal Window Width:  Day",
                       plot_column, Optimal_string)) +
         xlab("Day of Year") +
         ylab("Explained Variance")
@@ -332,9 +331,9 @@ plot_extreme <- function(result_daily_response, title = TRUE) {
         result_daily_response[[3]] == "r.squared") {
       final_plot <- final_plot +
         ggtitle(paste("Method: ANN with Bayesian Regularization",
-                      "\nMaximal R squared:", calculated_measure,
-                      "\nOptimal window width:", as.numeric(row_index), "days",
-                      "\nStarting day of optimal window width:  day",
+                      "\nMaximal R Squared:", calculated_metric,
+                      "\nOptimal Window Width:", as.numeric(row_index), "Days",
+                      "\nStarting Day of Optimal Window Width:  Day",
                       plot_column, Optimal_string)) +
         xlab("Day of Year") +
         ylab("Explained Variance")
@@ -350,10 +349,10 @@ plot_extreme <- function(result_daily_response, title = TRUE) {
         (result_daily_response[[3]] == "adj.r.squared")) {
       final_plot <- final_plot +
         ggtitle(paste("Method: Linear Regression",
-                      "\nMaximal Adjusted R squared:", calculated_measure,
-                      "\nOptimal window width:", as.numeric(row_index), "days",
-                      "\nStarting day of optimal window width: day",
-                      plot_column_extra, "of current year", Optimal_string)) +
+                      "\nMaximal Adjusted R Squared:", calculated_metric,
+                      "\nOptimal Window Width:", as.numeric(row_index), "Days",
+                      "\nStarting Day of Optimal Window Width: Day",
+                      plot_column_extra, "of Current Year", Optimal_string)) +
         xlab("Day of Year (Including Previous Year)") +
         ylab("Adjusted Explained Variance")
     }
@@ -365,10 +364,10 @@ plot_extreme <- function(result_daily_response, title = TRUE) {
         (result_daily_response[[3]] == "adj.r.squared")) {
       final_plot <- final_plot +
         ggtitle(paste("Method: ANN with Bayesian Regularization",
-                      "\nMaximal Adjusted R squared:", calculated_measure,
-                      "\nOptimal window width:", as.numeric(row_index), "days",
-                      "\nStarting day of optimal window width: day",
-                      plot_column_extra, "of current year", Optimal_string)) +
+                      "\nMaximal Adjusted R Squared:", calculated_metric,
+                      "\nOptimal Window Width:", as.numeric(row_index), "Days",
+                      "\nStarting Day of Optimal Window Width: Day",
+                      plot_column_extra, "of Current Year", Optimal_string)) +
         xlab("Day of Year (Including Previous Year)") +
         ylab("Adjusted Explained Variance")
     }
@@ -386,10 +385,10 @@ plot_extreme <- function(result_daily_response, title = TRUE) {
         (result_daily_response [[3]] == "adj.r.squared")) {
       final_plot <- final_plot +
         ggtitle(paste("Method: Linear Regression",
-                      "\nMaximal Adjusted R squared:", calculated_measure,
-                      "\nOptimal window width: day", as.numeric(row_index),
-                      "days", "\nStarting day of optimal window width:",
-                      plot_column_extra, "of previous year", Optimal_string)) +
+                      "\nMaximal Adjusted R Squared:", calculated_metric,
+                      "\nOptimal Window Width: Day", as.numeric(row_index),
+                      "Days", "\nStarting Day of Optimal Window Width:",
+                      plot_column_extra, "of Previous Year", Optimal_string)) +
         xlab("Day of Year (Including Previous Year)") +
         ylab("Adjusted Explained Variance")
     }
@@ -400,10 +399,10 @@ plot_extreme <- function(result_daily_response, title = TRUE) {
         (result_daily_response [[3]] == "adj.r.squared")) {
       final_plot <- final_plot +
         ggtitle(paste("Method: ANN with Bayesian Regularization",
-                      "\nMaximal Adjusted R squared:", calculated_measure,
-                      "\nOptimal window width: day", as.numeric(row_index),
-                      "days", "\nStarting day of optimal window width:",
-                      plot_column_extra, "of previous year", Optimal_string)) +
+                      "\nMaximal Adjusted R Squared:", calculated_metric,
+                      "\nOptimal Window Width: Day", as.numeric(row_index),
+                      "Days", "\nStarting Day of Optimal Window Width:",
+                      plot_column_extra, "of Previous Year", Optimal_string)) +
         xlab("Day of Year (Including Previous Year)") +
         ylab("Adjusted Explained Variance")
     }
@@ -423,9 +422,9 @@ plot_extreme <- function(result_daily_response, title = TRUE) {
         (result_daily_response [[3]] == "adj.r.squared")) {
       final_plot <- final_plot +
         ggtitle(paste("Method: Linear Regression",
-                      "\nMaximal Adjusted R squared:", calculated_measure,
-                      "\nOptimal window width:", as.numeric(row_index), "days",
-                      "\nStarting day of optimal window width: day",
+                      "\nMaximal Adjusted R Squared:", calculated_metric,
+                      "\nOptimal Window Width:", as.numeric(row_index), "Days",
+                      "\nStarting Day of Optimal Window Width: Day",
                       plot_column, Optimal_string)) +
         xlab("Day of Year") +
         ylab("Adjusted Explained Variance")
@@ -436,9 +435,9 @@ plot_extreme <- function(result_daily_response, title = TRUE) {
         (result_daily_response [[3]] == "adj.r.squared")) {
       final_plot <- final_plot +
         ggtitle(paste("Method: ANN with Bayesian Regularization",
-                      "\nMaximal Adjusted R squared:", calculated_measure,
-                      "\nOptimal window width:", as.numeric(row_index), "days",
-                      "\nStarting day of optimal window width: day",
+                      "\nMaximal Adjusted R Squared:", calculated_metric,
+                      "\nOptimal Window Width:", as.numeric(row_index), "Days",
+                      "\nStarting Day of Optimal Window Width: Day",
                       plot_column, Optimal_string)) +
         xlab("Day of Year") +
         ylab("Adjusted Explained Variance")
@@ -453,16 +452,16 @@ plot_extreme <- function(result_daily_response, title = TRUE) {
   # If there is information about analysed period in the fifth element, then this
   # will be added to the plot information
 
-  if (!is.na(result_daily_response[[5]])) {
+  if (!is.na(result_daily_response[[4]])) {
 
     if ((nrow(temporal_vector) > 366) &&  (plot_column > 366) &&
         (result_daily_response [[2]] == "cor")) {
       final_plot <- final_plot +
-        ggtitle(paste("Analysed period:", result_daily_response[[5]],
-                      "\nMaximal correlation coefficient:", calculated_measure,
-                      "\nOptimal window width:", as.numeric(row_index), "days",
-                      "\nStarting day of optimal window width: day",
-                      plot_column_extra, "of current year", Optimal_string)) +
+        ggtitle(paste("Analysed Period:", result_daily_response[[4]],
+                      "\nMaximal Correlation Coefficient:", calculated_metric,
+                      "\nOptimal Window Width:", as.numeric(row_index), "Days",
+                      "\nStarting Day of Optimal Window Width: Day",
+                      plot_column_extra, "of Current Year", Optimal_string)) +
         xlab("Day of Year  (Including Previous Year)") +
         ylab("Correlation Coefficient")
     }
@@ -470,11 +469,11 @@ plot_extreme <- function(result_daily_response, title = TRUE) {
     if ((nrow(temporal_vector) > 366) &&  (plot_column < 366) &&
         (result_daily_response [[2]] == "cor")) {
       final_plot <- final_plot +
-        ggtitle(paste("Analysed period:", result_daily_response[[5]],
-                      "\nMaximal correlation coefficient:", calculated_measure,
-                      "\nOptimal window width:", as.numeric(row_index), "days",
-                      "\nStarting day of optimal window width: day",
-                      plot_column_extra, "of previous year", Optimal_string)) +
+        ggtitle(paste("Analysed Period:", result_daily_response[[4]],
+                      "\nMaximal Correlation Coefficient:", calculated_metric,
+                      "\nOptimal Window Width:", as.numeric(row_index), "Days",
+                      "\nStarting Day of Optimal Window Width: Day",
+                      plot_column_extra, "of Previous Year", Optimal_string)) +
         xlab("Day of Year (Including Previous Year)") +
         ylab("Correlation Coefficient")
     }
@@ -482,10 +481,10 @@ plot_extreme <- function(result_daily_response, title = TRUE) {
     if ((nrow(temporal_vector) < 366) &&
         (result_daily_response [[2]] == "cor")) {
       final_plot <- final_plot +
-        ggtitle(paste("Analysed period:", result_daily_response[[5]],
-                      "\nMaximal correlation coefficient:", calculated_measure,
-                      "\nOptimal window width:", as.numeric(row_index), "days",
-                      "\nStarting day of optimal window width: day",
+        ggtitle(paste("Analysed Period:", result_daily_response[[4]],
+                      "\nMaximal Correlation Coefficient:", calculated_metric,
+                      "\nOptimal Window Width:", as.numeric(row_index), "Days",
+                      "\nStarting Day of Optimal Window Width: Day",
                       plot_column, Optimal_string)) +
         xlab("Day of Year") +
         ylab("Correlation Coefficient")
@@ -502,12 +501,12 @@ plot_extreme <- function(result_daily_response, title = TRUE) {
         (result_daily_response [[2]] == "lm") &&
         (result_daily_response [[3]] == "r.squared")) {
       final_plot <- final_plot +
-        ggtitle(paste("Analysed period:", result_daily_response[[5]],
+        ggtitle(paste("Analysed Period:", result_daily_response[[4]],
                       "\nMethod: Linear Regression",
-                      "\nMaximal R squared:", calculated_measure,
-                      "\nOptimal window width:", as.numeric(row_index), "days",
-                      "\nStarting day of optimal window width: day",
-                      plot_column_extra, "of current year", Optimal_string)) +
+                      "\nMaximal R Squared:", calculated_metric,
+                      "\nOptimal Window Width:", as.numeric(row_index), "Days",
+                      "\nStarting Day of Optimal Window Width: Day",
+                      plot_column_extra, "of Current Year", Optimal_string)) +
         xlab("Day of Year (Including Previous Year)") +
         ylab("Explained Variance")
     }
@@ -517,12 +516,12 @@ plot_extreme <- function(result_daily_response, title = TRUE) {
         (result_daily_response [[2]] == "brnn") &&
         (result_daily_response [[3]] == "r.squared")) {
       final_plot <- final_plot +
-        ggtitle(paste("Analysed period:", result_daily_response[[5]],
+        ggtitle(paste("Analysed Period:", result_daily_response[[4]],
                       "\nMethod: ANN with Bayesian Regularization",
-                      "\nMaximal R squared:", calculated_measure,
-                      "\nOptimal window width:", as.numeric(row_index), "days",
-                      "\nStarting day of optimal window width: day",
-                      plot_column_extra, "of current year", Optimal_string)) +
+                      "\nMaximal R Squared:", calculated_metric,
+                      "\nOptimal Window Width:", as.numeric(row_index), "Days",
+                      "\nStarting Day of Optimal Window Width: Day",
+                      plot_column_extra, "of Current Year", Optimal_string)) +
         xlab("Day of Year (Including Previous Year)") +
         ylab("Explained Variance")
     }
@@ -538,12 +537,12 @@ plot_extreme <- function(result_daily_response, title = TRUE) {
         (result_daily_response[[2]] == "lm") &&
         result_daily_response[[3]] == "r.squared") {
       final_plot <- final_plot +
-        ggtitle(paste("Analysed period:", result_daily_response[[5]],
+        ggtitle(paste("Analysed Period:", result_daily_response[[4]],
                       "\nMethod: Linear Regression",
-                      "\nMaximal R squared:", calculated_measure,
-                      "\nOptimal window width:", as.numeric(row_index), "days",
-                      "\nStarting day of optimal window width: day",
-                      plot_column_extra, "of previous year", Optimal_string)) +
+                      "\nMaximal R Squared:", calculated_metric,
+                      "\nOptimal Window Width:", as.numeric(row_index), "Days",
+                      "\nStarting Day of Optimal Window Width: Day",
+                      plot_column_extra, "of Previous Year", Optimal_string)) +
         xlab("Day of Year (Including Previous Year)") +
         ylab("Explained Variance")
     }
@@ -553,12 +552,12 @@ plot_extreme <- function(result_daily_response, title = TRUE) {
         (result_daily_response[[2]] == "brnn") &&
         result_daily_response[[3]] == "r.squared") {
       final_plot <- final_plot +
-        ggtitle(paste("Analysed period:", result_daily_response[[5]],
+        ggtitle(paste("Analysed Period:", result_daily_response[[4]],
                       "\nMethod: ANN with Bayesian Regularization",
-                      "\nMaximal R squared:", calculated_measure,
-                      "\nOptimal window width:", as.numeric(row_index), "days",
-                      "\nStarting day of optimal window width: day",
-                      plot_column_extra, "of previous year", Optimal_string)) +
+                      "\nMaximal R Squared:", calculated_metric,
+                      "\nOptimal Window Width:", as.numeric(row_index), "Days",
+                      "\nStarting Day of Optimal Window Width: Day",
+                      plot_column_extra, "of Previous Year", Optimal_string)) +
         xlab("Day of Year (Including Previous Year)") +
         ylab("Explained Variance")
     }
@@ -571,11 +570,11 @@ plot_extreme <- function(result_daily_response, title = TRUE) {
         (result_daily_response[[2]] == "lm") &&
         result_daily_response[[3]] == "r.squared") {
       final_plot <- final_plot +
-        ggtitle(paste("Analysed period:", result_daily_response[[5]],
+        ggtitle(paste("Analysed Period:", result_daily_response[[4]],
                       "\nMethod: Linear Regression",
-                      "\nMaximal R squared:", calculated_measure,
-                      "\nOptimal window width:", as.numeric(row_index), "days",
-                      "\nStarting day of optimal window width:  day",
+                      "\nMaximal R Squared:", calculated_metric,
+                      "\nOptimal Window Width:", as.numeric(row_index), "Days",
+                      "\nStarting Day of Optimal Window Width:  Day",
                       plot_column, Optimal_string)) +
         xlab("Day of Year") +
         ylab("Explained Variance")
@@ -585,11 +584,11 @@ plot_extreme <- function(result_daily_response, title = TRUE) {
         (result_daily_response[[2]] == "brnn") &&
         result_daily_response[[3]] == "r.squared") {
       final_plot <- final_plot +
-        ggtitle(paste("Analysed period:", result_daily_response[[5]],
+        ggtitle(paste("Analysed Period:", result_daily_response[[4]],
                       "\nMethod: ANN with Bayesian Regularization",
-                      "\nMaximal R squared:", calculated_measure,
-                      "\nOptimal window width:", as.numeric(row_index), "days",
-                      "\nStarting day of optimal window width:  day",
+                      "\nMaximal R Squared:", calculated_metric,
+                      "\nOptimal Window Width:", as.numeric(row_index), "Days",
+                      "\nStarting Day of Optimal Window Width:  Day",
                       plot_column, Optimal_string)) +
         xlab("Day of Year") +
         ylab("Explained Variance")
@@ -604,12 +603,12 @@ plot_extreme <- function(result_daily_response, title = TRUE) {
         (result_daily_response[[2]] == "lm") &&
         (result_daily_response[[3]] == "adj.r.squared")) {
       final_plot <- final_plot +
-        ggtitle(paste("Analysed period:", result_daily_response[[5]],
+        ggtitle(paste("Analysed Period:", result_daily_response[[4]],
                       "\nMethod: Linear Regression",
-                      "\nMaximal Adjusted R squared:", calculated_measure,
-                      "\nOptimal window width:", as.numeric(row_index), "days",
-                      "\nStarting day of optimal window width: day",
-                      plot_column_extra, "of current year", Optimal_string)) +
+                      "\nMaximal Adjusted R Squared:", calculated_metric,
+                      "\nOptimal Window Width:", as.numeric(row_index), "Days",
+                      "\nStarting Day of Optimal Window Width: Day",
+                      plot_column_extra, "of Current Year", Optimal_string)) +
         xlab("Day of Year (Including Previous Year)") +
         ylab("Adjusted Explained Variance")
     }
@@ -620,21 +619,15 @@ plot_extreme <- function(result_daily_response, title = TRUE) {
         (result_daily_response[[2]] == "brnn") &&
         (result_daily_response[[3]] == "adj.r.squared")) {
       final_plot <- final_plot +
-        ggtitle(paste("Analysed period:", result_daily_response[[5]],
+        ggtitle(paste("Analysed Period:", result_daily_response[[4]],
                       "\nMethod: ANN with Bayesian Regularization",
-                      "\nMaximal Adjusted R squared:", calculated_measure,
-                      "\nOptimal window width:", as.numeric(row_index), "days",
-                      "\nStarting day of optimal window width: day",
-                      plot_column_extra, "of current year", Optimal_string)) +
+                      "\nMaximal Adjusted R Squared:", calculated_metric,
+                      "\nOptimal Window Width:", as.numeric(row_index), "Days",
+                      "\nStarting Day of Optimal Window Width: Day",
+                      plot_column_extra, "of Current Year", Optimal_string)) +
         xlab("Day of Year (Including Previous Year)") +
         ylab("Adjusted Explained Variance")
     }
-
-
-
-
-
-
 
 
 
@@ -642,12 +635,12 @@ plot_extreme <- function(result_daily_response, title = TRUE) {
         (result_daily_response [[2]] == "lm") &&
         (result_daily_response [[3]] == "adj.r.squared")) {
       final_plot <- final_plot +
-        ggtitle(paste("Analysed period:", result_daily_response[[5]],
+        ggtitle(paste("Analysed Period:", result_daily_response[[4]],
                       "\nMethod: Linear Regression",
-                      "\nMaximal Adjusted R squared:", calculated_measure,
-                      "\nOptimal window width: day", as.numeric(row_index),
-                      "days", "\nStarting day of optimal window width:",
-                      plot_column_extra, "of previous year", Optimal_string)) +
+                      "\nMaximal Adjusted R Squared:", calculated_metric,
+                      "\nOptimal Window Width: Day", as.numeric(row_index),
+                      "Days", "\nStarting Day of Optimal Window Width:",
+                      plot_column_extra, "of Previous Year", Optimal_string)) +
         xlab("Day of Year (Including Previous Year)") +
         ylab("Adjusted Explained Variance")
     }
@@ -657,23 +650,15 @@ plot_extreme <- function(result_daily_response, title = TRUE) {
         (result_daily_response [[2]] == "brnn") &&
         (result_daily_response [[3]] == "adj.r.squared")) {
       final_plot <- final_plot +
-        ggtitle(paste("Analysed period:", result_daily_response[[5]],
+        ggtitle(paste("Analysed Period:", result_daily_response[[4]],
                       "\nMethod: ANN with Bayesian Regularization",
-                      "\nMaximal Adjusted R squared:", calculated_measure,
-                      "\nOptimal window width: day", as.numeric(row_index),
-                      "days", "\nStarting day of optimal window width:",
-                      plot_column_extra, "of previous year", Optimal_string)) +
+                      "\nMaximal Adjusted R Squared:", calculated_metric,
+                      "\nOptimal Window Width: Day", as.numeric(row_index),
+                      "Days", "\nStarting Day of Optimal Window Width:",
+                      plot_column_extra, "of Previous Year", Optimal_string)) +
         xlab("Day of Year (Including Previous Year)") +
         ylab("Adjusted Explained Variance")
     }
-
-
-
-
-
-
-
-
 
 
 
@@ -681,11 +666,11 @@ plot_extreme <- function(result_daily_response, title = TRUE) {
         (result_daily_response [[2]] == "lm") &&
         (result_daily_response [[3]] == "adj.r.squared")) {
       final_plot <- final_plot +
-        ggtitle(paste("Analysed period:", result_daily_response[[5]],
+        ggtitle(paste("Analysed Period:", result_daily_response[[4]],
                       "\nMethod: Linear Regression",
-                      "\nMaximal Adjusted R squared:", calculated_measure,
-                      "\nOptimal window width:", as.numeric(row_index), "days",
-                      "\nStarting day of optimal window width: day",
+                      "\nMaximal Adjusted R Squared:", calculated_metric,
+                      "\nOptimal Window Width:", as.numeric(row_index), "Days",
+                      "\nStarting Day of Optimal Window Width: Day",
                       plot_column, Optimal_string)) +
         xlab("Day of Year") +
         ylab("Adjusted Explained Variance")
@@ -695,11 +680,11 @@ plot_extreme <- function(result_daily_response, title = TRUE) {
         (result_daily_response [[2]] == "brnn") &&
         (result_daily_response [[3]] == "adj.r.squared")) {
       final_plot <- final_plot +
-        ggtitle(paste("Analysed period:", result_daily_response[[5]],
+        ggtitle(paste("Analysed Period:", result_daily_response[[4]],
                       "\nMethod: ANN with Bayesian Regularization",
-                      "\nMaximal Adjusted R squared:", calculated_measure,
-                      "\nOptimal window width:", as.numeric(row_index), "days",
-                      "\nStarting day of optimal window width: day",
+                      "\nMaximal Adjusted R Squared:", calculated_metric,
+                      "\nOptimal Window Width:", as.numeric(row_index), "Days",
+                      "\nStarting Day of Optimal Window Width: Day",
                       plot_column, Optimal_string)) +
         xlab("Day of Year") +
         ylab("Adjusted Explained Variance")
@@ -709,9 +694,6 @@ plot_extreme <- function(result_daily_response, title = TRUE) {
 
   }
 
-
-
-
-
   final_plot
+
 }

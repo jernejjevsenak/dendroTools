@@ -6,11 +6,11 @@
 #'
 #' @return an intiger of counted ones
 #'
-#' @export
 #'
 #' @examples
 #' vector_1 <- seq(1:10)
 #' count_ones(vector_1)
+#' @keywords internal
 
 count_ones <- function(vector){
   sum(vector == 1)

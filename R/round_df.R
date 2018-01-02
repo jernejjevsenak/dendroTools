@@ -7,7 +7,6 @@
 #'
 #' @return data frame with rounded values
 #'
-#' @export
 #'
 #' @examples
 #' ID <- c("a", "b", "c", "d", "e")
@@ -18,7 +17,7 @@
 #'
 #' @references
 #' https://stackoverflow.com/questions/9063889/how-to-round-a-data-frame-in-r-that-contains-some-character-variables
-
+#' @keywords internal
 
 round_df <- function(df, digits = 3) {
   nums <- vapply(df, is.numeric, FUN.VALUE = logical(1))

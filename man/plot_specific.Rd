@@ -4,7 +4,8 @@
 \alias{plot_specific}
 \title{plot_specific}
 \usage{
-plot_specific(result_daily_response, window_width, title = TRUE)
+plot_specific(result_daily_response, window_width, title = TRUE,
+  ylimits = NULL)
 }
 \arguments{
 \item{result_daily_response}{a list with three objects as produced by
@@ -13,6 +14,8 @@ daily_response function}
 \item{window_width}{integer representing window width to be displayed}
 
 \item{title}{logical, if set to FALSE, no plot title is displayed}
+
+\item{ylimits}{limit of the y axes. It should be given as ylimits = c(0,1)}
 }
 \value{
 A ggplot2 object containing the plot display
@@ -22,24 +25,25 @@ Graphs a line plot of a row with a selected window width in a matrix,
 produced by \code{\link{daily_response}} function.
 }
 \examples{
-\dontrun{
 data(LJ_daily_temperatures)
+data(KRE_daily_temperatures)
 data(example_proxies_1)
 Example1 <- daily_response(response = example_proxies_1,
-env_data = LJ_daily_temperatures, method = "lm", measure = "r.squared",
-lower_limit = 90, upper_limit = 150)
+env_data = LJ_daily_temperatures, method = "lm", metric = "r.squared",
+lower_limit = 90, upper_limit = 150, row_names_subset = TRUE,
+previous_year = TRUE)
 plot_specific(Example1, window_width = 90)
 
-Example2 <- daily_response(response = example_proxies_1,
-env_data = LJ_daily_temperatures, method = "brnn",
-measure = "adj.r.squared", lower_limit = 150, upper_limit = 155,
-neurons = 1)
+Example2 <- daily_response(response = data_TRW_1,
+env_data = KRE_daily_temperatures, method = "cor",
+metric = "adj.r.squared", lower_limit = 150, upper_limit = 155,
+neurons = 1, row_names_subset = TRUE, previous_year = TRUE)
 plot_specific(Example2, window_width = 153, title = TRUE)
 
 Example3 <- daily_response(response = example_proxies_1,
 env_data = LJ_daily_temperatures, method = "brnn",
-measure = "adj.r.squared", lower_limit = 150, upper_limit = 155,
-neurons = 1, previous_year = TRUE)
+metric = "adj.r.squared", lower_limit = 150, upper_limit = 155,
+neurons = 1, previous_year = TRUE, row_names_subset = TRUE)
 plot_specific(Example3, window_width = 153, title = TRUE)
 }
-}
+\keyword{internal}

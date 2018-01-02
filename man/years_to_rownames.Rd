@@ -2,7 +2,7 @@
 % Please edit documentation in R/years_to_rownames.R
 \name{years_to_rownames}
 \alias{years_to_rownames}
-\title{years_to_rownames}
+\title{Function returns a data frame with row names as years}
 \usage{
 years_to_rownames(data, column_year)
 }

@@ -11,4 +11,4 @@
 #' @source Schweingruber, F.H., 1981. Vrsic Krajanska Gora - PCAB - ITRDB YUGO001.
 #' https://www.ncdc.noaa.gov/paleo/study/4728.
 #' @export
-"example_TRW"
+"data_TRW"

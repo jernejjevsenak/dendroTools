@@ -7,29 +7,28 @@
 #' \code{\link{daily_response}} function
 #'
 #' @return A ggplot2 object containing the heatmap display
-#' @export
 #'
 #' @examples
-#' \dontrun{
 #' data(LJ_daily_temperatures)
 #' data(example_proxies_1)
 #' Example1 <- daily_response(response = example_proxies_1,
-#' env_data = LJ_daily_temperatures, method = "lm", measure = "r.squared",
-#' fixed_width = 90, previous_year = TRUE)
+#' env_data = LJ_daily_temperatures, method = "lm", metric = "r.squared",
+#' fixed_width = 90, previous_year = TRUE, row_names_subset = TRUE)
 #' plot_heatmap(Example1)
 #'
 #' Example2 <- daily_response(response = example_proxies_1,
 #' env_data = LJ_daily_temperatures, method = "brnn",
-#' measure = "adj.r.squared", lower_limit = 50, upper_limit = 55)
+#' metric = "adj.r.squared", lower_limit = 50, upper_limit = 55,
+#' row_names_subset = TRUE)
 #' plot_heatmap(Example2)
 #'
 #' library(dplyr)
 #' oxygen_isotope <- dplyr::select(example_proxies_1, O18)
 #' Example3 <- daily_response(response = oxygen_isotope,
 #' env_data = LJ_daily_temperatures, method = "cor", lower_limit = 50,
-#' upper_limit = 55, previous_year = TRUE)
+#' upper_limit = 55, previous_year = TRUE, row_names_subset = TRUE)
 #' plot_heatmap(Example3)
-#' }
+#' @keywords internal
 
 plot_heatmap <- function(result_daily_response){
 
@@ -44,7 +43,7 @@ plot_heatmap <- function(result_daily_response){
   } else if (result_daily_response[[2]] == "cor") {
     temp_string <- "Correlation coefficient"
   } else {
-    stop("Check your method and measures")
+    stop("Check your method and metrics")
   }
 
   # Data manipulation. The goal of this part is to prepare data for ggplot
@@ -81,9 +80,11 @@ plot_heatmap <- function(result_daily_response){
   journal_theme <- theme_bw() +
     theme(axis.text = element_text(size = 16, face = "bold"),
           axis.title = element_text(size = 18), text = element_text(size = 18),
+          plot.title = element_text(size = 16,  face = "bold"),
           legend.position = "bottom", legend.key.width = unit(3, "line"))
 
-  final_plot <- ggplot(result_daily_element1_melted,
+
+  final_plot <- suppressWarnings(ggplot(result_daily_element1_melted,
     aes_(x = ~as.numeric(variable), y = ~as.numeric(temp_row_names),
     fill = ~Value)) +
     geom_tile() +
@@ -94,8 +95,10 @@ plot_heatmap <- function(result_daily_response){
      na.value = "white") +
     xlab("Day of Year") +
     ylab("Window Width") +
-    scale_x_continuous(expand = c(0, 0)) +
-    journal_theme
+    scale_x_continuous(expand = c(0, 0), breaks = sort(c(seq(0, nlevels(result_daily_element1_melted$variable), 50)),
+                                                       decreasing = FALSE),
+                         labels = sort(c(seq(0, nlevels(result_daily_element1_melted$variable), 50)))) +
+    journal_theme)
 
   # Scale_y_continuous is added separately. When there is only a few  rows
   # e.g. fixed_width = TRUE, breaks are specified separately
@@ -114,7 +117,7 @@ plot_heatmap <- function(result_daily_response){
   # If previous_year == TRUE(function daily_response), different xlab
   # is needed
   if (ncol(result_daily_element1) > 366) {
-    final_plot <- final_plot +
+    final_plot <- suppressWarnings(final_plot +
       annotate(fontface = "bold", label = 'Previous Year', geom = 'label',
               x = 366 - ncol(result_daily_element1) / 12.8,
               y = round(max(as.numeric(row.names(result_daily_element1))) -
@@ -126,14 +129,14 @@ plot_heatmap <- function(result_daily_response){
                            (max(as.numeric(row.names(result_daily_element1))) -
                               min(as.numeric(row.names(result_daily_element1)))) / 5), 0) +
       geom_vline(xintercept = 366, size = 1) +
-      xlab("Day of Year  (Including Previous Year)")
+      xlab("Day of Year  (Including Previous Year)"))
   }
 
 
 
 
   # Here we add titles, based on different methods
-  if (is.na(result_daily_response[[5]])) {
+  if (is.na(result_daily_response[[4]])) {
 
 
     if (result_daily_response [[2]] == "cor") {
@@ -148,32 +151,32 @@ plot_heatmap <- function(result_daily_response){
 
     if (result_daily_response [[2]] == "brnn") {
       final_plot <- final_plot +
-        ggtitle(paste("Method: ANN with Bayesian Regularization"))
+        ggtitle(paste("Method: ANN With Bayesian Regularization"))
     }
 
   }
 
 
 
-  if (!is.na(result_daily_response[[5]])) {
+  if (!is.na(result_daily_response[[4]])) {
 
 
     if (result_daily_response [[2]] == "cor") {
       final_plot <- final_plot +
-        ggtitle(paste("Analysed period:", result_daily_response[[5]],
+        ggtitle(paste("Analysed Period:", result_daily_response[[4]],
                       "\nMethod: Correlation Coefficients"))
     }
 
     if (result_daily_response [[2]] == "lm") {
       final_plot <- final_plot +
-        ggtitle(paste("Analysed period:", result_daily_response[[5]],
+        ggtitle(paste("Analysed Period:", result_daily_response[[4]],
                       "\nMethod: Linear Regression"))
     }
 
     if (result_daily_response [[2]] == "brnn") {
       final_plot <- final_plot +
-        ggtitle(paste("Analysed period:", result_daily_response[[5]],
-                      "\nMethod: ANN with Bayesian Regularization"))
+        ggtitle(paste("Analysed Period:", result_daily_response[[4]],
+                      "\nMethod: ANN With Bayesian Regularization"))
     }
 
   }

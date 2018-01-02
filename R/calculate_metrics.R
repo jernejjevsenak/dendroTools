@@ -1,7 +1,7 @@
-#' calculate_measures
+#' calculate_metrics
 #'
-#' Calculates performance measures for train and test data. Calculated
-#' performance measures are correlation coefficient (r), root mean squared
+#' Calculates performance metrics for train and test data. Calculated
+#' performance metrics are correlation coefficient (r), root mean squared
 #' error (RMSE), root relative squared error (RSSE), index of agreement
 #' (d), reduction of error (RE) coefficient of efficiency (CE) and bias.
 #'
@@ -9,8 +9,8 @@
 #' @param test_predicted a vector indicating predicted data for testing set
 #' @param train_observed a vector indicating observed data for training set
 #' @param test_observed a vector indicating observed data for training set
-#'
-#' @return a data frame of calculated test and train measures
+#' @param digits intiger of number of digits to be displayed
+#' @return a data frame of calculated test and train metrics
 #' @export
 #'
 #' @references
@@ -38,7 +38,7 @@
 #' test_predicted <- predict(lin_mod, test_data)
 #' train_observed <- train_data[, 1]
 #' test_observed <- test_data[, 1]
-#' calculate_measures(train_predicted, test_predicted, train_observed,
+#' calculate_metrics(train_predicted, test_predicted, train_observed,
 #' test_observed)
 #'
 #' test_data <- example_dataset_1[1:20, ]
@@ -49,13 +49,13 @@
 #' test_predicted <- predict(lin_mod, test_data)
 #' train_observed <- train_data[, 1]
 #' test_observed <- test_data[, 1]
-#' calculate_measures(train_predicted, test_predicted, train_observed,
+#' calculate_metrics(train_predicted, test_predicted, train_observed,
 #' test_observed)
 
-calculate_measures <- function(train_predicted, test_predicted,
-                               train_observed, test_observed){
+calculate_metrics <- function(train_predicted, test_predicted,
+                               train_observed, test_observed, digits = 4){
 
-  # Calculating measures for train (calibration data)
+  # Calculating metrics for train (calibration data)
   train_cor <- cor(train_predicted, train_observed)
   a <- dcv::test.RE(train_observed, train_predicted)
   train_RMSE <- unname(a[[3]])
@@ -69,10 +69,10 @@ calculate_measures <- function(train_predicted, test_predicted,
   train_RE <- 1 - (sum((train_observed - train_predicted) ^ 2) /
                      sum((train_observed - mean(test_observed)) ^ 2))
 
-  train_measures <- data.frame(cbind(train_cor, train_RMSE, train_RRSE,
+  train_metrics <- data.frame(cbind(train_cor, train_RMSE, train_RRSE,
                                      train_d, train_RE, train_CE, bias_train))
-  row.names(train_measures) <- c(deparse(substitute(train_predicted)))
-  colnames(train_measures) <- c("cor", "RMSE", "RRSE", "d", "RE", "CE", "bias")
+  row.names(train_metrics) <- c(deparse(substitute(train_predicted)))
+  colnames(train_metrics) <- c("cor", "RMSE", "RRSE", "d", "RE", "CE", "bias")
 
   #Calculations for test (validation) data
   test_cor <- cor(test_observed, test_predicted)
@@ -89,13 +89,13 @@ calculate_measures <- function(train_predicted, test_predicted,
   test_RE <- 1 - (sum((test_observed - test_predicted) ^ 2) /
                     sum((test_observed - mean(train_observed)) ^ 2))
 
-  test_measures <- data.frame(cbind(test_cor, test_RMSE, test_RRSE, test_d,
+  test_metrics <- data.frame(cbind(test_cor, test_RMSE, test_RRSE, test_d,
                                     test_RE, test_CE, bias_test))
-  row.names(test_measures) <- c(deparse(substitute(test_predicted)))
-  colnames(test_measures) <- c("cor", "RMSE", "RRSE", "d", "RE", "CE", "bias")
+  row.names(test_metrics) <- c(deparse(substitute(test_predicted)))
+  colnames(test_metrics) <- c("cor", "RMSE", "RRSE", "d", "RE", "CE", "bias")
 
-  measures <- round(rbind(train_measures, test_measures),  4)
-  row.names(measures) <- c("train", "test")
+  metrics <- round(rbind(train_metrics, test_metrics),  digits)
+  row.names(metrics) <- c("train", "test")
 
-  measures
+  metrics
 }

@@ -1,13 +1,13 @@
 #' daily_response
 #'
-#' Function calculates all possible values of a selected statistical measure
+#' Function calculates all possible values of a selected statistical metric
 #' between one or more response variables and daily sequences of environmental
 #' data. Calculations are based on moving window which is defined with two
 #' arguments: window width and a location in a matrix of daily sequences of
 #' environmental data. Window width could be fixed (use fixed_width) or
 #' variable width (use lower_limit and upper_limit arguments). In this case,
 #' all window widths between lower and upper limit will be used. All calculated
-#' measures are stored in a matrix. The location of stored calculated measure
+#' metrics are stored in a matrix. The location of stored calculated metric
 #' in the matrix is indicating a window width (row names) and a location in a
 #' matrix of daily sequences of environmental data (column names).
 #'
@@ -15,21 +15,25 @@
 #' (optional) years as row names. Row.names should be matched with those from a
 #' env_data data frame. If not, set row_names_subset = TRUE.
 #' @param env_data a data frame of daily sequences of environmental data as
-#' columns and (optional) years as row names. Each row represents a year and
+#' columns and years as row names. Each row represents a year and
 #' each column represents a day of a year. Row.names should be matched with
 #' those from a response data frame. If not, set row_names_subset = TRUE.
-#' @param method a string specifying which method to use. Current possibilities
-#' are "cor", "lm" and "brnn".
-#' @param measure a string specifying which measure to use. Current
+#' Alternatively, env_data could be a tidy data with three columns,
+#' i.e. Year, DOY and third column representing values of mean temperatures,
+#' sum of precipitation etc. If tidy data is passed to the function, set the argument
+#' tidy_env_data to TRUE.
+#' @param method a character string specifying which method to use. Current
+#' possibilities are "cor", "lm" and "brnn".
+#' @param metric a character string specifying which metric to use. Current
 #' possibilities are "r.squared" and "adj.r.squared". If method = "cor",
-#' measure is not relevant.
+#' metric is not relevant.
 #' @param lower_limit lower limit of window width
 #' @param upper_limit upper limit of window width
 #' @param fixed_width fixed width used for calculation. If fixed_width is
 #' assigned a value, upper_limit and lower_limit will be ignored
 #' @param previous_year if set to TRUE, env_data and response variables will be
 #' rearranged in a way, that also previous year will be used for calculations of
-#' selected statistical measure.
+#' selected statistical metric.
 #' @param neurons positive integer that indicates the number of neurons used
 #'  for brnn method
 #' @param brnn_smooth if set to TRUE, a smoothing algorithm is applied that
@@ -43,138 +47,142 @@
 #' env_data and response data frames. Only years from both data frames are
 #' kept.
 #' @param PCA_transformation if set to TRUE, all variables in the response
-#' data frame will be transformed using a PCA transformation.
+#' data frame will be transformed using PCA transformation.
 #' @param log_preprocess if set to TRUE, variables will be transformed with
 #' logarithmic transformation before used in PCA
-#' @param components_selection string specifying how to select the Principal
+#' @param components_selection character string specifying how to select the Principal
 #' Components used as predictors.
 #' There are three options: "automatic", "manual" and "plot_selection". If
-#' parameter is set to automatic, all scores with eigenvalues above 1 will be
+#' argument is set to automatic, all scores with eigenvalues above 1 will be
 #' selected. This threshold could be changed by changing the
 #' eigenvalues_threhold argument. If parameter is set to "manual", user should
-#' set the number of components with N_components argument. If component
-#' selection is se to "plot_selection", Scree plot will be shown and a user must
-#' manually enter the number of components used as predictors.
+#' set the number of components with N_components argument. If components
+#' selection is set to "plot_selection", Scree plot will be shown and a user must
+#' manually enter the number of components to be used as predictors.
 #' @param eigenvalues_threhold threshold for automatic selection of Principal Components
 #' @param N_components number of Principal Components used as predictors
+#' @param use_median if set to TRUE, median will be used insted of mean to calculate
+#' averages of various ranges of env_data.
+#' @param temporal_stability_check character string, specifying, how temporal stability
+#' between the optimal selection and response variables will be analysed. Current
+#' possibilities are "sequential" and "progressive". Sequential check will split data into
+#' k splits and calculate selected metric for each split. Progressive check will split data
+#' into k splits, calculate metric for the first split and then progressively add 1 split at
+#' a time and calculate selected metric.
+#' @param k integer, number of breaks (splits) for temporal stability and cross validation
+#' analysis.
+#' @param cross_validation_type character string, specifying, how to perform cross validation
+#' between the optimal selection and response variables. If the argument is set to "blocked",
+#' years will not be shuffled. If the argument is set to "randomized", years will be shuffled.
+#' @param subset_yars a subset of years to be analyzed. Should be given in the form of
+#' subset_yars = c(1980, 2005)
+#' @param plot_specific_window integer representing window width to be displayed
+#' for plot_specific
+#' @param ylimits limit of the y axes for plot_extreme and plot_specific. It should be
+#' given in the form of: ylimits = c(0,1)
+#' @param seed optional seed argument for reproducible results
+#' @param tidy_env_data if set to TRUE, env_data should be inserted as a data frame with three
+#' columns: "Year", "DOY", "Precipitation/Temperature/etc."
 #'
-#' @return a list with four elements:
-#'   1. calculations is a matrix with all calculated results,
-#'   2. method is a string indicating method that was used
-#'   3. measure is a string indicating a calculated measure
-#'   4. optimized_result is aggregated daily data, that returned the best
-#'   calculated measure
-#'   5. String specifying the analysed period based on the information from
-#'   row names. If there is no row names, this argument is given as NA.
+#' @return a list with 13 elements:
+#'   $calculations, a matrix with calculated metrics
+#'   $method, the character string of a method
+#'   $metric, the character string indicating the metric used for calculations
+#'   $analysed_period, the character string specifying the analysed period based on the
+#'    information from row names. If there are no row names, this argument is given as NA.
+#'   $optimized_return, data frame with two columns, response varaible and aggregated
+#'    (averaged) daily data that return the optimal results. This data.frame could be
+#'    directly used to calibrate a model for climate reconstruction.
+#'   $optimized_return_all, a data frame with aggregated daily data, that returned the optimal
+#'   result for the entire env_data (and not only subset of analysed years)
+#'   $transfer_function, a ggplot object: scatter plot of optimized return and a transfer
+#'    line of the selected method
+#'   $temporal_stability, a data frame with calculations of selected metric for different
+#'    temporal subsets
+#'   $cross_validation, a data frame with cross validation results
+#'   $plot_heatmap, ggplot2 object: a heatmap of calculated metrics
+#'   $plot_extreme, ggplot2 object: line plot of a row with the highest value in a matrix
+#'    of calculated metrics
+#'   $plot_specific, ggplot2 object: line plot of a row with a selected window width in a
+#'    matrix of calculated metrics
+#'   $PCA_output, princomp object: the result output of the PCA analysis
 #'
 #' @export
 #'
 #' @examples
-#' \dontrun{
-#' data(LJ_daily_temperatures)
+#' # Load the dendroTools R package
+#' library(dendroTools)
+#'
+#' # Load data
+#' data(data_MVA)
+#' data(data_TRW)
+#' data(data_TRW_1)
+#' data(example_proxies_individual)
 #' data(example_proxies_1)
-#' library(dplyr)
-#' oxygen_isotope <- dplyr::select(example_proxies_1, O18)
-#' MVA_parameter <- dplyr::select(example_proxies_1, MVA)
+#' data(LJ_daily_temperatures)
 #'
-#' Example1a <- daily_response(response = MVA_parameter,
-#' env_data = LJ_daily_temperatures, method = "lm", measure = "r.squared",
-#' lower_limit = 357, upper_limit = 358, row_names_subset = TRUE)
+#' # 1 Example with fixed width
+#' example_fixed_width <- daily_response(response = data_MVA, env_data = LJ_daily_temperatures,
+#'                                      method = "brnn", fixed_width = 60,
+#'                                      row_names_subset = TRUE, remove_insignificant = TRUE,
+#'                                      alpha = 0.05)
+#' example_fixed_width$plot_extreme
 #'
-#' Example1b <- daily_response(response = MVA_parameter,
-#' env_data = LJ_daily_temperatures, method = "cor", measure = "adj.r.squared",
-#' lower_limit = 100, upper_limit = 200, remove_insignificant = TRUE,
-#' row_names_subset = TRUE)
-#' plot_heatmap(Example1b)
+#' # 2 Example for past and present
+#' example_MVA_past <- daily_response(response = data_MVA, env_data = LJ_daily_temperatures,
+#' method = "cor", lower_limit = 21, upper_limit = 180,
+#' row_names_subset = TRUE, previous_year = TRUE,
+#' remove_insignificant = TRUE, alpha = 0.05,
+#' plot_specific_window = 60, subset_yars = c(1940, 1980))
+
+#' example_MVA_present <- daily_response(response = data_MVA, env_data = LJ_daily_temperatures,
+#'                                       method = "cor", lower_limit = 21, upper_limit = 180,
+#'                                       row_names_subset = TRUE, previous_year = TRUE,
+#'                                       remove_insignificant = TRUE, alpha = 0.05,
+#'                                       plot_specific_window = 60, subset_yars = c(1981, 2010))
 #'
-#' Example1c <- daily_response(response = example_proxies_1,
-#' env_data = LJ_daily_temperatures, method = "lm", measure = "adj.r.squared",
-#' lower_limit = 25, upper_limit = 35, row_names_subset = TRUE)
+#' example_MVA_past$plot_heatmap
+#' example_MVA_present$plot_heatmap
+#' example_MVA_past$plot_specific
+#' example_MVA_present$plot_specific
 #'
-#' Example2a <- daily_response(response = MVA_parameter,
-#' env_data = LJ_daily_temperatures, method = "lm",
-#' measure = "adj.r.squared", fixed_width = 10, row_names_subset = TRUE)
+#' # 3 Example PCA
+#' example_PCA <- daily_response(response = example_proxies_individual,
+#'                               env_data = LJ_daily_temperatures, method = "lm",
+#'                               lower_limit = 21, upper_limit = 180,
+#'                               row_names_subset = TRUE, remove_insignificant = TRUE,
+#'                               alpha = 0.01, PCA_transformation = TRUE,
+#'                               components_selection = "manual", N_components = 2)
 #'
-#' Example2b <- daily_response(response = MVA_parameter,
-#' env_data = LJ_daily_temperatures, method = "lm", lower_limit = 50,
-#' upper_limit = 70, remove_insignificant = TRUE, row_names_subset = TRUE,
-#' previous_year = TRUE)
-#' plot_heatmap(Example2b)
-#' plot_extreme(Example2b)
-#' plot_specific(Example2b, 60)
+#' summary(example_PCA$PCA_output)
+#' example_PCA$plot_heatmap
 #'
-#' # Example with negative correlations. Data frames are automatically subset.
-#' data(example_proxies_2)
-#' Example3 <- daily_response(response = example_proxies_2,
-#' env_data = LJ_daily_temperatures, method = "brnn",
-#' lower_limit = 30, upper_limit = 40, row_names_subset = TRUE)
+#' # 4 Example negative correlations
+#' example_neg_cor <- daily_response(response = data_TRW_1, env_data = LJ_daily_temperatures,
+#'                                   method = "cor", lower_limit = 21, upper_limit = 180,
+#'                                   row_names_subset = TRUE, remove_insignificant = TRUE,
+#'                                   alpha = 0.05)
 #'
-#' # brnn examples
-#' Example4a <- daily_response(response = MVA_parameter,
-#' env_data = LJ_daily_temperatures, method = "brnn", measure = "r.squared",
-#' lower_limit = 357, upper_limit = 358, row_names_subset = TRUE)
+#' example_neg_cor$plot_heatmap
+#' example_neg_cor$plot_extreme
+#' example_neg_cor$temporal_stability
 #'
-#' Example4b <- daily_response(response = MVA_parameter,
-#' env_data = LJ_daily_temperatures, method = "brnn", measure = "adj.r.squared",
-#' lower_limit = 100, upper_limit = 200, remove_insignificant = TRUE,
-#' row_names_subset = TRUE)
-#' plot_heatmap(Example4b)
+#' # 5 Example of multiproxy analysis
+#' summary(example_proxies_1)
+#' cor(example_proxies_1)
 #'
-#' Example4c <- daily_response(response = example_proxies_1,
-#' env_data = LJ_daily_temperatures, method = "brnn", measure = "adj.r.squared",
-#' lower_limit = 25, upper_limit = 35, row_names_subset = TRUE)
+#' example_multiproxy <- daily_response(response = example_proxies_1,
+#'                                      env_data = LJ_daily_temperatures,
+#'                                      method = "lm", metric = "adj.r.squared",
+#'                                      lower_limit = 21, upper_limit = 180,
+#'                                      row_names_subset = TRUE, previous_year = FALSE,
+#'                                      remove_insignificant = TRUE, alpha = 0.05)
 #'
-#' Example5a <- daily_response(response = MVA_parameter,
-#' env_data = LJ_daily_temperatures, method = "brnn",
-#' measure = "adj.r.squared", fixed_width = 30, row_names_subset = TRUE)
-#'
-#' Example5b <- daily_response(response = MVA_parameter,
-#' env_data = LJ_daily_temperatures, method = "brnn", lower_limit = 100,
-#' upper_limit = 150, remove_insignificant = TRUE, row_names_subset = TRUE)
-#' plot_heatmap(Example5b)
-#'
-#' # Example with negative correlations. Data frames are automatically subset.
-#' data(example_proxies_2)
-#' Example6 <- daily_response(response = example_proxies_2,
-#' env_data = LJ_daily_temperatures, method = "brnn",
-#' lower_limit = 30, upper_limit = 40, row_names_subset = TRUE)
-#'
-#' # Example with individual chronologies, PCA transformation is used,
-#' # Plot selection of Principal Components
-#' data(example_proxies_individual)
-#' Example7 <- daily_response(response = example_proxies_individual,
-#' env_data = LJ_daily_temperatures, method = "lm",
-#' lower_limit = 30, upper_limit = 90, row_names_subset = TRUE,
-#' PCA_transformation = TRUE, components_selection = 'plot_selection',
-#' remove_insignificant = FALSE)
-#' plot_extreme(Example7)
-#' plot_heatmap(Example7)
-#' }
-#'
-#' # Example with individual chronologies, PCA transformation is used,
-#' # Automatic selection of Principal Components
-#' data(example_proxies_individual)
-#' Example8 <- daily_response(response = example_proxies_individual,
-#' env_data = LJ_daily_temperatures, method = "lm",
-#' lower_limit = 30, upper_limit = 95, row_names_subset = TRUE,
-#' PCA_transformation = TRUE, components_selection = 'automatic',
-#' eigenvalues_threhold = 1)
-#' plot_extreme(Example8)
-#' plot_heatmap(Example8)
-#'
-#' # Example with individual chronologies, PCA transformation is used,
-#' # Manual selection of Principal Components
-#' data(example_proxies_individual)
-#' Example9 <- daily_response(response = example_proxies_individual,
-#' env_data = LJ_daily_temperatures, method = "lm",
-#' lower_limit = 30, upper_limit = 90, row_names_subset = TRUE,
-#' PCA_transformation = TRUE, components_selection = 'manual',
-#' N_components = 4)
-#' plot_extreme(Example9)
+#' example_multiproxy$plot_heatmap
 
 
 daily_response <- function(response, env_data, method = "lm",
-                           measure = "r.squared", lower_limit = 30,
+                           metric = "r.squared", lower_limit = 30,
                            upper_limit = 270, fixed_width = 0,
                            previous_year = FALSE, neurons = 1,
                            brnn_smooth = TRUE, remove_insignificant = TRUE,
@@ -182,17 +190,75 @@ daily_response <- function(response, env_data, method = "lm",
                            PCA_transformation = FALSE, log_preprocess = TRUE,
                            components_selection = 'automatic',
                            eigenvalues_threhold = 1,
-                           N_components = 2) {
+                           N_components = 2, use_median = FALSE,
+                           temporal_stability_check = "sequential", k = 5,
+                           cross_validation_type = "randomized",
+                           subset_yars = NULL, plot_specific_window = NULL,
+                           ylimits = NULL, seed = NULL, tidy_env_data = FALSE) {
 
-  # PART 1 - general data arrangements, warnings abd stops
 
-  set.seed(neurons * 55)
+  if (!is.null(seed)) {
+    set.seed(seed)
+  }
 
+ # Defining global variables
+ median <- NULL
+ proxy <- NULL
+ optimized_return <- NULL
+ transfer_f <- NULL
+ journal_theme <- NULL
+ CV <- NULL
+ Period <- NULL
+ Years <- NULL
+ yearABC <- NULL
+ RMSE <- NULL
+ RE <- NULL
+ CE <- NULL
+
+ # If env_data is given in tidy version, transformation is needed
+ if (tidy_env_data == TRUE){
+
+   n_col_tidy_DF <- ncol(env_data)
+   colnames_tidy_DF <- colnames(env_data)
+
+   if (ncol(env_data) != 3){
+      stop(paste("env_data was inserted in tidy version (tidy_env_data is set to TRUE).",
+                "env_data should have 3 columns, but it has", n_col_tidy_DF, "instead!"))
+   }
+
+   if (colnames_tidy_DF[1] != "Year"){
+     stop(paste("env_data was inserted in tidy version (tidy_env_data is set to TRUE).",
+                "The first column name of the env_data should be 'Year', but it is",
+                colnames_tidy_DF[1], "instead!"))
+   }
+
+   if (colnames_tidy_DF[2] != "DOY"){
+     stop(paste("env_data was inserted in tidy version (tidy_env_data is set to TRUE).",
+                "The second column name of the env_data should be 'DOY', but it is",
+                colnames_tidy_DF[2], "instead!"))
+   }
+
+   value_variable = colnames(env_data)[3]
+   env_data <- dcast(env_data, Year~DOY, value.var = value_variable)
+   env_data <- years_to_rownames(env_data, "Year")
+
+
+
+ }
+
+
+
+  # PART 1 - general data arrangements, warnings and stops
   # Both bojects (response and env_data) are converted to data frames
   response <- data.frame(response)
   env_data <- data.frame(env_data)
 
-  # For measure calculations, both objects need to have the same length,
+  # Here we save the original env and response data that will be used later
+  response_original <- response
+  env_data_original <- env_data
+
+
+    # For metric calculations, both objects need to have the same length,
   # with the exception, when row_names_subset is set to TRUE
   # Stop message in case both data frames do not have the same length
   if (nrow(response) !=  nrow(env_data) & row_names_subset == FALSE)
@@ -217,6 +283,32 @@ daily_response <- function(response, env_data, method = "lm",
   if (upper_limit > 365 | upper_limit < 1)
     stop("upper_limit out of bounds! It should be between 1 and 365")
 
+
+  # Data manipulation
+  # If use.previous == TRUE, env_data data has to be rearranged accordingly
+  if (previous_year == TRUE) {
+
+    # FIRST, both data frames need to be arranged, the most recent year is the first one
+    env_data$yearABC <- row.names(env_data)
+    env_data <- dplyr::arrange(env_data, desc(yearABC))
+    env_data <- years_to_rownames(env_data, "yearABC")
+    env_data_previous <- env_data[-1, , F]
+    env_data_current <- env_data[-nrow(env_data), ,F]
+    row_names_current <- row.names(env_data_current)
+    env_data <- cbind(env_data_previous, env_data_current)
+    env_data <- data.frame(env_data)
+    row.names(env_data) <- row_names_current
+    env_data_original <- env_data
+
+    response$yearABC <- row.names(response)
+    response <- dplyr::arrange(response, desc(yearABC))
+    response <- years_to_rownames(response, "yearABC")
+    response <- data.frame(response[-nrow(response),,F ])
+    response <- data.frame(response)
+    response_original <- response
+
+    }
+
   # If row_names_subset == TRUE, data is subseted and ordered based on matching
   # row.names. Additionally, number of characters in row.names is checked.
   # There should be at least three characters (assuming years before 100 will
@@ -227,18 +319,18 @@ daily_response <- function(response, env_data, method = "lm",
 
     colnames_response <- colnames(response)
 
-    env_data$year <- row.names(env_data)
-    response$year <- row.names(response)
+    env_data$yearABC <- row.names(env_data)
+    response$yearABC <- row.names(response)
 
-    temporal_data <- merge(response, env_data, by = "year")
+    temporal_data <- merge(response, env_data, by = "yearABC")
 
     response <- data.frame(temporal_data[, c(2:(1 + ncol_response))],
-                           row.names = temporal_data$year)
+                           row.names = temporal_data$yearABC)
     colnames(response) <- colnames_response
 
     env_data <- data.frame(temporal_data[, c((1 + ncol_response + 1):
                                                ncol(temporal_data))],
-                           row.names = temporal_data$year)
+                           row.names = temporal_data$yearABC)
   }
 
   # if row.names of env_data and the response data frames are not equal,
@@ -254,16 +346,23 @@ daily_response <- function(response, env_data, method = "lm",
                 "At least three characters needed!"))
   }
 
-  # Data manipulation
-  # If use.previous == TRUE, env_data data has to be rearranged accordingly
-  if (previous_year == TRUE) {
-    response <- response[-nrow(response), ]
-    env_data_previous <- env_data[-1, ]
-    env_data_current <- env_data[-nrow(env_data), ]
-    env_data <- cbind(env_data_previous, env_data_current)
-    response <- data.frame(response)
-    env_data <- data.frame(env_data)
+  # In case of selected window size is less than 14 (2 weeks) or greater than 270 (9 months)
+  if (lower_limit < 14) {
+    warning("Selected lower_limit is less than 14. Consider increasing it!")
   }
+
+  if (upper_limit > 270) {
+    warning("Selected upper_limit is greater than 270. Consider using lower upper_limit!")
+  }
+
+  if (fixed_width < 14 & fixed_width > 0) {
+    warning("Selected fixed_width is less than 14. Consider increasing it!")
+  }
+
+  if (fixed_width > 270) {
+    warning("Selected fixed_width is greater than 270. Consider using lower fixed_width!")
+  }
+
 
   # If PCA_transformation = TRUE, PCA is performed
   if (PCA_transformation == TRUE) {
@@ -295,7 +394,27 @@ daily_response <- function(response, env_data, method = "lm",
       N_PC <- fun()
       response <- as.data.frame(PCA_result$scores[, 1:as.numeric(N_PC)])
     }
-  }
+
+    number_PC <- ncol(response)
+    df_names <-  paste( "PC_", seq(1:number_PC), sep = "")
+    colnames(response) <- df_names
+
+  } else (PCA_result <- "No PCA result avalialbe !")
+
+  # Subset of years
+  if (!is.null(subset_yars)){
+    lower_subset <- subset_yars[1]
+    upper_subset <- subset_yars[2]
+
+    if (lower_subset > upper_subset){
+      stop("Change the order of elements in the subset_years argument! First element should be lower than the second!")
+    }
+
+    subset_seq <- seq(lower_subset, upper_subset)
+    response <- subset(response, row.names(response) %in% subset_seq)
+    env_data <- subset(env_data, row.names(env_data) %in% subset_seq)
+    }
+
 
   # PART 2 - Based on the selected function arguments, different chunks of code
   # will be used. For demonstration:
@@ -317,16 +436,27 @@ daily_response <- function(response, env_data, method = "lm",
       temporal_matrix <- matrix(NA, nrow = 1,
         ncol = (ncol(env_data) - fixed_width) + 1)
 
+      pb <- txtProgressBar(min = 0, max = (ncol(env_data) - fixed_width),
+                           style = 3)
+
+      b = 0
+
       # An iterating loop. In each itteration x is calculated and represents
       # response (dependent) variable. X is a moving average. Window width of
-      # a moving window is fixed_width. Next, statistical measure is calculated
+      # a moving window is fixed_width. Next, statistical metric is calculated
       # based on a selected method (cor, lm or brnn). Calculation is stored in
       # temporal matrix.
       for (j in 0: (ncol(env_data) - fixed_width)) {
 
-        x <- rowMeans(env_data[1:nrow(env_data),
-         (1 + j): (j + fixed_width)], na.rm = TRUE)
+        b = b + 1
 
+        if (use_median == TRUE){
+          x <- apply(env_data[1:nrow(env_data),
+                                 (1 + j): (j + fixed_width)],1 , median, na.rm = TRUE)
+        } else {
+          x <- rowMeans(env_data[1:nrow(env_data),
+                                 (1 + j): (j + fixed_width)], na.rm = TRUE)
+        }
 
         # print(paste(j, fixed_width), sep = "")
 
@@ -342,7 +472,9 @@ daily_response <- function(response, env_data, method = "lm",
         #print (temporal_correlation)
         temporal_matrix[1, j + 1] <- temporal_correlation
 
+        setTxtProgressBar(pb, b)
       }
+      close(pb)
 
      # temporal_matrix is given rownames and colnames. Rownames represent a
      # window width used fot calculations. Colnames represent the position of
@@ -360,10 +492,23 @@ daily_response <- function(response, env_data, method = "lm",
     temporal_matrix <- matrix(NA, nrow = 1,
       ncol = (ncol(env_data) - fixed_width) + 1)
 
+    pb <- txtProgressBar(min = 0, max = (ncol(env_data) - fixed_width),
+                         style = 3)
+
+    b = 0
+
     for (j in 0:(ncol(env_data) - fixed_width)) {
 
-       x <- rowMeans(env_data[1:nrow(env_data),
-        (1 + j) : (j + fixed_width)], na.rm = TRUE)
+      b = b + 1
+
+      if (use_median == TRUE){
+        x <- apply(env_data[1:nrow(env_data),
+                               (1 + j) : (j + fixed_width)],1 , median, na.rm = TRUE)
+      } else {
+        x <- rowMeans(env_data[1:nrow(env_data),
+                               (1 + j) : (j + fixed_width)], na.rm = TRUE)
+      }
+
       x <- matrix(x, nrow = nrow(env_data), ncol = 1)
       temporal_df <- data.frame(cbind(x, response))
       temporal_model <- lm(x ~ ., data = temporal_df)
@@ -371,19 +516,20 @@ daily_response <- function(response, env_data, method = "lm",
       temporal_r_squared <- temporal_summary$r.squared
       temporal_adj_r_squared <- temporal_summary$adj.r.squared
 
-      if (measure == "r.squared"){
+      if (metric == "r.squared"){
         temporal_matrix[1, j + 1] <- temporal_r_squared
         # print(temporal_r_squared)
       }
 
-      if (measure == "adj.r.squared"){
+      if (metric == "adj.r.squared"){
         temporal_matrix[1, j + 1] <- temporal_adj_r_squared
         # print(temporal_adj_r_squared)
       }
 
 
+      setTxtProgressBar(pb, b)
     }
-
+    close(pb)
 
     row.names(temporal_matrix) <- fixed_width
     temporal_colnames <- as.vector(seq(from = 1,
@@ -398,12 +544,23 @@ daily_response <- function(response, env_data, method = "lm",
     temporal_matrix <- matrix(NA, nrow = 1,
       ncol = (ncol(env_data) - fixed_width) + 1)
 
+    pb <- txtProgressBar(min = 0, max = (ncol(env_data) - fixed_width),
+                         style = 3)
+
+    b = 0
+
      for (j in 0: (ncol(env_data) - fixed_width)) {
 
+       b = b + 1
 
+        if (use_median == TRUE){
+         x <- apply(env_data[1:nrow(env_data),
+                                (1 + j): (j + fixed_width)],1 , median, na.rm = TRUE)
+       } else {
+         x <- rowMeans(env_data[1:nrow(env_data),
+                                (1 + j): (j + fixed_width)], na.rm = TRUE)
+       }
 
-      x <- rowMeans(env_data[1:nrow(env_data),
-        (1 + j): (j + fixed_width)], na.rm = TRUE)
       x <- matrix(x, nrow = nrow(env_data), ncol = 1)
       temporal_df <- data.frame(cbind(x, response))
       capture.output(temporal_model <- try(brnn(x ~ ., data = temporal_df,
@@ -423,12 +580,10 @@ daily_response <- function(response, env_data, method = "lm",
                                             ncol(as.data.frame(response[, 1]))
                                           -  1))
 
-        if (measure == "r.squared"){
+        if (metric == "r.squared"){
           temporal_matrix[1, j + 1] <- temporal_r_squared
-           print(temporal_r_squared)
-        }
-
-        if (measure == "adj.r.squared"){
+           # print(temporal_r_squared)
+        } else if (metric == "adj.r.squared"){
           temporal_matrix[1, j + 1] <- temporal_adj_r_squared
           # print(temporal_adj_r_squared)
         } else {
@@ -439,7 +594,9 @@ daily_response <- function(response, env_data, method = "lm",
 
       }
 
-    }
+      setTxtProgressBar(pb, b)
+     }
+    close(pb)
 
     row.names(temporal_matrix) <- fixed_width
     temporal_colnames <- as.vector(seq(from = 1,
@@ -462,8 +619,8 @@ daily_response <- function(response, env_data, method = "lm",
   # upper_limit defines windo.width used for a moving window. 2) inner loop
   # defines the starting position of a moving window.
   # In each itteration, x is calculated and represents a response (dependent)
-  # variable. x is a moving average, based on rowMeans function.
-  # Next, statistical measure is calculated based on a selected method (cor,
+  # variable. x is a moving average, based on rowMeans/apply function.
+  # Next, statistical metric is calculated based on a selected method (cor,
   # lm or brnn). Calculation is stored in temporal matrix in a proper place.
   # The position of stored calculation is informative later used for
   # indiciating optimal values.
@@ -474,16 +631,22 @@ daily_response <- function(response, env_data, method = "lm",
   b = 0
 
 
-  for (k in lower_limit:upper_limit) {
+  for (K in lower_limit:upper_limit) {
 
     b = b + 1
 
-    for (j in 0: (ncol(env_data) - k)) {
-      x <- rowMeans(env_data[1:nrow(env_data), (1 + j) : (j + k)], na.rm = T)
+    for (j in 0: (ncol(env_data) - K)) {
+
+      if (use_median == TRUE){
+        x <- apply(env_data[1:nrow(env_data), (1 + j) : (j + K)],1 , median, na.rm = TRUE)
+      } else {
+        x <- rowMeans(env_data[1:nrow(env_data), (1 + j) : (j + K)], na.rm = T)
+      }
+
       x <- matrix(x, nrow = nrow(env_data), ncol = 1)
       temporal_correlation <- cor(response[, 1], x[, 1])
       # print(temporal_correlation)
-      temporal_matrix[(k - lower_limit) + 1, j + 1] <- temporal_correlation
+      temporal_matrix[(K - lower_limit) + 1, j + 1] <- temporal_correlation
     }
     setTxtProgressBar(pb, b)
   }
@@ -515,13 +678,17 @@ daily_response <- function(response, env_data, method = "lm",
 
     b = 0
 
-    for (k in lower_limit:upper_limit) {
+    for (K in lower_limit:upper_limit) {
 
       b = b + 1
 
-      for (j in 0: (ncol(env_data) - k)) {
-        x <- rowMeans(env_data[1:nrow(env_data), (1 + j) : (j + k)],
-          na.rm = T)
+      for (j in 0: (ncol(env_data) - K)) {
+        if (use_median == TRUE){
+          x <- apply(env_data[1:nrow(env_data), (1 + j) : (j + K)],1 , median, na.rm = TRUE)
+        } else {
+          x <- rowMeans(env_data[1:nrow(env_data), (1 + j) : (j + K)], na.rm = T)
+        }
+
         x <- matrix(x, nrow = nrow(env_data), ncol = 1)
         temporal_df <- data.frame(cbind(x, response))
         temporal_model <- lm(x ~ ., data = temporal_df)
@@ -529,14 +696,14 @@ daily_response <- function(response, env_data, method = "lm",
         temporal_r_squared <- temporal_summary$r.squared
         temporal_adj_r_squared <- temporal_summary$adj.r.squared
 
-        if (measure == "r.squared"){
-          temporal_matrix[(k - lower_limit) + 1, j + 1]  <-
+        if (metric == "r.squared"){
+          temporal_matrix[(K - lower_limit) + 1, j + 1]  <-
             temporal_r_squared
           # print(temporal_r_squared)
         }
 
-        if (measure == "adj.r.squared"){
-          temporal_matrix[(k - lower_limit) + 1, j + 1]  <-
+        if (metric == "adj.r.squared"){
+          temporal_matrix[(K - lower_limit) + 1, j + 1]  <-
             temporal_adj_r_squared
           # print(temporal_adj_r_squared)
         }
@@ -566,14 +733,19 @@ daily_response <- function(response, env_data, method = "lm",
 
     b = 0
 
-    for (k in lower_limit:upper_limit) {
+    for (K in lower_limit:upper_limit) {
 
       b = b + 1
 
 
-      for (j in 0: (ncol(env_data) - k)) {
-        x <- rowMeans(env_data[1:nrow(env_data), (1 + j) : (j + k)],
-          na.rm = T)
+      for (j in 0: (ncol(env_data) - K)) {
+
+        if (use_median == TRUE){
+          x <- apply(env_data[1:nrow(env_data), (1 + j) : (j + K)],1 , median, na.rm = TRUE)
+        } else {
+          x <- rowMeans(env_data[1:nrow(env_data), (1 + j) : (j + K)], na.rm = T)
+        }
+
         x <- matrix(x, nrow = nrow(env_data), ncol = 1)
         temporal_df <- data.frame(cbind(x, response))
         capture.output(temporal_model <- try(brnn(x ~ ., data = temporal_df, neurons = neurons,
@@ -591,19 +763,19 @@ daily_response <- function(response, env_data, method = "lm",
                                               ncol(as.data.frame(response[, 1]))
                                             - 1))
 
-          if (measure == "r.squared"){
-            temporal_matrix[(k - lower_limit) + 1, j + 1]  <- temporal_r_squared
+          if (metric == "r.squared"){
+            temporal_matrix[(K - lower_limit) + 1, j + 1]  <- temporal_r_squared
            # print(temporal_r_squared)
           }
 
-          if (measure == "adj.r.squared"){
-            temporal_matrix[(k - lower_limit) + 1, j + 1]  <-
+          if (metric == "adj.r.squared"){
+            temporal_matrix[(K - lower_limit) + 1, j + 1]  <-
               temporal_adj_r_squared
           # print(temporal_adj_r_squared)
           }
 
         } else {
-          temporal_matrix[(k - lower_limit) + 1, j + 1] <- NA
+          temporal_matrix[(K - lower_limit) + 1, j + 1] <- NA
 
         }
       }
@@ -661,21 +833,14 @@ daily_response <- function(response, env_data, method = "lm",
       }
   }
 
-  # PART 4: Final list is being created and returned as a function output
-  # When metohod == "cor", different final_list is created
-  if (method == "lm" | method == "brnn") {
-    final_list <- list(calculations = temporal_matrix, method = method,
-      measure = measure)
-  }
+  ########################################################################
+  # PART 4: Final list is being created and returned as a function output#
+  ########################################################################
 
-  if (method == "cor"){
-    final_list <- list(calculations = temporal_matrix, method = method,
-                        measure = method)
-  }
-
-
-  # Here we add additional, fourth element: the optimal sequence of days
-  # that returns the best selected statistical measure
+  # The first three elements of the final list are already created: calculated
+  # values, method and metric used.
+  # Here we create the fourth element: the optimal sequence of days that
+  # returns the best selected statistical metric. We name it optimal_return.
 
   # In case of negative correlations, different strategy is applied.
   # For more detailed description see plot_extreme()
@@ -691,7 +856,6 @@ daily_response <- function(response, env_data, method = "lm",
   # one of the following two if functions is used
   # There are unimportant warnings produced:
   # no non-missing arguments to max; returning -Inf
-
 
   if ((abs(overall_max) > abs(overall_min)) == TRUE) {
 
@@ -716,32 +880,58 @@ daily_response <- function(response, env_data, method = "lm",
     row_index <- row.names(temporal_matrix)[min_index]
   }
 
-  # The fourth return element is being created: rowMeans of optimal sequence:
-  dataf <- data.frame(rowMeans(env_data[, as.numeric(plot_column):
+  # The fourth return element is being created: rowMeans/ apply of optimal sequence:
+  if (use_median == TRUE){
+    dataf <- data.frame(apply(env_data[, as.numeric(plot_column):
+                                            (as.numeric(plot_column) +
+                                               as.numeric(row_index) - 1)],1 , median, na.rm = TRUE))
+  } else {
+    dataf <- data.frame(rowMeans(env_data[, as.numeric(plot_column):
+                                            (as.numeric(plot_column) +
+                                               as.numeric(row_index) - 1)],
+                                 na.rm = TRUE))
+  }
+
+  dataf_full <- cbind(response, dataf)
+  colnames(dataf_full)[ncol(dataf_full)] <- "Optimized_return"
+  colnames(dataf) <- "Optimized.rowNames"
+
+  ## Once again, the same procedure, to get the optimal sequence, but this time for whole data, not only
+  # for the analysed period.
+
+  if (use_median == TRUE){
+    dataf_original <- data.frame(apply(env_data_original[, as.numeric(plot_column):
                                          (as.numeric(plot_column) +
-                                            as.numeric(row_index) - 1)],
-                              na.rm = TRUE))
+                                            as.numeric(row_index) - 1)],1 , median, na.rm = TRUE))
+  } else {
+    dataf_original <- data.frame(rowMeans(env_data_original[, as.numeric(plot_column):
+                                            (as.numeric(plot_column) +
+                                               as.numeric(row_index) - 1)],
+                                 na.rm = TRUE))
+  }
 
-  colnames(dataf) <- "Optimized rowNames"
+  dataf_full_original <- dataf_original
+  colnames(dataf_full_original) <- "Optimized_return"
+  colnames(dataf) <- "Optimized.rowNames"
 
-  final_list[[4]] <- dataf
 
-  # Additional check:
-  if (method == "lm" & measure == "r.squared"){
+
+  # Additional check: (we should get the same metric as before in the loop)
+  if (method == "lm" & metric == "r.squared"){
     temporal_df <- data.frame(cbind(dataf, response))
     temporal_model <- lm(Optimized.rowNames ~ ., data = temporal_df)
     temporal_summary <- summary(temporal_model)
     optimized_result <- temporal_summary$r.squared
   }
 
-  if (method == "lm" & measure == "adj.r.squared"){
+  if (method == "lm" & metric == "adj.r.squared"){
     temporal_df <- data.frame(cbind(dataf, response))
     temporal_model <- lm(Optimized.rowNames ~ ., data = temporal_df)
     temporal_summary <- summary(temporal_model)
     optimized_result <- temporal_summary$adj.r.squared
   }
 
-  if (method == "brnn" & measure == "r.squared"){
+  if (method == "brnn" & metric == "r.squared"){
     temporal_df <- data.frame(cbind(dataf, response))
     capture.output(temporal_model <- brnn(Optimized.rowNames ~ ., data = temporal_df,
                            neurons = neurons, tol = 1e-6))
@@ -753,7 +943,7 @@ daily_response <- function(response, env_data, method = "lm",
                                         mean(temporal_df[, 1])) ^ 2))
   }
 
-  if (method == "brnn" & measure == "adj.r.squared"){
+  if (method == "brnn" & metric == "adj.r.squared"){
     temporal_df <- data.frame(cbind(dataf, response))
     capture.output(temporal_model <- brnn(Optimized.rowNames ~ .,
                            data = temporal_df, neurons = neurons, tol = 1e-6))
@@ -772,6 +962,9 @@ daily_response <- function(response, env_data, method = "lm",
   if (method == "cor"){
     optimized_result <- cor(dataf, response)
   }
+
+  # Just give a nicer colname
+  colnames(dataf) <- "Optimized return"
 
   # Here we create the fifth element of the final list: Analysed period in the
   # form of min(year) - max(year), e.g. 1950 - 2015
@@ -792,9 +985,342 @@ daily_response <- function(response, env_data, method = "lm",
     analysed_period <- NA
     }
 
-  final_list[[5]] <- analysed_period
+  # Here, the transfer function is being created
+  transfer_data = data.frame(proxy = response[,1], optimized_return =dataf[,1])
+  lm_model = lm(optimized_return ~ proxy, data = transfer_data)
+  capture.output(brnn_model <- try(brnn(optimized_return ~ proxy, data = transfer_data, neurons = neurons), silent = TRUE))
+  full_range = data.frame(proxy = seq(from = min(response[,1]), to = max(response[,1]), length.out = 100))
+
+  if (method == "lm" | method == "cor"){
+    full_range$transfer_f = predict(lm_model, full_range)
+  }
+
+  if (method == "brnn"){
+    full_range$transfer_f = predict.brnn(brnn_model, full_range)
+  }
+
+  # String for titles
+  if (method == "cor"){
+    title_string <- "Correlation Coefficients"
+  } else if (method == "lm"){
+    title_string <- "Linear Regression"
+  } else if (method == "brnn"){
+    title_string <- "ANN With Bayesian Regularization"
+  } else (print("The selection of method is not correct"))
+
+  # The definition of theme
+  journal_theme <- theme_bw() +
+    theme(axis.text = element_text(size = 16, face = "bold"),
+          axis.title = element_text(size = 18), text = element_text(size = 18),
+          plot.title = element_text(size = 16,  face = "bold"))
+
+  p1 <- ggplot(transfer_data, aes(proxy, optimized_return)) +
+    geom_point() +
+    geom_line(aes(proxy, transfer_f), full_range) +
+    journal_theme +
+    ggtitle(paste("Analysed Period:", analysed_period, "\nMethod:", title_string))
+
+analysed_period
+  # If there is more than one independent variable in the model,
+  # transfer function is not given, since we should return a 3d model
+  if (ncol(response) > 1){
+    p1 <- "No transfer function is created for two or more response variables"
+  }
+
+
+  #######################################################################
+  ############## The temporal stability of optimized_return #############
+  #######################################################################
+
+  dataset = data.frame(optimized_return =dataf[,1], proxy = response)
+
+  empty_list = list()
+  empty_list_period = list()
+
+  temporal_stability <- data.frame()
+
+  # 1. Progressive stability check
+  if (temporal_stability_check == "progressive"){
+    foldi <- seq(1:k)
+    #foldi <- paste("fold_", foldi)
+    folds <- cut(seq(1, nrow(dataset)), breaks = k, labels = FALSE)
+
+      for (m in 1:k){
+      #Segement your data by fold using the which() function
+      trainIndexes <- which(folds <= m, arr.ind = TRUE)
+      dataset_temp <- dataset[trainIndexes, ]
+      MAKS <- max(as.numeric(row.names(dataset_temp)))
+      MIN <- min(as.numeric(row.names(dataset_temp)))
+      empty_list_period[[m]] <- paste(MIN, "-", MAKS)
+
+      if (method == "cor"){
+        calculation <- cor(dataset_temp[,1], dataset_temp[,2])
+        empty_list[[m]] <- calculation
+        colname = "correlation"
+      } else if (method == "lm" & metric == "r.squared"){
+        MLR <- lm(optimized_return ~ ., data = dataset_temp)
+        colname = "r.squared"
+        empty_list[[m]] <- summary(MLR)$r.squared
+      } else if (method == "lm" & metric == "adj.r.squared"){
+        MLR <- lm(optimized_return ~ ., data = dataset_temp)
+        empty_list[[m]] <- summary(MLR)$adj.r.squared
+        colname = "adj.r.squared"
+      } else if (method == "brnn" & metric == "r.squared"){
+        capture.output(BRNN <- try(brnn(optimized_return ~ ., data = dataset_temp, neurons = neurons), silent = TRUE))
+        if (class(BRNN)[[1]] != "try-error"){
+          predictions <- predict(BRNN, dataset_temp, neurons = neurons)
+          r_squared <- 1 - (sum((dataset_temp[, 1] - predictions) ^ 2) /
+                              sum((dataset_temp[, 1] - mean(dataset_temp[, 1])) ^ 2))
+          empty_list[[m]] <- r_squared
+          colname = "r.squared"
+        } else {
+          empty_list[[m]] <- NA
+          colname = "r.squared"
+        }
+      } else if (method == "brnn" & metric == "adj.r.squared"){
+        capture.output(BRNN <- try(brnn(optimized_return ~ ., data = dataset_temp, neurons = neurons), silent = TRUE))
+        if (class(BRNN)[[1]] != "try-error"){
+          predictions <- predict(BRNN, dataset_temp, neurons = neurons)
+          r_squared <- 1 - (sum((dataset_temp[, 1] - predictions) ^ 2) /
+                              sum((dataset_temp[, 1] - mean(dataset_temp[, 1])) ^ 2))
+
+          adj_r_squared <- 1 - ((1 - r_squared) * ((nrow(dataset_temp) - 1)) /
+                                  (nrow(dataset_temp) - ncol(as.data.frame(response[, 1])) -  1))
+          empty_list[[m]] <- adj_r_squared
+          colname = "adj.r.squared"
+        } else {
+          empty_list[[m]] <- NA
+          colname = "adj.r.squared"
+        }
+      }
+      }
+    m1 <- do.call(rbind, empty_list)
+    m2 <- do.call(rbind, empty_list_period)
+
+    temporal_stability <- data.frame(cbind(m2, round(m1, 3)))
+    colnames(temporal_stability) <-c("Period", colname)
+    temporal_stability
+  }
+
+  # 2. Sequential stability check
+  if (temporal_stability_check == "sequential"){
+      foldi <- seq(1:k)
+      #foldi <- paste("fold_", foldi)
+      folds <- cut(seq(1, nrow(dataset)), breaks = k, labels = FALSE)
+
+      for (m in 1:k){
+        #Segement your data by fold using the which() function
+        trainIndexes <- which(folds == m, arr.ind = TRUE)
+        dataset_temp <- dataset[trainIndexes, ]
+
+        MAKS <- max(as.numeric(row.names(dataset_temp)))
+        MIN <- min(as.numeric(row.names(dataset_temp)))
+        empty_list_period[[m]] <- paste(MIN, "-", MAKS)
+
+        if (method == "cor"){
+          calculation <- cor(dataset_temp[,1], dataset_temp[,2])
+          empty_list[[m]] <- calculation
+          colname = "correaltion"
+        } else if (method == "lm" & metric == "r.squared"){
+          MLR <- lm(optimized_return ~ ., data = dataset_temp)
+          colname = "r.squared"
+          empty_list[[m]] <- summary(MLR)$r.squared
+        } else if (method == "lm" & metric == "adj.r.squared"){
+          MLR <- lm(optimized_return ~ ., data = dataset_temp)
+          empty_list[[m]] <- summary(MLR)$adj.r.squared
+          colname = "adj.r.squared"
+        } else if (method == "brnn" & metric == "r.squared"){
+          capture.output(BRNN <- try(brnn(optimized_return ~ ., data = dataset_temp, neurons = neurons), silent = TRUE))
+          if (class(BRNN)[[1]] != "try-error"){
+          predictions <- predict(BRNN, dataset_temp, neurons = neurons)
+          r_squared <- 1 - (sum((dataset_temp[, 1] - predictions) ^ 2) /
+                              sum((dataset_temp[, 1] - mean(dataset_temp[, 1])) ^ 2))
+          empty_list[[m]] <- r_squared
+          colname = "r.squared"
+          } else {
+            empty_list[[m]] <- NA
+            colname = "r.squared"
+          }
+        } else if (method == "brnn" & metric == "adj.r.squared"){
+          capture.output(BRNN <- try(brnn(optimized_return ~ ., data = dataset_temp, neurons = neurons), silent = TRUE))
+          if (class(BRNN)[[1]] != "try-error"){
+          predictions <- predict(BRNN, dataset_temp, neurons = neurons)
+          r_squared <- 1 - (sum((dataset_temp[, 1] - predictions) ^ 2) /
+                              sum((dataset_temp[, 1] - mean(dataset_temp[, 1])) ^ 2))
+
+          adj_r_squared <- 1 - ((1 - r_squared) * ((nrow(dataset_temp) - 1)) /
+                                  (nrow(dataset_temp) - ncol(as.data.frame(response[, 1])) -  1))
+          empty_list[[m]] <- adj_r_squared
+          colname = "adj.r.squared"
+          } else {
+            empty_list[[m]] <- NA
+            colname = "adj.r.squared"
+          }
+        }
+      }
+      m1 <- do.call(rbind, empty_list)
+      m2 <- do.call(rbind, empty_list_period)
+
+      temporal_stability <- data.frame(cbind(m2, round(m1, 3)))
+      colnames(temporal_stability) <-c("Period", colname)
+      temporal_stability
+  }
+
+
+  #########################################################################
+  ################## Out of sample estimates ##############################
+  #########################################################################
+
+  dataset = data.frame(optimized_return =dataf[,1], proxy = response)
+
+  empty_list = list()
+  empty_list_period = list()
+
+  if (cross_validation_type == "blocked"){
+    dataset <- dataset
+  } else if (cross_validation_type == "randomized"){
+    dataset <- dataset[sample(nrow(dataset)), ]
+  } else (stop(paste("The cross_validation_type is not selected correctly! It is ", cross_validation_type,
+    ". It should be 'blocked' or 'randomized'!", sep = "")))
+
+     foldi <- seq(1:k)
+     #foldi <- paste("fold_", foldi)
+     folds <- cut(seq(1, nrow(dataset)), breaks = k, labels = FALSE)
+     bl = 1
+
+    for (m in 1:k){
+      #Segement your data by fold using the which() function
+      testIndexes <- which(folds == m, arr.ind = TRUE)
+      test <- dataset[testIndexes, ]
+      train <- dataset[-testIndexes, ]
+
+      MAKS <- max(as.numeric(row.names(train)))
+      MIN <- min(as.numeric(row.names(train)))
+      empty_list_period[[bl]] <- "NA"
+      bl <- bl + 1
+
+      MAKS <- max(as.numeric(row.names(test)))
+      MIN <- min(as.numeric(row.names(test)))
+      empty_list_period[[bl]] <- paste(MIN, "-", MAKS)
+      bl <- bl + 1
+
+      if (method == "lm" | method == "cor"){
+        MLR <- lm(optimized_return ~ ., data = train)
+        train_predicted <- predict(MLR, train)
+        test_predicted <- predict(MLR, test)
+        train_observed <- train[, 1]
+        test_observed <- test[, 1]
+        calculations <- calculate_metrics(train_predicted, test_predicted,
+                                          train_observed, test_observed, digits = 15)
+
+        empty_list[[m]] <- calculations
+      }
+
+      if (method == "brnn"){
+        capture.output(BRNN <- try(brnn(optimized_return ~ ., data = train, neurons = neurons), silent = TRUE))
+        if (class(BRNN)[[1]] != "try-error"){
+          train_predicted <- predict(BRNN, train)
+          test_predicted <- predict(BRNN, test)
+          train_observed <- train[, 1]
+          test_observed <- test[, 1]
+          calculations <- calculate_metrics(train_predicted, test_predicted,
+                                            train_observed, test_observed, digits = 15)
+
+          empty_list[[m]] <- calculations
+
+        } else {
+          empty_list[[m]] <- NA
+        }
+      }
+
+    }
+    m1 <- do.call(rbind, empty_list)
+    m1 <- m1[, -c(3, 4, 7)]
+    m2 <- do.call(rbind, empty_list_period)
+
+    cross_validation <- cbind(Years = m2, m1)
+    cross_validation$Period <- c("Calibration", "Validation")
+    cross_validation$CV <- rep(1:k, each = 2)
+    cross_validation <- dplyr::select(cross_validation, CV, Period, cor, RMSE, RE, CE)
+    row.names(cross_validation) <- NULL
+
+  ################################################################
+  #### Here the final list is being filled with six elements #####
+  ################################################################
+
+
+
+
+  # When metohod == "cor", different final_list is created
+  if (method == "lm" | method == "brnn") {
+    final_list <- list(calculations = temporal_matrix, method = method,
+                       metric = metric, analysed_period = analysed_period,
+                       optimized_return = dataf_full,
+                       optimized_return_all = dataf_full_original,
+                       transfer_function = p1, temporal_stability = temporal_stability,
+                       cross_validation = cross_validation)
+  }
+
+  if (method == "cor"){
+    final_list <- list(calculations = temporal_matrix, method = method,
+                       metric = method, analysed_period = analysed_period,
+                       optimized_return = dataf_full,
+                       optimized_return_all = dataf_full_original,
+                       transfer_function = p1, temporal_stability = temporal_stability,
+                       cross_validation = cross_validation)
+  }
+
+
+    final_list[[4]]
+
+
+    plot_heatmapA <- plot_heatmap(final_list)
+    plot_extremeA <- plot_extreme(final_list, ylimits = ylimits)
+
+    width_sequence = seq(lower_limit, upper_limit)
+
+    if (is.null(plot_specific_window)){
+      (plot_specificA <- "plot_specific_window is not avaliable. No plot_specific is made!")
+    } else if (fixed_width != 0){
+      plot_specific_window = fixed_width
+      plot_specificA <- plot_specific(final_list, window_width = plot_specific_window, ylimits = ylimits)
+    } else if (plot_specific_window %in% width_sequence){
+      plot_specificA <- plot_specific(final_list, window_width = plot_specific_window, ylimits = ylimits)
+    } else (plot_specificA <- "Selected plot_specific_window is not avaliable. No plot_specific is made!")
+
+
+
+
+
+
+    # Here, for the sake of simplicity, we create final list again
+    if (method == "lm" | method == "brnn") {
+      final_list <- list(calculations = temporal_matrix, method = method,
+                         metric = metric, analysed_period = analysed_period,
+                         optimized_return = dataf_full,
+                         optimized_return_all = dataf_full_original,
+                         transfer_function = p1, temporal_stability = temporal_stability,
+                         cross_validation = cross_validation,
+                         plot_heatmap = plot_heatmapA,
+                         plot_extreme = plot_extremeA,
+                         plot_specific = plot_specificA,
+                         PCA_output = PCA_result)
+    }
+
+    if (method == "cor"){
+      final_list <- list(calculations = temporal_matrix, method = method,
+                         metric = method, analysed_period = analysed_period,
+                         optimized_return = dataf_full,
+                         optimized_return_all = dataf_full_original,
+                         transfer_function = p1, temporal_stability = temporal_stability,
+                         cross_validation = cross_validation,
+                         plot_heatmap = plot_heatmapA,
+                         plot_extreme = plot_extremeA,
+                         plot_specific = plot_specificA,
+                         PCA_output = PCA_result)
+    }
+
+
 
   return(final_list)
 }
-
-

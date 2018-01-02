@@ -3,8 +3,8 @@
 \docType{data}
 \name{LJ_daily_temperatures}
 \alias{LJ_daily_temperatures}
-\title{Daily mean temperatures for Ljubljana from 2015 - 1961}
-\format{A data frame with 55 rows and 366 variables:
+\title{Daily mean temperatures for Ljubljana from 2016 - 1930}
+\format{A data frame with 87 rows and 366 variables:
 \describe{
   \item{X1}{Temperatures on the day 1 of a year}
   \item{X2}{Temperatures on the day 2 of a year}
@@ -374,14 +374,14 @@
   \item{X366}{Temperatures on the day 366 of a year}
 }}
 \source{
-\url{http://meteo.arso.gov.si/met/sl/archive/}
+\url{http://climexp.knmi.nl/start.cgi}
 }
 \usage{
 LJ_daily_temperatures
 }
 \description{
 A dataset of daily mean temperatures in Ljubljana (Slovenia). The first row
-represents temperatures in 1961. The first column represents the first day
+represents temperatures in 1930. The first column represents the first day
 of a year, the second column represents the second day of a year, etc.
 }
 \keyword{datasets}

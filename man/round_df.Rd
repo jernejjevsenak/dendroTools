@@ -28,3 +28,4 @@ round_df(df, digits = 0)
 \references{
 https://stackoverflow.com/questions/9063889/how-to-round-a-data-frame-in-r-that-contains-some-character-variables
 }
+\keyword{internal}
