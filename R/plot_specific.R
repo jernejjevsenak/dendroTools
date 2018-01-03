@@ -12,6 +12,7 @@
 #' @return A ggplot2 object containing the plot display
 #'
 #' @examples
+#' \dontrun{
 #' data(LJ_daily_temperatures)
 #' data(KRE_daily_temperatures)
 #' data(example_proxies_1)
@@ -32,6 +33,8 @@
 #' metric = "adj.r.squared", lower_limit = 150, upper_limit = 155,
 #' neurons = 1, previous_year = TRUE, row_names_subset = TRUE)
 #' plot_specific(Example3, window_width = 153, title = TRUE)
+#' }
+#'
 #' @keywords internal
 
 plot_specific <- function(result_daily_response, window_width, title = TRUE,
@@ -155,7 +158,7 @@ plot_specific <- function(result_daily_response, window_width, title = TRUE,
   # Here we define a data frame of dates and corresponing day of year (doi). Later
   # this dataframe will be used to describe tht optimal sequence od days
   doy <- seq(1:366)
-  date <- seq(as.Date('2015-01-01'),as.Date('2015-12-31'), by = "+1 day")
+  date <- seq(as.Date('2013-01-01'),as.Date('2013-12-31'), by = "+1 day")
   date[366] <- as.Date('2015-12-31')
   date <- format(date, "%b %d")
   date_codes <- data.frame(doy = doy, date = date)

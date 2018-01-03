@@ -11,6 +11,7 @@
 #' @return A ggplot2 object containing the plot display
 #'
 #' @examples
+#' \dontrun{
 #' data(LJ_daily_temperatures)
 #' data(example_proxies_1)
 #' Example1 <- daily_response(response = example_proxies_1,
@@ -37,6 +38,7 @@
 #' metric = "r.squared", lower_limit = 30, upper_limit = 120, neurons = 1,
 #' row_names_subset = TRUE, previous_year = TRUE)
 #' plot_extreme(Example4)
+#' }
 #'
 #' @keywords internal
 
@@ -156,8 +158,8 @@ plot_extreme <- function(result_daily_response, title = TRUE, ylimits = NULL) {
 
   # Here we define a data frame of dates and corresponing day of year (doi). Later
   # this dataframe will be used to describe tht optimal sequence od days
-  doy <- seq(1:731)
-  date <- seq(as.Date('2015-01-01'),as.Date('2016-12-31'), by = "+1 day")
+  doy <- seq(1:730)
+  date <- seq(as.Date('2013-01-01'),as.Date('2014-12-31'), by = "+1 day")
   # date[366] <- as.Date('2015-12-31')
   date <- format(date, "%b %d")
   date_codes <- data.frame(doy = doy, date = date)

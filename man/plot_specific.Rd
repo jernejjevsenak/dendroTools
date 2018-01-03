@@ -25,6 +25,7 @@ Graphs a line plot of a row with a selected window width in a matrix,
 produced by \code{\link{daily_response}} function.
 }
 \examples{
+\dontrun{
 data(LJ_daily_temperatures)
 data(KRE_daily_temperatures)
 data(example_proxies_1)
@@ -45,5 +46,7 @@ env_data = LJ_daily_temperatures, method = "brnn",
 metric = "adj.r.squared", lower_limit = 150, upper_limit = 155,
 neurons = 1, previous_year = TRUE, row_names_subset = TRUE)
 plot_specific(Example3, window_width = 153, title = TRUE)
+}
+
 }
 \keyword{internal}

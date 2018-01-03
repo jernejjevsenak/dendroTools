@@ -22,6 +22,7 @@ Graphs a line plot of a row with the highest metric in a matrix, produced by
 \code{\link{daily_response}} function.
 }
 \examples{
+\dontrun{
 data(LJ_daily_temperatures)
 data(example_proxies_1)
 Example1 <- daily_response(response = example_proxies_1,
@@ -48,6 +49,7 @@ env_data = LJ_daily_temperatures, method = "lm",
 metric = "r.squared", lower_limit = 30, upper_limit = 120, neurons = 1,
 row_names_subset = TRUE, previous_year = TRUE)
 plot_extreme(Example4)
+}
 
 }
 \keyword{internal}
