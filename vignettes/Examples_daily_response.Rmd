@@ -45,6 +45,7 @@ example_fixed_width <- daily_response(response = data_MVA, env_data = LJ_daily_t
                                    method = "cor", fixed_width = 60,
                                    row_names_subset = TRUE, remove_insignificant = TRUE,
                                    alpha = 0.05)
+
 ```
 ```{r, fig.align='center', fig.width=7, fig.height=5, fig.cap=paste("Figure 1: The MVA parameter contains the optimal temperature signal from March 14 (DOY 73) to May 12 (DOY 132).")}
 example_fixed_width$plot_extreme
