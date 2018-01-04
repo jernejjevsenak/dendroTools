@@ -19,7 +19,9 @@ text-align: justify; font-size: 16px}
 
 # 1. Introduction
 
-The dendroTools R package provides some novel dendroclimatological methods to analyse the relationship between tree-ring and environmental data. In this document we give details about how to use our package. All the data included in examples bellow is a part of the dendroTools R package.
+The dendroTools R package provides some novel dendroclimatological methods to analyse the relationship between tree-ring and environmental data. In this document we give details about how to use our package. All the data included in examples bellow is a part of the dendroTools R package. 
+
+Please note, the examples presented here are made computationally less intensive to satisfy the CRAN policy. You are invited to explore the full potential of our package by using the wide range of possible window widths. 
 
 # 2. The use of daily_response()
 
@@ -51,7 +53,7 @@ example_fixed_width$plot_extreme
 ## 2.2 Example of analysing the statistical relationship between mean vessel area (MVA) parameter and daily temperature data for past and present
 
 In the exploration of tree-climate relationships, researchers might be interested in how this relationship is different between past and present. The key argument for such analysis is *subset_years*, which defines the subset of years to be analysed. In the following example, we will analyse the relationship between MVA and daily temperature data for two periods, 1940 – 1980 and 1981 – 2010.
-All possible window widths between 21 and 180 days, including the previous year, will be considered. The latter is achieved by setting the *previous_year* argument to TRUE. Importantly, the *row_names_subset* argument is set to TRUE. This argument automatically subsets both data frames (i.e., environmental and tree-ring data) and keep only matching years, which are used for calculations. To use this feature, years must be included as row names. All insignificant correlations are removed by setting the argument *remove_insignificant* to TRUE. The threshold for significance is set with the *alpha* argument.
+All possible window widths between 58 and 62 days, including the previous year, will be considered. The latter is achieved by setting the *previous_year* argument to TRUE. Importantly, the *row_names_subset* argument is set to TRUE. This argument automatically subsets both data frames (i.e., environmental and tree-ring data) and keep only matching years, which are used for calculations. To use this feature, years must be included as row names. All insignificant correlations are removed by setting the argument *remove_insignificant* to TRUE. The threshold for significance is set with the *alpha* argument.
 After the function converges, we will plot the temporal patterns for past and present. In addition, we are interested in specific window width with span of 60 days (use *plot_specific_window* argument). 
 
 ```{r, results = 'hide'}
@@ -64,13 +66,13 @@ data(LJ_daily_temperatures)
 
 # Example for past and present
 example_MVA_past <- daily_response(response = data_MVA, env_data = LJ_daily_temperatures,
-                              method = "cor", lower_limit = 21, upper_limit = 180,
+                              method = "cor", lower_limit = 58, upper_limit = 62,
                               row_names_subset = TRUE, previous_year = TRUE,
                               remove_insignificant = TRUE, alpha = 0.05, 
                               plot_specific_window = 60, subset_yars = c(1940, 1980))
 
 example_MVA_present <- daily_response(response = data_MVA, env_data = LJ_daily_temperatures,
-                                   method = "cor", lower_limit = 21, upper_limit = 180,
+                                   method = "cor", lower_limit = 58, upper_limit = 62,
                                    row_names_subset = TRUE, previous_year = TRUE,
                                    remove_insignificant = TRUE, alpha = 0.05, 
                                    plot_specific_window = 60, subset_yars = c(1981, 2010))
@@ -87,7 +89,7 @@ example_MVA_present$plot_heatmap
 example_MVA_past$plot_specific
 ```
 
-```{r, fig.align='center', warning=FALSE, fig.width=7, fig.height=5, fig.cap=paste("Figure 5: The temporal correlations for pre-defined window of 30 days for present years")}
+```{r, fig.align='center', warning=FALSE, fig.width=7, fig.height=5, fig.cap=paste("Figure 5: The temporal correlations for pre-defined window of 60 days for present years")}
 example_MVA_present$plot_specific
 ```
 
@@ -99,7 +101,7 @@ Principal Component Analysis (PCA) is commonly used with tree-ring data to reduc
 
 To use PCA regression within the *daily_response()*, set the argument *PCA_transformation* to TRUE. All variables in the *response* data frame will be transformed using PCA transformation. If the parameter *log_preprocess* is set to TRUE, variables will be transformed with logarithmic transformation before used in PCA. With the argument *components_selection*, we specify how to select PC scores that will be used as predictors. There are three options: "automatic", "manual" and "plot_selection". If argument is set to "automatic", all PC scores with eigenvalues above 1 will be selected. This threshold could be changed by changing the *eigenvalues_threhold* argument. If argument is set to "manual", user should set the number of components with *N_components* argument. If *components_selection* is set to "plot_selection", A scree plot will be shown, and a user must manually enter the number of components to be used as predictors. The latter seems to be the most reasonable choice. 
 
-In our example, we use PCA on 10 individual Mean Vessel Area (MVA) chronologies (example_proxies_individual). For climate data, LJ_daily_temperatures data is used. The selection of components is set to "manual", *N_components* of components to be used in the later analysis is set to 2. All window widths between 21 and 180 days, will be considered. Importantly, the *row_names_subset* argument is set to TRUE. This argument automatically subsets both data frames (i.e., *env_data* and *response*) and keep only matching years, which are used for calculations. To use this feature, years must be included as row names. All insignificant correlations are removed by setting the argument *remove_insignificant* to TRUE. The threshold for significance is controlled by the *alpha* argument.
+In our example, we use PCA on 10 individual Mean Vessel Area (MVA) chronologies (example_proxies_individual). For climate data, LJ_daily_temperatures data is used. The selection of components is set to "manual", *N_components* of components to be used in the later analysis is set to 2. All window widths between 58 and 62 days, will be considered. Importantly, the *row_names_subset* argument is set to TRUE. This argument automatically subsets both data frames (i.e., *env_data* and *response*) and keep only matching years, which are used for calculations. To use this feature, years must be included as row names. All insignificant correlations are removed by setting the argument *remove_insignificant* to TRUE. The threshold for significance is controlled by the *alpha* argument.
 
 ```{r, results = 'hide'}
 # Load the dendroTools R package
@@ -112,7 +114,7 @@ data(LJ_daily_temperatures)
 # Example PCA
 example_PCA <- daily_response(response = example_proxies_individual, 
                               env_data = LJ_daily_temperatures, method = "lm", 
-                              lower_limit = 21, upper_limit = 180,
+                              lower_limit = 58, upper_limit = 62,
                               row_names_subset = TRUE, remove_insignificant = TRUE,
                               alpha = 0.01, PCA_transformation = TRUE,
                               components_selection = "manual", N_components = 2)
@@ -139,7 +141,7 @@ data(LJ_daily_temperatures)
 # Example negative correlations
 data(data_TRW_1)
 example_neg_cor <- daily_response(response = data_TRW_1, env_data = LJ_daily_temperatures,
-                              method = "cor", lower_limit = 21, upper_limit = 180,
+                              method = "cor", lower_limit = 40, upper_limit = 42,
                               row_names_subset = TRUE, remove_insignificant = TRUE,
                               alpha = 0.05)
 ```
@@ -170,7 +172,7 @@ data(KRE_daily_temperatures)
 example_reconstruction_lin <- daily_response(response = data_TRW, 
                                              env_data = KRE_daily_temperatures, 
                                              method = "lm", metric = "r.squared", 
-                                             lower_limit = 21, upper_limit = 270,
+                                             lower_limit = 43, upper_limit = 45,
                                              row_names_subset = TRUE, 
                                              temporal_stability_check = "progressive",
                                              cross_validation_type = "randomized", k = 3)
@@ -217,7 +219,7 @@ data(KRE_daily_temperatures)
 example_reconstruction_brnn <- daily_response(response = data_TRW, 
                                               env_data = KRE_daily_temperatures, 
                                               method = "brnn", metric = "r.squared", 
-                                              lower_limit = 21, upper_limit = 270,
+                                              lower_limit = 43, upper_limit = 45,
                                               row_names_subset = TRUE, 
                                               temporal_stability_check = "progressive",
                                               cross_validation_type = "randomized", k = 3)
@@ -266,13 +268,13 @@ data(LJ_daily_precipitation)
 
 # Example with precipitation and temperatures
 example_MVA_TEMP <- daily_response(response = data_MVA, env_data = LJ_daily_temperatures,
-                                   method = "cor", lower_limit = 21, upper_limit = 180,
+                                   method = "cor", lower_limit = 48, upper_limit = 50,
                                    row_names_subset = TRUE, previous_year = FALSE,
                                    remove_insignificant = TRUE, alpha = 0.05, 
                                    tidy_env_data = FALSE, subset_yars = c(1960, 2010))
 
 example_MVA_PREC <- daily_response(response = data_MVA, env_data = LJ_daily_precipitation,
-                                   method = "cor", lower_limit = 21, upper_limit = 180,
+                                   method = "cor", lower_limit = 48, upper_limit = 50,
                                    row_names_subset = TRUE, previous_year = FALSE,
                                    remove_insignificant = TRUE, alpha = 0.05, 
                                    tidy_env_data = TRUE, subset_yars = c(1960, 2010))
@@ -313,7 +315,7 @@ The correlation matrix shows only low correlations among the three proxies.
 example_multiproxy <- daily_response(response = example_proxies_1, 
                                      env_data = LJ_daily_temperatures, 
                                      method = "lm", metric = "adj.r.squared", 
-                                     lower_limit = 21, upper_limit = 180, 
+                                     lower_limit = 48, upper_limit = 50, 
                                      row_names_subset = TRUE, previous_year = FALSE, 
                                      remove_insignificant = TRUE, alpha = 0.05)
 ```
