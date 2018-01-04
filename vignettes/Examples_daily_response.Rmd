@@ -86,7 +86,7 @@ example_MVA_past$plot_heatmap
 example_MVA_present$plot_heatmap
 ```
 
-```{r, fig.align='center', warning=FALSE, fig.width=7, fig.height=5, fig.cap=paste("Figure 4: The temporal correlations for pre-defined window of 30 days for past years")}
+```{r, fig.align='center', warning=FALSE, fig.width=7, fig.height=5, fig.cap=paste("Figure 4: The temporal correlations for pre-defined window of 60 days for past years")}
 example_MVA_past$plot_specific
 ```
 
