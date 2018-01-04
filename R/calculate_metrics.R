@@ -9,7 +9,7 @@
 #' @param test_predicted a vector indicating predicted data for testing set
 #' @param train_observed a vector indicating observed data for training set
 #' @param test_observed a vector indicating observed data for training set
-#' @param digits intiger of number of digits to be displayed
+#' @param digits integer of number of digits to be displayed
 #' @return a data frame of calculated test and train metrics
 #' @export
 #'

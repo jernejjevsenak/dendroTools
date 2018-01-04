@@ -70,13 +70,13 @@ example_MVA_past <- daily_response(response = data_MVA, env_data = LJ_daily_temp
                               method = "cor", lower_limit = 30, upper_limit = 70,
                               row_names_subset = TRUE, previous_year = TRUE,
                               remove_insignificant = TRUE, alpha = 0.05, 
-                              plot_specific_window = 60, subset_yars = c(1940, 1980))
+                              plot_specific_window = 60, subset_years = c(1940, 1980))
 
 example_MVA_present <- daily_response(response = data_MVA, env_data = LJ_daily_temperatures,
                                    method = "cor", lower_limit = 30, upper_limit = 70,
                                    row_names_subset = TRUE, previous_year = TRUE,
                                    remove_insignificant = TRUE, alpha = 0.05, 
-                                   plot_specific_window = 60, subset_yars = c(1981, 2010))
+                                   plot_specific_window = 60, subset_years = c(1981, 2010))
 ```
 ```{r, fig.align='center', warning=FALSE, fig.width=7, fig.height=5, fig.cap=paste("Figure 2: The temporal correlations pattern for the past")}
 example_MVA_past$plot_heatmap
@@ -100,7 +100,7 @@ The climate-tree relationships between past and present are similar. However, th
 
 Principal Component Analysis (PCA) is commonly used with tree-ring data to reduce the full set of original tree-ring chronologies to a more manageable set of transformed variables. These transformed variables, the set of principal component scores, are then used as predictors in climate reconstruction models. The PCA also acts to strengthen the common regional-scale climate response within a group of tree-ring chronologies by concentrating the common signal in the components with the largest eigenvalues. 
 
-To use PCA regression within the *daily_response()*, set the argument *PCA_transformation* to TRUE. All variables in the *response* data frame will be transformed using PCA transformation. If the parameter *log_preprocess* is set to TRUE, variables will be transformed with logarithmic transformation before used in PCA. With the argument *components_selection*, we specify how to select PC scores that will be used as predictors. There are three options: "automatic", "manual" and "plot_selection". If argument is set to "automatic", all PC scores with eigenvalues above 1 will be selected. This threshold could be changed by changing the *eigenvalues_threhold* argument. If argument is set to "manual", user should set the number of components with *N_components* argument. If *components_selection* is set to "plot_selection", A scree plot will be shown, and a user must manually enter the number of components to be used as predictors. The latter seems to be the most reasonable choice. 
+To use PCA regression within the *daily_response()*, set the argument *PCA_transformation* to TRUE. All variables in the *response* data frame will be transformed using PCA transformation. If the parameter *log_preprocess* is set to TRUE, variables will be transformed with logarithmic transformation before used in PCA. With the argument *components_selection*, we specify how to select PC scores that will be used as predictors. There are three options: "automatic", "manual" and "plot_selection". If argument is set to "automatic", all PC scores with eigenvalues above 1 will be selected. This threshold could be changed by changing the *eigenvalues_threshold* argument. If argument is set to "manual", user should set the number of components with *N_components* argument. If *components_selection* is set to "plot_selection", A scree plot will be shown, and a user must manually enter the number of components to be used as predictors. The latter seems to be the most reasonable choice. 
 
 In our example, we use PCA on 10 individual Mean Vessel Area (MVA) chronologies (example_proxies_individual). For climate data, LJ_daily_temperatures data is used. The selection of components is set to "manual", *N_components* of components to be used in the later analysis is set to 2. All window widths between 30 and 70 days, will be considered. Importantly, the *row_names_subset* argument is set to TRUE. This argument automatically subsets both data frames (i.e., *env_data* and *response*) and keep only matching years, which are used for calculations. To use this feature, years must be included as row names. All insignificant correlations are removed by setting the argument *remove_insignificant* to TRUE. The threshold for significance is controlled by the *alpha* argument.
 
@@ -272,13 +272,13 @@ example_MVA_TEMP <- daily_response(response = data_MVA, env_data = LJ_daily_temp
                                    method = "cor", lower_limit = 30, upper_limit = 70,
                                    row_names_subset = TRUE, previous_year = FALSE,
                                    remove_insignificant = TRUE, alpha = 0.05, 
-                                   tidy_env_data = FALSE, subset_yars = c(1960, 2010))
+                                   tidy_env_data = FALSE, subset_years = c(1960, 2010))
 
 example_MVA_PREC <- daily_response(response = data_MVA, env_data = LJ_daily_precipitation,
                                    method = "cor", lower_limit = 30, upper_limit = 70,
                                    row_names_subset = TRUE, previous_year = FALSE,
                                    remove_insignificant = TRUE, alpha = 0.05, 
-                                   tidy_env_data = TRUE, subset_yars = c(1960, 2010))
+                                   tidy_env_data = TRUE, subset_years = c(1960, 2010))
 ```
 ```{r, fig.align='center', warning=FALSE, fig.width=7, fig.height=10, fig.cap=paste("Figure 15: The temporal pattern of correlatioins for temperatures (up) and precipitation (down)")}
 library(gridExtra)

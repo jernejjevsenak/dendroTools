@@ -38,15 +38,15 @@
 #' @param RF_ntree Number of trees to grow (argument for random forest)
 #' @param RIDGE_lambda lambda argument for ridge regression
 #' @param LASSO_lambda lambda argument for lasso regression
-#' @param seed_factor an intiger that will be used to change the seed options
+#' @param seed_factor an integer that will be used to change the seed options
 #' for different repeats. set.seed(seed_factor*5)
 #' @param returns A character vector that specifies, whether a calibration and/ or
 #' validation results should be returned.
-#' @param digits intiger of number of digits to be displayed in the final
+#' @param digits integer of number of digits to be displayed in the final
 #' result tables
 #' @param blocked_CV default is FALSE, if changed to TRUE, blocked cross-validation
 #' will be used to compare regression methods.
-#' @param PCA_transformation if set to TRUE, all independet variables will be
+#' @param PCA_transformation if set to TRUE, all independent variables will be
 #' transformed using PCA transformation.
 #' @param log_preprocess if set to TRUE, variables will be transformed with
 #' logarithmic transformation before used in PCA
@@ -55,13 +55,13 @@
 #' There are three options: "automatic", "manual" and "plot_selection". If
 #' parameter is set to automatic, all scores with eigenvalues above 1 will be
 #' selected. This threshold could be changed by changing the
-#' eigenvalues_threhold argument. If parameter is set to "manual", user should
+#' eigenvalues_threshold argument. If parameter is set to "manual", user should
 #' set the number of components with N_components argument. If component
 #' selection is se to "plot_selection", Scree plot will be shown and user must
 #' manually enter the number of components used as predictors.
-#' @param eigenvalues_threhold threshold for automatic selection of Principal Components
+#' @param eigenvalues_threshold threshold for automatic selection of Principal Components
 #' @param N_components number of Principal Components used as predictors
-#' @param polynomial_formula a symbolic description of polinomial model to be fitted
+#' @param polynomial_formula a symbolic description of polynomial model to be fitted
 #' @param round_bias_cal number of digits for bias in calibration period. Effects
 #' the outlook of the final ggplot  of mean bias for calibration data (element 3 of
 #' the output list)
@@ -161,7 +161,7 @@ compare_methods <- function(formula, dataset, k = 3, repeats = 2,
                             digits = 3, blocked_CV = FALSE,
                             PCA_transformation = FALSE, log_preprocess = TRUE,
                             components_selection = 'automatic',
-                            eigenvalues_threhold = 1, N_components = 2,
+                            eigenvalues_threshold = 1, N_components = 2,
                             round_bias_cal = 15, round_bias_val = 4) {
 
 dataset <- data.frame(dataset) # dataset needs to be of class data.frame!
@@ -201,7 +201,7 @@ if (PCA_transformation == TRUE) {
   PCA_result <- princomp(dataset_temp, cor = TRUE)
 
   if (components_selection == 'automatic'){
-    subset_vector <- PCA_result$sdev > eigenvalues_threhold
+    subset_vector <- PCA_result$sdev > eigenvalues_threshold
     dataset_temp <- as.data.frame(PCA_result$scores[, subset_vector])
   }
 
@@ -229,8 +229,8 @@ if (PCA_transformation == TRUE) {
   }
 }
 
-# Here we fit a lm model, just to get information about the number of independet variables;
-# when formula is used in the form of: y~., we don't know the number of independet variables
+# Here we fit a lm model, just to get information about the number of independent variables;
+# when formula is used in the form of: y~., we don't know the number of independent variables
 # this information is used later
 
 quazi_mod <- lm(formula, data = dataset)
@@ -243,7 +243,7 @@ if (polynomial_formula == ""){
 }
 
 if (numIND < 2){
-  warning("Only one independet variable is used. RIDGE and LASSO regression will not be used!")
+  warning("Only one independent variable is used. RIDGE and LASSO regression will not be used!")
 }
 
 # Here we use caret package to tune parameters of different methods

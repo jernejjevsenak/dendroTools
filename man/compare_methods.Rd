@@ -11,7 +11,7 @@ compare_methods(formula, dataset, k = 3, repeats = 2, use_caret = TRUE,
   RIDGE_lambda = 0.1, LASSO_lambda = 0.1, polynomial_formula = "",
   seed_factor = 5, returns = c("Calibration", "Validation"), digits = 3,
   blocked_CV = FALSE, PCA_transformation = FALSE, log_preprocess = TRUE,
-  components_selection = "automatic", eigenvalues_threhold = 1,
+  components_selection = "automatic", eigenvalues_threshold = 1,
   N_components = 2, round_bias_cal = 15, round_bias_val = 4)
 }
 \arguments{
@@ -64,21 +64,21 @@ have (argument for random forest)}
 
 \item{LASSO_lambda}{lambda argument for lasso regression}
 
-\item{polynomial_formula}{a symbolic description of polinomial model to be fitted}
+\item{polynomial_formula}{a symbolic description of polynomial model to be fitted}
 
-\item{seed_factor}{an intiger that will be used to change the seed options
+\item{seed_factor}{an integer that will be used to change the seed options
 for different repeats. set.seed(seed_factor*5)}
 
 \item{returns}{A character vector that specifies, whether a calibration and/ or
 validation results should be returned.}
 
-\item{digits}{intiger of number of digits to be displayed in the final
+\item{digits}{integer of number of digits to be displayed in the final
 result tables}
 
 \item{blocked_CV}{default is FALSE, if changed to TRUE, blocked cross-validation
 will be used to compare regression methods.}
 
-\item{PCA_transformation}{if set to TRUE, all independet variables will be
+\item{PCA_transformation}{if set to TRUE, all independent variables will be
 transformed using PCA transformation.}
 
 \item{log_preprocess}{if set to TRUE, variables will be transformed with
@@ -89,12 +89,12 @@ Components used as predictors.
 There are three options: "automatic", "manual" and "plot_selection". If
 parameter is set to automatic, all scores with eigenvalues above 1 will be
 selected. This threshold could be changed by changing the
-eigenvalues_threhold argument. If parameter is set to "manual", user should
+eigenvalues_threshold argument. If parameter is set to "manual", user should
 set the number of components with N_components argument. If component
 selection is se to "plot_selection", Scree plot will be shown and user must
 manually enter the number of components used as predictors.}
 
-\item{eigenvalues_threhold}{threshold for automatic selection of Principal Components}
+\item{eigenvalues_threshold}{threshold for automatic selection of Principal Components}
 
 \item{N_components}{number of Principal Components used as predictors}
 

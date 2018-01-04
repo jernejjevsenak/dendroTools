@@ -16,7 +16,7 @@ calculate_metrics(train_predicted, test_predicted, train_observed,
 
 \item{test_observed}{a vector indicating observed data for training set}
 
-\item{digits}{intiger of number of digits to be displayed}
+\item{digits}{integer of number of digits to be displayed}
 }
 \value{
 a data frame of calculated test and train metrics

@@ -55,13 +55,13 @@
 #' There are three options: "automatic", "manual" and "plot_selection". If
 #' argument is set to automatic, all scores with eigenvalues above 1 will be
 #' selected. This threshold could be changed by changing the
-#' eigenvalues_threhold argument. If parameter is set to "manual", user should
+#' eigenvalues_threshold argument. If parameter is set to "manual", user should
 #' set the number of components with N_components argument. If components
 #' selection is set to "plot_selection", Scree plot will be shown and a user must
 #' manually enter the number of components to be used as predictors.
-#' @param eigenvalues_threhold threshold for automatic selection of Principal Components
+#' @param eigenvalues_threshold threshold for automatic selection of Principal Components
 #' @param N_components number of Principal Components used as predictors
-#' @param use_median if set to TRUE, median will be used insted of mean to calculate
+#' @param use_median if set to TRUE, median will be used instead of mean to calculate
 #' averages of various ranges of env_data.
 #' @param temporal_stability_check character string, specifying, how temporal stability
 #' between the optimal selection and response variables will be analysed. Current
@@ -74,8 +74,8 @@
 #' @param cross_validation_type character string, specifying, how to perform cross validation
 #' between the optimal selection and response variables. If the argument is set to "blocked",
 #' years will not be shuffled. If the argument is set to "randomized", years will be shuffled.
-#' @param subset_yars a subset of years to be analyzed. Should be given in the form of
-#' subset_yars = c(1980, 2005)
+#' @param subset_years a subset of years to be analyzed. Should be given in the form of
+#' subset_years = c(1980, 2005)
 #' @param plot_specific_window integer representing window width to be displayed
 #' for plot_specific
 #' @param ylimits limit of the y axes for plot_extreme and plot_specific. It should be
@@ -90,7 +90,7 @@
 #'   $metric, the character string indicating the metric used for calculations
 #'   $analysed_period, the character string specifying the analysed period based on the
 #'    information from row names. If there are no row names, this argument is given as NA.
-#'   $optimized_return, data frame with two columns, response varaible and aggregated
+#'   $optimized_return, data frame with two columns, response variable and aggregated
 #'    (averaged) daily data that return the optimal results. This data.frame could be
 #'    directly used to calibrate a model for climate reconstruction.
 #'   $optimized_return_all, a data frame with aggregated daily data, that returned the optimal
@@ -134,13 +134,13 @@
 #' method = "cor", lower_limit = 21, upper_limit = 180,
 #' row_names_subset = TRUE, previous_year = TRUE,
 #' remove_insignificant = TRUE, alpha = 0.05,
-#' plot_specific_window = 60, subset_yars = c(1940, 1980))
+#' plot_specific_window = 60, subset_years = c(1940, 1980))
 
 #' example_MVA_present <- daily_response(response = data_MVA, env_data = LJ_daily_temperatures,
 #'                                       method = "cor", lower_limit = 21, upper_limit = 180,
 #'                                       row_names_subset = TRUE, previous_year = TRUE,
 #'                                       remove_insignificant = TRUE, alpha = 0.05,
-#'                                       plot_specific_window = 60, subset_yars = c(1981, 2010))
+#'                                       plot_specific_window = 60, subset_years = c(1981, 2010))
 #'
 #' example_MVA_past$plot_heatmap
 #' example_MVA_present$plot_heatmap
@@ -191,11 +191,11 @@ daily_response <- function(response, env_data, method = "lm",
                            alpha = .05, row_names_subset = FALSE,
                            PCA_transformation = FALSE, log_preprocess = TRUE,
                            components_selection = 'automatic',
-                           eigenvalues_threhold = 1,
+                           eigenvalues_threshold = 1,
                            N_components = 2, use_median = FALSE,
                            temporal_stability_check = "sequential", k = 5,
                            cross_validation_type = "randomized",
-                           subset_yars = NULL, plot_specific_window = NULL,
+                           subset_years = NULL, plot_specific_window = NULL,
                            ylimits = NULL, seed = NULL, tidy_env_data = FALSE) {
 
 
@@ -377,7 +377,7 @@ daily_response <- function(response, env_data, method = "lm",
     PCA_result <- princomp(response, cor = TRUE)
 
     if (components_selection == 'automatic'){
-      subset_vector <- PCA_result$sdev > eigenvalues_threhold
+      subset_vector <- PCA_result$sdev > eigenvalues_threshold
       response <- as.data.frame(PCA_result$scores[, subset_vector])
     }
 
@@ -404,9 +404,9 @@ daily_response <- function(response, env_data, method = "lm",
   } else (PCA_result <- "No PCA result avalialbe !")
 
   # Subset of years
-  if (!is.null(subset_yars)){
-    lower_subset <- subset_yars[1]
-    upper_subset <- subset_yars[2]
+  if (!is.null(subset_years)){
+    lower_subset <- subset_years[1]
+    upper_subset <- subset_years[2]
 
     if (lower_subset > upper_subset){
       stop("Change the order of elements in the subset_years argument! First element should be lower than the second!")
