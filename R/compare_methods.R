@@ -68,6 +68,9 @@
 #' @param round_bias_val number of digits for bias in validation period. Effects
 #' the outlook of the final ggplot of mean bias for validation data (element 4 of
 #' the output list)
+#' @param methods a vector of strings related to methods that will be compared. A full
+#' method vector is methods = c("MLR", "RIDGE", "LASSO", "POLY", "ANN", "MT", "BMT", "RF").
+#' To use only a subset of methods, pass a vector of methods that you would like to compare.
 #'
 #' @return a list with five elements:
 #'          $mean_std,  data frame with calculated metrics for five regression methods.
@@ -119,15 +122,15 @@
 #'
 #' # An example with default settings of machine learning algorithms
 #' experiment_1 <- compare_methods(formula = MVA~.,
-#' dataset = example_dataset_1, k = 5, repeats = 100,
+#' dataset = example_dataset_1, k = 5, repeats = 1,
 #' returns = c("Calibration", "Validation"), blocked_CV = TRUE, PCA_transformation = FALSE,
 #' components_selection = "plot_selection", use_caret = TRUE,
 #' polynomial_formula = "MVA ~ T_APR + T_aug_sep + T_APR^2")
-#' experiment_1[[1]] # See a data frame results of mean and standard deviation
+#' experiment_1$mean_std # See a data frame results of mean and standard deviation
 #' # for different methods
-#' experiment_1[[2]] # See a data frame results of average rank and share of
+#' experiment_1$ranks # See a data frame results of average rank and share of
 #' # rank 1 for different methods
-#' experiment_1[[3]] # See a ggplot of mean bias for calibration data
+#' experiment_1$bias_cal # See a ggplot of mean bias for calibration data
 #' experiment_1[[4]] # See a ggplot of mean bias for validation data
 #' experiment_1[[5]] # Data frame with parameters used for regression methods
 #'
@@ -137,16 +140,16 @@
 #' BMT_I = 100, BMT_M = 4, BMT_N = FALSE, BMT_U = FALSE, BMT_R = FALSE,
 #' RF_mtry = 0, RF_maxnodes = 4, RF_ntree = 200, seed_factor = 5,
 #' returns = c("Calibration"))
-#' experiment_2[[1]]
-#' experiment_2[[2]]
-#' experiment_2[[3]]
+#' experiment_2$mean_std
+#' experiment_2$ranks
+#' experiment_2$bias_cal
 #'
 #' experiment_3 <- compare_methods(formula = MVA~.,
 #' dataset = example_dataset_1, k = 5, repeats = 10,
 #' use_caret = TRUE, returns = c("Validation"))
-#' experiment_3[[1]]
-#' experiment_3[[2]]
-#' experiment_3[[3]]
+#' experiment_3$mean_std
+#' experiment_3$ranks
+#' experiment_3$bias_val
 #' }
 
 compare_methods <- function(formula, dataset, k = 3, repeats = 2,
@@ -162,9 +165,17 @@ compare_methods <- function(formula, dataset, k = 3, repeats = 2,
                             PCA_transformation = FALSE, log_preprocess = TRUE,
                             components_selection = 'automatic',
                             eigenvalues_threshold = 1, N_components = 2,
-                            round_bias_cal = 15, round_bias_val = 4) {
+                            round_bias_cal = 15, round_bias_val = 4,
+                            methods = c("MLR", "RIDGE", "LASSO", "POLY",
+                                        "ANN", "MT", "BMT", "RF")) {
 
 dataset <- data.frame(dataset) # dataset needs to be of class data.frame!
+
+full_methods = c("MLR", "RIDGE", "LASSO", "POLY", "ANN", "MT", "BMT", "RF")
+
+methods = c("MLR", "RIDGE", "LASSO", "POLY", "ANN", "MT", "BMT")
+
+"RF" %in% methods
 
 # This function is used to calculate metrics r, RMSE, RRSE, d, RE, CE and bias
 # for train and test data
@@ -722,9 +733,47 @@ if (polynomial_formula == ""){
   df_POLY_avg[df_POLY_avg<10000] <- NA
 }
 
+##################################################################################################
+##################################################################################################
+############################## Here, all data frames are binded together #########################
+##################################################################################################
 
-# Here, all data frames are binded together
+start_position = 0
+method_list <- list()
+for (i in methods){
+  start_position <- start_position + 1
+  method_list[[start_position]] <- paste0("df_",i,"_avg")
+}
+
+method_vector <- unlist(method_list, use.names=FALSE)
+
+empty_LIST <- list()
+
+for (i in 1:length(method_vector)){
+  temp_DF <- get(method_vector[i])
+  empty_LIST[[i]] <- temp_DF
+}
+
+names(empty_LIST) <- method_vector
+
+df_all_avg <- round(cbind(unlist(empty_LIST)), 8)
+
 df_all_avg <- round(cbind(df_MLR_avg, df_ANN_avg, df_MT_avg, df_BMT_avg, df_RF_avg, df_RIDGE_avg, df_LASSO_avg, df_POLY_avg), 8)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ############################################################################################
 # Calculation of ranks
@@ -1069,23 +1118,22 @@ parameters <- data.frame(
 
 # If Calibration and Validation data should be returned, then this is our final results
 if (c == 4){
-  final_list <- list(mean_std <- Rezults_mean_std, ranks <- Rezults_ranks, bias_cal <- gg_object_cal,
-                     bias_val <- gg_object_val, parameter_values <- parameters)
+  final_list <- list(mean_std = Rezults_mean_std, ranks = Rezults_ranks, bias_cal = gg_object_cal,
+                     bias_val = gg_object_val, parameter_values = parameters)
 }
 
 if (c == 1){
   Rezults_mean_std <- dplyr::filter(Rezults_mean_std, Period == "cal")
   Rezults_ranks <- dplyr::filter(Rezults_ranks, Period == "cal")
-  final_list <- list(Rezults_mean_std, Rezults_ranks, gg_object_cal, parameters)
-  final_list <- list(mean_std <- Rezults_mean_std, ranks <- Rezults_ranks, bias_cal <- gg_object_cal,
-                     bias_val <- gg_object_val)
+  final_list <- list(mean_std = Rezults_mean_std, ranks = Rezults_ranks, bias_cal = gg_object_cal,
+                     bias_val = gg_object_val, parameter_values = parameters)
 }
 
 if (c == 3){
   Rezults_mean_std <- dplyr::filter(Rezults_mean_std, Period == "val")
   Rezults_ranks <- dplyr::filter(Rezults_ranks, Period == "val")
-  final_list <- list(mean_std <- Rezults_mean_std, ranks <- Rezults_ranks,
-                     bias_val <- gg_object_val, parameter_values <- parameters)
+  final_list <- list(mean_std = Rezults_mean_std, ranks = Rezults_ranks,
+                     bias_val = gg_object_val, parameter_values = parameters)
 }
 
 final_list

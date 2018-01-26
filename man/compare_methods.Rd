@@ -12,7 +12,8 @@ compare_methods(formula, dataset, k = 3, repeats = 2, use_caret = TRUE,
   seed_factor = 5, returns = c("Calibration", "Validation"), digits = 3,
   blocked_CV = FALSE, PCA_transformation = FALSE, log_preprocess = TRUE,
   components_selection = "automatic", eigenvalues_threshold = 1,
-  N_components = 2, round_bias_cal = 15, round_bias_val = 4)
+  N_components = 2, round_bias_cal = 15, round_bias_val = 4,
+  methods = c("MLR", "RIDGE", "LASSO", "POLY", "ANN", "MT", "BMT", "RF"))
 }
 \arguments{
 \item{formula}{an object of class "formula" (or one that can be coerced
@@ -105,6 +106,10 @@ the output list)}
 \item{round_bias_val}{number of digits for bias in validation period. Effects
 the outlook of the final ggplot of mean bias for validation data (element 4 of
 the output list)}
+
+\item{methods}{a vector of strings related to methods that will be compared. A full
+method vector is methods = c("MLR", "RIDGE", "LASSO", "POLY", "ANN", "MT", "BMT", "RF").
+To use only a subset of methods, pass a vector of methods that you would like to compare.}
 }
 \value{
 a list with five elements:
@@ -137,15 +142,15 @@ data(example_dataset_1)
 
 # An example with default settings of machine learning algorithms
 experiment_1 <- compare_methods(formula = MVA~.,
-dataset = example_dataset_1, k = 5, repeats = 100,
+dataset = example_dataset_1, k = 5, repeats = 1,
 returns = c("Calibration", "Validation"), blocked_CV = TRUE, PCA_transformation = FALSE,
 components_selection = "plot_selection", use_caret = TRUE,
 polynomial_formula = "MVA ~ T_APR + T_aug_sep + T_APR^2")
-experiment_1[[1]] # See a data frame results of mean and standard deviation
+experiment_1$mean_std # See a data frame results of mean and standard deviation
 # for different methods
-experiment_1[[2]] # See a data frame results of average rank and share of
+experiment_1$ranks # See a data frame results of average rank and share of
 # rank 1 for different methods
-experiment_1[[3]] # See a ggplot of mean bias for calibration data
+experiment_1$bias_cal # See a ggplot of mean bias for calibration data
 experiment_1[[4]] # See a ggplot of mean bias for validation data
 experiment_1[[5]] # Data frame with parameters used for regression methods
 
@@ -155,16 +160,16 @@ MT_M = 4, MT_N = FALSE, MT_U = FALSE, MT_R = FALSE, BMT_P = 100,
 BMT_I = 100, BMT_M = 4, BMT_N = FALSE, BMT_U = FALSE, BMT_R = FALSE,
 RF_mtry = 0, RF_maxnodes = 4, RF_ntree = 200, seed_factor = 5,
 returns = c("Calibration"))
-experiment_2[[1]]
-experiment_2[[2]]
-experiment_2[[3]]
+experiment_2$mean_std
+experiment_2$ranks
+experiment_2$bias_cal
 
 experiment_3 <- compare_methods(formula = MVA~.,
 dataset = example_dataset_1, k = 5, repeats = 10,
 use_caret = TRUE, returns = c("Validation"))
-experiment_3[[1]]
-experiment_3[[2]]
-experiment_3[[3]]
+experiment_3$mean_std
+experiment_3$ranks
+experiment_3$bias_val
 }
 }
 \references{
