@@ -3,7 +3,7 @@
 
 ## Test environments
 * local OS X install, R 3.4.0
-* Ubuntu precise (Ubuntu 14.04.5 LTS) (on travis-ci)
+* Ubuntu 14.04.5 LTS (on travis-ci)
 * win-builder R Under development (unstable) (2018-01-03 r74042)
 
 ## R CMD check results
