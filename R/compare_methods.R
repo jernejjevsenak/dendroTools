@@ -1,14 +1,14 @@
 #' compare_methods
 #'
 #' Calculates performance metrics for train and test data of different
-#' regression methods: multiple linear regression (MLR), ridge and lasso
-#' regression, artificial neural networks with Bayesian regularization
-#' training algorithm (ANN), M5P model trees (MT), model trees with bagging
-#' (BMT), polynomial regression (POLY) and random forest of regression
-#' trees (RF). Calculated performance metrics are correlation coefficient,
-#' root mean squared error (RMSE), root relative squared error (RSSE), index
-#' of agreement (d), reduction of error (RE), coefficient of efficiency
-#' (CE) and mean bias.
+#' regression methods: multiple linear regression (MLR), artificial neural
+#' networks with Bayesian regularization training algorithm (BRNN),
+#' M5P model trees (MT), model trees with bagging (BMT) and random forest
+#' of regression trees (RF). With the subset argument, specific methods of
+#' interest could be specified. Calculated performance metrics are correlation
+#' coefficient, root mean squared error (RMSE), root relative squared error
+#' (RSSE), index of agreement (d), reduction of error (RE), coefficient of
+#' efficiency (CE) and mean bias.
 #'
 #' @param formula an object of class "formula" (or one that can be coerced
 #' to that class): a symbolic description of the model to be fitted.
@@ -17,10 +17,9 @@
 #' @param k number of folds for cross-validation
 #' @param repeats number of cross-validation repeats. Should be equal or more
 #' than 2.
-#' @param use_caret if set to TRUE, the package caret will be used to tune parameters
+#' @param optimize if set to TRUE, the package caret will be used to tune parameters
 #' for regression methods
-#' @param ANN_neurons positive integer that indicates the number of neurons used
-#'  for brnn method
+#' @param BRNN_neurons number of neurons to be used for the brnn method
 #' @param MT_M minimum number of instances used by model trees
 #' @param MT_N unpruned (argument for model trees)
 #' @param MT_U unsmoothed (argument for model trees)
@@ -36,10 +35,8 @@
 #' @param RF_maxnodes Maximum number of terminal nodes trees in the forest can
 #' have (argument for random forest)
 #' @param RF_ntree Number of trees to grow (argument for random forest)
-#' @param RIDGE_lambda lambda argument for ridge regression
-#' @param LASSO_lambda lambda argument for lasso regression
 #' @param seed_factor an integer that will be used to change the seed options
-#' for different repeats. set.seed(seed_factor*5)
+#' for different repeats.
 #' @param returns A character vector that specifies, whether a calibration and/ or
 #' validation results should be returned.
 #' @param digits integer of number of digits to be displayed in the final
@@ -61,7 +58,6 @@
 #' manually enter the number of components used as predictors.
 #' @param eigenvalues_threshold threshold for automatic selection of Principal Components
 #' @param N_components number of Principal Components used as predictors
-#' @param polynomial_formula a symbolic description of polynomial model to be fitted
 #' @param round_bias_cal number of digits for bias in calibration period. Effects
 #' the outlook of the final ggplot  of mean bias for calibration data (element 3 of
 #' the output list)
@@ -69,21 +65,25 @@
 #' the outlook of the final ggplot of mean bias for validation data (element 4 of
 #' the output list)
 #' @param methods a vector of strings related to methods that will be compared. A full
-#' method vector is methods = c("MLR", "RIDGE", "LASSO", "POLY", "ANN", "MT", "BMT", "RF").
+#' method vector is methods = c("MLR", "BRNN", "MT", "BMT", "RF").
 #' To use only a subset of methods, pass a vector of methods that you would like to compare.
 #'
-#' @return a list with five elements:
+#' @return a list with eight elements:
 #'          $mean_std,  data frame with calculated metrics for five regression methods.
 #'           For each regression method and each calculated metric, mean and standard
 #'           deviation are given.
-#'          $ranks, data frame with ranks of calculated metrics: average rank and %rank_1
+#'          $ranks, data frame with ranks of calculated metrics: mean rank and %rank_1
 #'           are given.
 #'          $bias_cal, ggplot object of mean bias for calibration data.
 #'          $bias_val, ggplot object of mean bias for validation data. If returns argument
 #'           is set to return only "Calibration" or "Validation" results, only the three
 #'           relevant elements will be returned in the list.
+#'          $transfer_function, ggplot object with transfer functions of methods.
+#'          $transfer_function_together, ggplot object with transfer functions of methods
+#'           plotted together.
 #'          $parameters, a data frame with specifications of parameters used for different
 #'           regression methods.
+#'          $PCA_output, princomp object: the result output of the PCA analysis.
 #' @export
 #'
 #' @references
@@ -122,20 +122,21 @@
 #'
 #' # An example with default settings of machine learning algorithms
 #' experiment_1 <- compare_methods(formula = MVA~.,
-#' dataset = example_dataset_1, k = 5, repeats = 1,
-#' returns = c("Calibration", "Validation"), blocked_CV = TRUE, PCA_transformation = FALSE,
-#' components_selection = "plot_selection", use_caret = TRUE,
-#' polynomial_formula = "MVA ~ T_APR + T_aug_sep + T_APR^2")
-#' experiment_1$mean_std # See a data frame results of mean and standard deviation
-#' # for different methods
-#' experiment_1$ranks # See a data frame results of average rank and share of
-#' # rank 1 for different methods
-#' experiment_1$bias_cal # See a ggplot of mean bias for calibration data
-#' experiment_1[[4]] # See a ggplot of mean bias for validation data
-#' experiment_1[[5]] # Data frame with parameters used for regression methods
+#' dataset = example_dataset_1, k = 25, repeats = 10,
+#' returns = c("Calibration", "Validation"), blocked_CV = TRUE,
+#' PCA_transformation = FALSE, components_selection = "automatic",
+#' optimize = TRUE, methods = c("MLR", "BRNN"))
+#' experiment_1$mean_std
+#' experiment_1$ranks
+#' experiment_1$bias_cal
+#' experiment_1$bias_val
+#' experiment_1$transfer_functions
+#' experiment_1$transfer_functions_together
+#' experiment_1$PCA_output
+#' experiment_1$parameter_values
 #'
 #' experiment_2 <- compare_methods(formula = MVA ~ .,
-#' dataset = example_dataset_1, k = 5, repeats = 100, ANN_neurons = 1,
+#' dataset = example_dataset_1, k = 5, repeats = 10, BRNN_neurons = 1,
 #' MT_M = 4, MT_N = FALSE, MT_U = FALSE, MT_R = FALSE, BMT_P = 100,
 #' BMT_I = 100, BMT_M = 4, BMT_N = FALSE, BMT_U = FALSE, BMT_R = FALSE,
 #' RF_mtry = 0, RF_maxnodes = 4, RF_ntree = 200, seed_factor = 5,
@@ -143,39 +144,45 @@
 #' experiment_2$mean_std
 #' experiment_2$ranks
 #' experiment_2$bias_cal
+#' experiment_2$transfer_functions
+#' experiment_2$transfer_functions_together
+#' experiment_2$PCA_output
 #'
-#' experiment_3 <- compare_methods(formula = MVA~.,
-#' dataset = example_dataset_1, k = 5, repeats = 10,
-#' use_caret = TRUE, returns = c("Validation"))
+#' experiment_3 <- compare_methods(formula = MVA ~ .,
+#' dataset = example_dataset_1, k = 2, repeats = 5,
+#' methods = c("MLR", "BRNN", "MT", "BMT"),
+#' optimize = TRUE, returns = c("Validation"))
 #' experiment_3$mean_std
 #' experiment_3$ranks
 #' experiment_3$bias_val
+#' experiment_3$transfer_functions
+#' experiment_3$transfer_functions_together
+#' experiment_3$parameter_values
 #' }
 
-compare_methods <- function(formula, dataset, k = 3, repeats = 2,
-                            use_caret = TRUE,
-                            ANN_neurons = 1, MT_M = 4, MT_N = F, MT_U = F,
+compare_methods <- function(formula, dataset, k = 10, repeats = 2,
+                            optimize = TRUE,
+                            BRNN_neurons = 1, MT_M = 4, MT_N = F, MT_U = F,
                             MT_R = F, BMT_P = 100, BMT_I = 100, BMT_M = 4,
                             BMT_N = F, BMT_U = F, BMT_R = F, RF_mtry = 0,
-                            RF_maxnodes = 4, RF_ntree = 200, RIDGE_lambda = 0.1,
-                            LASSO_lambda = 0.1, polynomial_formula = "",
-                            seed_factor = 5,
+                            RF_maxnodes = 4, RF_ntree = 200, seed_factor = 5,
                             returns = c("Calibration", "Validation"),
                             digits = 3, blocked_CV = FALSE,
                             PCA_transformation = FALSE, log_preprocess = TRUE,
                             components_selection = 'automatic',
                             eigenvalues_threshold = 1, N_components = 2,
                             round_bias_cal = 15, round_bias_val = 4,
-                            methods = c("MLR", "RIDGE", "LASSO", "POLY",
-                                        "ANN", "MT", "BMT", "RF")) {
+                            methods = c("MLR", "BRNN", "MT", "BMT", "RF")) {
+
+if (k < 2 | k > 26){
+  stop(paste0("Selected k is ", k,", but it should be between 2 and 26"))
+}
 
 dataset <- data.frame(dataset) # dataset needs to be of class data.frame!
 
-full_methods = c("MLR", "RIDGE", "LASSO", "POLY", "ANN", "MT", "BMT", "RF")
+full_methods = c("MLR", "BRNN", "MT", "BMT", "RF")
 
-methods = c("MLR", "RIDGE", "LASSO", "POLY", "ANN", "MT", "BMT")
-
-"RF" %in% methods
+methods <- sort(methods)
 
 # This function is used to calculate metrics r, RMSE, RRSE, d, RE, CE and bias
 # for train and test data
@@ -186,13 +193,10 @@ methods = c("MLR", "RIDGE", "LASSO", "POLY", "ANN", "MT", "BMT")
 # for bias are defined separately, since bias should not be averaged. It is
 # later given as density plots
 list_MLR <- list()
-list_ANN <- list()
+list_BRNN <- list()
 list_MT <- list()
 list_BMT <- list()
 list_RF <- list()
-list_RIDGE <- list()
-list_LASSO <- list()
-list_POLY <- list()
 
 # Here, idex of dependent variable is extracted and later used to locate the
 # observed values
@@ -238,79 +242,115 @@ if (PCA_transformation == TRUE) {
     colnames(dataset)[i] <- paste("PC_", i-1, sep = "")
     formula = as.formula(paste(DepName, "~ ."))
   }
-}
+} else (PCA_result <- "No PCA result avalialbe!")
 
 # Here we fit a lm model, just to get information about the number of independent variables;
 # when formula is used in the form of: y~., we don't know the number of independent variables
 # this information is used later
-
+DepIndex <- grep(as.character(formula[[2]]), colnames(dataset))
 quazi_mod <- lm(formula, data = dataset)
 numIND <- length(quazi_mod[[1]]) - 1
 indep_names <- colnames(quazi_mod[[7]][[1]])[-1]
+allnames <- c(as.character(formula[[2]]), indep_names)
 
-# Warnings
-if (polynomial_formula == ""){
-  warning("No polynomial formula specified. Polynomial calculations will not be performed!")
-}
+# So, sometimes there are variables in dataframe, which are not used as predictors.
+# Let's remove them
+dataset <- dataset[ names(dataset)[names(dataset) %in% allnames] ]
 
-if (numIND < 2){
-  warning("Only one independent variable is used. RIDGE and LASSO regression will not be used!")
-}
 
 # Here we use caret package to tune parameters of different methods
 
-if (use_caret == TRUE){
+if (optimize == TRUE){
 
   model = NULL
 
-  # Optimization for ANN
-  capture.output(model <- train(formula, data = dataset, method = "brnn"))
-  ANN_neurons = as.numeric(model[[6]][1])
-
-  # Optimization for MT
-  capture.output(model <- train(formula, data = dataset, method = "M5"))
-  if (as.matrix(model[[6]][1][1]) == 'Yes'){
-    MT_N = FALSE
-  } else {
-    MT_N = TRUE
+  if ("BRNN" %in% methods){
+    # 1 Optimization for BRNN
+    capture.output(model <- train(formula, data = dataset, method = "brnn"))
+    BRNN_neurons = as.numeric(model[[6]][1])
   }
 
-  if (as.matrix(model[[6]][2]) == 'Yes'){
-    MT_U = FALSE
-  } else {
-    MT_U = TRUE
+
+  if (("MT" %in% methods) | ("BMT" %in% methods) ){
+  # 2 Optimization for MT
+  MT_N <- c(TRUE, FALSE)
+  MT_U <- c(TRUE, FALSE)
+  MT_R <- FALSE
+  MT_M <- (seq(2, 30, 4))
+
+  hyper_grid <- expand.grid(N = MT_N, U = MT_U, M = MT_M)
+
+  # Number of potential models in the grid
+  num_models <- nrow(hyper_grid)
+
+  # Create an empty list to store models
+  grade_models <- list()
+
+  # Write a loop over the rows of hyper_grid to train the grid of models
+  for (i in 1:num_models) {
+
+    # Get minsplit, maxdepth values at row i
+    N <- hyper_grid$N[i]
+    U <- hyper_grid$U[i]
+    M <- hyper_grid$M[i]
+
+    # cross_validation
+    foldi <- seq(1:k)
+    foldi <- paste("fold_", foldi)
+
+    #Randomly shuffle the data
+    dataset <- dataset[sample(nrow(dataset)), ]
+
+    #Create 10 equally size folds
+    folds <- cut(seq(1, nrow(dataset)), breaks = k, labels = FALSE)
+
+    #Perform k fold cross validation
+    rmse_vector <- c()
+
+    for (j in 1:k){
+
+      #Segement your data by fold using the which() function
+      testIndexes <- which(folds == j, arr.ind = TRUE)
+      test <- dataset[testIndexes, ]
+      train <- dataset[-testIndexes, ]
+
+      #MLR MODEL
+      model_temp <- M5P(formula, data = train,
+                        control = Weka_control(M = M, N =  N, U = U, R = FALSE))
+
+      test_observed <- test[, DepIndex]
+      test_predicted <- predict(model_temp, test)
+
+      rmse_vector[j] <- MLmetrics::RMSE(test_predicted, test_observed)
+    }
+
+    grade_models[i] <- mean(rmse_vector)
+
   }
 
-  if (as.matrix(model[[6]][3]) == 'No'){
-    MT_R = FALSE
-  } else {
-    MT_R = TRUE
-  }
+  grade_list <- unlist(grade_models)
 
-  # Optimization for BMT, just take MT rezults
+  # Identify the model with smallest validation set RMSE
+  best_model <- which.min(grade_list)
+
+  best_parameters <- hyper_grid[best_model, ]
+
+  MT_M <- as.numeric(best_parameters[3])
+  MT_U <- as.logical(best_parameters[2])
+  MT_N <- as.logical(best_parameters[1])
+
+
+  # 3 Optimization for BMT, just take MT rezults
   BMT_N <- MT_N
   BMT_U <- MT_U
   BMT_R <- MT_R
+  BMT_M <- MT_M
+  }
 
-  # Optimization for Random Forest
-  suppressWarnings(capture.output(model <- train(formula, data = dataset, method = "rf")))
-  RF_mtry = as.numeric(model[[6]][1])
-
-  # Optimizacija za ridge in lasso regression
-  if (numIND < 2){
-    RIDGE_lambda <- NA
-    LASSO_lambda <- NA
-  } else {
-  x = model.matrix(formula, dataset)[,-DepIndex]
-  y = as.matrix(dataset[,DepIndex])
-
-  ridge.mod <- glmnet(y = y, x = x,  alpha = 0)
-  cv.out = cv.glmnet(x, y, alpha = 0)
-  RIDGE_lambda <- cv.out$lambda.min
-
-  lasso.mod <- glmnet(y = y, x = x,  alpha = 1)
-  cv.out = cv.glmnet(x, y, alpha = 1)
-  LASSO_lambda <- cv.out$lambda.min
+  if ("RF" %in% methods){
+    # 3 Optimization for Random Forest
+    suppressWarnings(capture.output(model <- train(formula, data = dataset, method = "rf")))
+    RF_mtry = as.numeric(model[[6]][1])
   }
 }
 
@@ -332,7 +372,7 @@ foldi <- seq(1:k)
 foldi <- paste("fold_", foldi)
 
 #Randomly shuffle the data
-set.seed(seed_factor * 5)
+set.seed(seed_factor * m)
 dataset <- dataset[sample(nrow(dataset)), ]
 
 #Create 10 equally size folds
@@ -360,13 +400,13 @@ for (j in 1:k){
                                          train_observed, test_observed, digits = 15)
   list_MLR[[b]] <- calculations
 
-  #ANN Model
-  capture.output(ANN <- brnn(formula, data = train, ANN_neurons = ANN_neurons, verbose = FALSE))
-  train_predicted <- predict(ANN, train)
-  test_predicted <- predict(ANN, test)
+  #BRNN Model
+  capture.output(BRNN <- brnn(formula, data = train, BRNN_neurons = BRNN_neurons, verbose = FALSE))
+  train_predicted <- predict(BRNN, train)
+  test_predicted <- predict(BRNN, test)
   calculations <- calculate_metrics(train_predicted, test_predicted,
                                      train_observed, test_observed, digits = 15)
-  list_ANN[[b]] <- calculations
+  list_BRNN[[b]] <- calculations
 
   # Model Trees
   MT_model <- M5P(formula, data = train,
@@ -375,10 +415,8 @@ for (j in 1:k){
   train_predicted <- predict(MT_model, train)
   test_predicted <- predict(MT_model, test)
   calculations <- calculate_metrics(train_predicted, test_predicted,
-                                     train_observed, test_observed, digits = 15)
+                                    train_observed, test_observed, digits = 15)
   list_MT[[b]] <- calculations
-
-
 
   #M5 Model with bagging
   BMT_model <- Bagging(formula,
@@ -390,8 +428,9 @@ for (j in 1:k){
   train_predicted <- predict(BMT_model, train)
   test_predicted <- predict(BMT_model, test)
   calculations <- calculate_metrics(train_predicted, test_predicted,
-                                     train_observed, test_observed, digits = 15)
+                                    train_observed, test_observed, digits = 15)
   list_BMT[[b]] <- calculations
+
 
   # Random Forest
   RF_model <- randomForest(formula = formula, data = train, RF_mtry = RF_mtry,
@@ -401,61 +440,6 @@ for (j in 1:k){
   calculations <- calculate_metrics(train_predicted, test_predicted,
                                      train_observed, test_observed, digits = 15)
   list_RF[[b]] <- calculations
-
-
-
-  # Ridge Regression!
-  x = model.matrix(formula, train)[,-DepIndex]
-  y = as.matrix(train[,DepIndex])
-
-  if (numIND < 2){
-    ridge.mod <- lm(formula, data = train)
-    train_predicted <- predict(ridge.mod, train)
-    test_predicted <- predict(ridge.mod, test)
-  } else {
-    ridge.mod <- glmnet(y = y, x = x,  alpha = 0)
-    train_predicted <- predict(ridge.mod, s = RIDGE_lambda, newx = x)
-    test_predicted <- predict(ridge.mod, s = RIDGE_lambda, newx = as.matrix(test[,-1]))
-  }
-
-
-
-  calculations <- calculate_metrics(train_predicted, test_predicted,
-                                    train_observed, test_observed, digits = 15)
-  list_RIDGE[[b]] <- calculations
-
-  # Lasso Regression
-  x = model.matrix(formula, train)[,-DepIndex]
-  y = as.matrix(train[,DepIndex])
-
-  if (numIND < 2){
-    lasso.mod <- lm(formula, data = train)
-    train_predicted <- predict(lasso.mod, train)
-    test_predicted <- predict(lasso.mod, test)
-  } else {
-  lasso.mod <- glmnet(y = y, x = x,  alpha = 1)
-  train_predicted <- predict(lasso.mod, s = LASSO_lambda, newx = x)
-  test_predicted <- predict(lasso.mod, s = LASSO_lambda, newx = as.matrix(test[,-1]))
-  }
-
-  calculations <- calculate_metrics(train_predicted, test_predicted,
-                                     train_observed, test_observed, digits = 15)
-  list_LASSO[[b]] <- calculations
-
-  # Polynomial regression
-  if (polynomial_formula == ""){
-    poly_model <- lm(formula, data = train)
-  } else {
-    poly_model <- lm(polynomial_formula, data = train)
-  }
-
-  train_predicted <- predict(poly_model, train)
-  test_predicted <- predict(poly_model, test)
-  calculations <- calculate_metrics(train_predicted, test_predicted,
-                                     train_observed, test_observed, digits = 15)
-  list_POLY[[b]] <- calculations
-
-
 }
   setTxtProgressBar(pb, m)
 
@@ -466,6 +450,8 @@ close(pb)
 position <- k * repeats
 
 }
+
+
 
 
 ###################################################################################
@@ -507,22 +493,22 @@ if (blocked_CV == TRUE){
                                        train_observed, test_observed, digits = 15)
     list_MLR[[b]] <- calculations
 
-    #ANN Model
-    capture.output(ANN <- brnn(formula, data = train, ANN_neurons = ANN_neurons, verbose = FALSE))
-    train_predicted <- predict(ANN, train)
-    test_predicted <- predict(ANN, test)
+    #BRNN Model
+    capture.output(BRNN <- brnn(formula, data = train, BRNN_neurons = BRNN_neurons, verbose = FALSE))
+    train_predicted <- predict(BRNN, train)
+    test_predicted <- predict(BRNN, test)
     calculations <- calculate_metrics(train_predicted, test_predicted,
                                        train_observed, test_observed, digits = 15)
-    list_ANN[[b]] <- calculations
+    list_BRNN[[b]] <- calculations
 
-    #M5 Model tree
+    # Model Trees
     MT_model <- M5P(formula, data = train,
                     control = Weka_control(M = MT_M, N =  MT_N, U = MT_U,
                                            R = MT_R))
     train_predicted <- predict(MT_model, train)
     test_predicted <- predict(MT_model, test)
     calculations <- calculate_metrics(train_predicted, test_predicted,
-                                       train_observed, test_observed, digits = 15)
+                                      train_observed, test_observed, digits = 15)
     list_MT[[b]] <- calculations
 
     #M5 Model with bagging
@@ -535,7 +521,7 @@ if (blocked_CV == TRUE){
     train_predicted <- predict(BMT_model, train)
     test_predicted <- predict(BMT_model, test)
     calculations <- calculate_metrics(train_predicted, test_predicted,
-                                       train_observed, test_observed, digits = 15)
+                                      train_observed, test_observed, digits = 15)
     list_BMT[[b]] <- calculations
 
     ##Random Forest
@@ -546,56 +532,6 @@ if (blocked_CV == TRUE){
     calculations <- calculate_metrics(train_predicted, test_predicted,
                                        train_observed, test_observed, digits = 15)
     list_RF[[b]] <- calculations
-
-    # Ridge Regression!
-    x = model.matrix(formula, train)[,-DepIndex]
-    y = as.matrix(train[,DepIndex])
-
-    if (numIND < 2){
-      ridge.mod <- lm(formula, data = train)
-      train_predicted <- predict(ridge.mod, train)
-      test_predicted <- predict(ridge.mod, test)
-    } else {
-      ridge.mod <- glmnet(y = y, x = x,  alpha = 0)
-      train_predicted <- predict(ridge.mod, s = RIDGE_lambda, newx = x)
-      test_predicted <- predict(ridge.mod, s = RIDGE_lambda, newx = as.matrix(test[,-1]))
-    }
-
-
-
-    calculations <- calculate_metrics(train_predicted, test_predicted,
-                                       train_observed, test_observed, digits = 15)
-    list_RIDGE[[b]] <- calculations
-
-    # Lasso Regression
-    x = model.matrix(formula, train)[,-DepIndex]
-    y = as.matrix(train[,DepIndex])
-
-    if (numIND < 2){
-      lasso.mod <- lm(formula, data = train)
-      train_predicted <- predict(lasso.mod, train)
-      test_predicted <- predict(lasso.mod, test)
-    } else {
-      lasso.mod <- glmnet(y = y, x = x,  alpha = 1)
-      train_predicted <- predict(lasso.mod, s = LASSO_lambda, newx = x)
-      test_predicted <- predict(lasso.mod, s = LASSO_lambda, newx = as.matrix(test[,-1]))
-    }
-
-    calculations <- calculate_metrics(train_predicted, test_predicted,
-                                       train_observed, test_observed, digits = 15)
-    list_LASSO[[b]] <- calculations
-
-    # Polynomial regression
-    if (polynomial_formula == ""){
-      poly_model <- lm(formula, data = train)
-    } else {
-      poly_model <- lm(polynomial_formula, data = train)
-    }
-    train_predicted <- predict(poly_model, train)
-    test_predicted <- predict(poly_model, test)
-    calculations <- calculate_metrics(train_predicted, test_predicted,
-                                       train_observed, test_observed, digits = 15)
-    list_POLY[[b]] <- calculations
 
     setTxtProgressBar(pb, m)
   }
@@ -624,16 +560,16 @@ rownames(df_MLR_avg) <- c("r_cal", "r_val", "RMSE_cal", "RMSE_val", "RSSE_cal",
                       "RSSE_val", "d_cal", "d_val", "RE_cal", "RE_val",
                       "CE_cal", "CE_val")
 
-listVec <- lapply(list_ANN, c, recursive = TRUE)
+listVec <- lapply(list_BRNN, c, recursive = TRUE)
 m <- do.call(cbind, listVec)
 averages <- apply(m, 1, mean)
 std <- apply(m, 1, sd)
 m <- cbind(m, averages, std)
-df_ANN <- data.frame(m)
-df_ANN_bias <- df_ANN[c(13, 14), c(1: position)]
-df_ANN_rank <- df_ANN[-c(13, 14), c(1: position)]
-df_ANN_avg <- df_ANN[-c(13, 14), c(position + 1, position + 2)]
-rownames(df_ANN_avg) <- c("r_cal", "r_val", "RMSE_cal", "RMSE_val", "RSSE_cal",
+df_BRNN <- data.frame(m)
+df_BRNN_bias <- df_BRNN[c(13, 14), c(1: position)]
+df_BRNN_rank <- df_BRNN[-c(13, 14), c(1: position)]
+df_BRNN_avg <- df_BRNN[-c(13, 14), c(position + 1, position + 2)]
+rownames(df_BRNN_avg) <- c("r_cal", "r_val", "RMSE_cal", "RMSE_val", "RSSE_cal",
                       "RSSE_val", "d_cal", "d_val", "RE_cal", "RE_val",
                       "CE_cal", "CE_val")
 
@@ -676,62 +612,6 @@ rownames(df_RF_avg) <- c("r_cal", "r_val", "RMSE_cal", "RMSE_val", "RSSE_cal",
                       "RSSE_val", "d_cal", "d_val", "RE_cal", "RE_val",
                       "CE_cal", "CE_val")
 
-listVec <- lapply(list_RIDGE, c, recursive = TRUE)
-m <- do.call(cbind, listVec)
-averages <- apply(m, 1, mean)
-std <- apply(m, 1, sd)
-m <- cbind(m, averages, std)
-df_RIDGE <- data.frame(m)
-df_RIDGE_bias <- df_RIDGE[c(13, 14), c(1: position)]
-df_RIDGE_rank <- df_RIDGE[-c(13, 14), c(1: position)]
-df_RIDGE_avg <- df_RIDGE[-c(13, 14), c(position + 1, position + 2)]
-rownames(df_RIDGE_avg) <- c("r_cal", "r_val", "RMSE_cal", "RMSE_val", "RSSE_cal",
-                         "RSSE_val", "d_cal", "d_val", "RE_cal", "RE_val",
-                         "CE_cal", "CE_val")
-
-if (numIND < 2){
-  df_RIDGE_bias[df_RIDGE_bias<10000] <- NA
-  df_RIDGE_rank[df_RIDGE_rank<10000] <- NA
-  df_RIDGE_avg[df_RIDGE_avg<10000] <- NA
-}
-
-listVec <- lapply(list_LASSO, c, recursive = TRUE)
-m <- do.call(cbind, listVec)
-averages <- apply(m, 1, mean)
-std <- apply(m, 1, sd)
-m <- cbind(m, averages, std)
-df_LASSO <- data.frame(m)
-df_LASSO_bias <- df_LASSO[c(13, 14), c(1: position)]
-df_LASSO_rank <- df_LASSO[-c(13, 14), c(1: position)]
-df_LASSO_avg <- df_LASSO[-c(13, 14), c(position + 1, position + 2)]
-rownames(df_LASSO_avg) <- c("r_cal", "r_val", "RMSE_cal", "RMSE_val", "RSSE_cal",
-                            "RSSE_val", "d_cal", "d_val", "RE_cal", "RE_val",
-                            "CE_cal", "CE_val")
-
-if (numIND < 2){
-  df_LASSO_bias[df_LASSO_bias<10000] <- NA
-  df_LASSO_rank[df_LASSO_rank<10000] <- NA
-  df_LASSO_avg[df_LASSO_avg<10000] <- NA
-}
-
-listVec <- lapply(list_POLY, c, recursive = TRUE)
-m <- do.call(cbind, listVec)
-averages <- apply(m, 1, mean)
-std <- apply(m, 1, sd)
-m <- cbind(m, averages, std)
-df_POLY <- data.frame(m)
-df_POLY_bias <- df_POLY[c(13, 14), c(1: position)]
-df_POLY_rank <- df_POLY[-c(13, 14), c(1: position)]
-df_POLY_avg <- df_POLY[-c(13, 14), c(position + 1, position + 2)]
-rownames(df_POLY_avg) <- c("r_cal", "r_val", "RMSE_cal", "RMSE_val", "RSSE_cal",
-                            "RSSE_val", "d_cal", "d_val", "RE_cal", "RE_val",
-                            "CE_cal", "CE_val")
-
-if (polynomial_formula == ""){
-  df_POLY_bias[df_POLY_bias<10000] <- NA
-  df_POLY_rank[df_POLY_rank<10000] <- NA
-  df_POLY_avg[df_POLY_avg<10000] <- NA
-}
 
 ##################################################################################################
 ##################################################################################################
@@ -756,124 +636,130 @@ for (i in 1:length(method_vector)){
 
 names(empty_LIST) <- method_vector
 
-df_all_avg <- round(cbind(unlist(empty_LIST)), 8)
-
-df_all_avg <- round(cbind(df_MLR_avg, df_ANN_avg, df_MT_avg, df_BMT_avg, df_RF_avg, df_RIDGE_avg, df_LASSO_avg, df_POLY_avg), 8)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+df_all_avg <- round(do.call(cbind, empty_LIST), 8)
 
 
 ############################################################################################
+############################################################################################
 # Calculation of ranks
-df_all <- round(rbind(df_MLR_rank, df_ANN_rank, df_MT_rank, df_BMT_rank, df_RF_rank, df_RIDGE_rank, df_LASSO_rank, df_POLY_rank), 8)
+
+# First, let's subset the methods, similar to the previous
+
+start_position = 0
+method_list <- list()
+for (i in methods){
+  start_position <- start_position + 1
+  method_list[[start_position]] <- paste0("df_",i,"_rank")
+}
+
+method_vector <- unlist(method_list, use.names = FALSE)
+
+empty_LIST <- list()
+
+for (i in 1:length(method_vector)){
+  temp_DF <- get(method_vector[i])
+  empty_LIST[[i]] <- temp_DF
+}
+
+names(empty_LIST) <- method_vector
+
+df_all <- round(do.call(rbind, empty_LIST), 8)
 
 # Now, all metrics (except bias) are extracted for calibration and validation
 # data.
-r_cal <- df_all[c(seq(1, 96, by = 12)), ]
-r_val <- df_all[c(seq(2, 96, by = 12)), ]
+r_cal <- df_all[c(seq(1, nrow(df_all), by = 12)), ]
+r_val <- df_all[c(seq(2, nrow(df_all), by = 12)), ]
 
-RMSE_cal <- df_all[c(seq(3, 96, by = 12)), ]
-RMSE_val <- df_all[c(seq(4, 96, by = 12)), ]
+RMSE_cal <- df_all[c(seq(3, nrow(df_all), by = 12)), ]
+RMSE_val <- df_all[c(seq(4, nrow(df_all), by = 12)), ]
 
-RSSE_cal <- df_all[c(seq(5, 96, by = 12)), ]
-RSSE_val <- df_all[c(seq(6, 96, by = 12)), ]
+RSSE_cal <- df_all[c(seq(5, nrow(df_all), by = 12)), ]
+RSSE_val <- df_all[c(seq(6, nrow(df_all), by = 12)), ]
 
-d_cal <- df_all[c(seq(7, 96, by = 12)), ]
-d_val <- df_all[c(seq(8, 96, by = 12)), ]
+d_cal <- df_all[c(seq(7, nrow(df_all), by = 12)), ]
+d_val <- df_all[c(seq(8, nrow(df_all), by = 12)), ]
 
-RE_cal <- df_all[c(seq(9, 96, by = 12)), ]
-RE_val <- df_all[c(seq(10, 96, by = 12)), ]
+RE_cal <- df_all[c(seq(9, nrow(df_all), by = 12)), ]
+RE_val <- df_all[c(seq(10, nrow(df_all), by = 12)), ]
 
-CE_cal <- df_all[c(seq(11, 96, by = 12)), ]
-CE_val <- df_all[c(seq(12, 96, by = 12)), ]
+CE_cal <- df_all[c(seq(11, nrow(df_all), by = 12)), ]
+CE_val <- df_all[c(seq(12, nrow(df_all), by = 12)), ]
 
 
-# Average rank and share of rank 1 is calculated
+# Mean rank and share of rank 1 is calculated
 AVG_rank <- data.frame(rowMeans(apply(-r_cal, 2, rank, ties.method = "min")))
 shareOne <- data.frame(apply(apply(-r_cal, 2, rank, ties.method = "min"), 1,
                              count_ones) /  position)
 r_cal_ranks <- cbind(AVG_rank, shareOne)
-names(r_cal_ranks) <- c("Average Rank", "%rank_1")
+names(r_cal_ranks) <- c("Mean Rank", "%rank_1")
 
 AVG_rank <- data.frame(rowMeans(apply(-r_val, 2, rank, ties.method =  "min")))
 shareOne <- data.frame(apply(apply(-r_val, 2, rank, ties.method =  "min"), 1,
                              count_ones) /  position)
 r_val_ranks <- cbind(AVG_rank, shareOne)
-names(r_val_ranks) <-  c("Average Rank",  "%rank_1")
+names(r_val_ranks) <-  c("Mean Rank",  "%rank_1")
 
 AVG_rank <- data.frame(rowMeans(apply(RMSE_cal, 2, rank,
                                       ties.method =  "min")))
 shareOne <- data.frame(apply(apply(RMSE_cal, 2, rank, ties.method =  "min"),
                              1, count_ones) /  position)
 RMSE_cal_ranks <- cbind(AVG_rank, shareOne)
-names(RMSE_cal_ranks) <-  c("Average Rank", "%rank_1")
+names(RMSE_cal_ranks) <-  c("Mean Rank", "%rank_1")
 
 AVG_rank <- data.frame(rowMeans(apply(RMSE_val, 2, rank,
                                       ties.method = "min")))
 shareOne <- data.frame(apply(apply(RMSE_val, 2, rank, ties.method = "min"), 1,
                              count_ones) /  position)
 RMSE_val_ranks <- cbind(AVG_rank, shareOne)
-names(RMSE_val_ranks) <-  c("Average Rank", "%rank_1")
+names(RMSE_val_ranks) <-  c("Mean Rank", "%rank_1")
 
 AVG_rank <- data.frame(rowMeans(apply(RSSE_cal, 2, rank, ties.method = "min")))
 shareOne <- data.frame(apply(apply(RSSE_cal, 2, rank, ties.method = "min"), 1,
                              count_ones) /  position)
 RSSE_cal_ranks <- cbind(AVG_rank, shareOne)
-names(RSSE_cal_ranks) <-  c("Average Rank", "%rank_1")
+names(RSSE_cal_ranks) <-  c("Mean Rank", "%rank_1")
 
 AVG_rank <- data.frame(rowMeans(apply(RSSE_val, 2, rank, ties.method = "min")))
 shareOne <- data.frame(apply(apply(RSSE_val, 2, rank, ties.method = "min"), 1,
                              count_ones) /  position)
 RSSE_val_ranks <- cbind(AVG_rank, shareOne)
-names(RSSE_val_ranks) <-  c("Average Rank", "%rank_1")
+names(RSSE_val_ranks) <-  c("Mean Rank", "%rank_1")
 
 AVG_rank <- data.frame(rowMeans(apply(-d_cal, 2, rank, ties.method = "min")))
 shareOne <- data.frame(apply(apply(-d_cal, 2, rank, ties.method = "min"), 1,
                              count_ones) /  position)
 d_cal_ranks <- cbind(AVG_rank, shareOne)
-names(d_cal_ranks) <-  c("Average Rank",  "%rank_1")
+names(d_cal_ranks) <-  c("Mean Rank",  "%rank_1")
 
 AVG_rank <- data.frame(rowMeans(apply(-d_val, 2, rank, ties.method = "min")))
 shareOne <- data.frame(apply(apply(-d_val, 2, rank, ties.method = "min"), 1,
                              count_ones) /  position)
 d_val_ranks <- cbind(AVG_rank, shareOne)
-names(d_val_ranks) <-  c("Average Rank",  "%rank_1")
+names(d_val_ranks) <-  c("Mean Rank",  "%rank_1")
 
 AVG_rank <- data.frame(rowMeans(apply(-RE_cal, 2, rank, ties.method = "min")))
 shareOne <- data.frame(apply(apply(-RE_cal, 2, rank, ties.method = "min"), 1,
                              count_ones) /  position)
 RE_cal_ranks <- cbind(AVG_rank, shareOne)
-names(RE_cal_ranks) <-  c("Average Rank", "%rank_1")
+names(RE_cal_ranks) <-  c("Mean Rank", "%rank_1")
 
 AVG_rank <- data.frame(rowMeans(apply(-RE_val, 2, rank, ties.method = "min")))
 shareOne <- data.frame(apply(apply(-RE_val, 2, rank, ties.method = "min"),
                              1, count_ones) /  position)
 RE_val_ranks <- cbind(AVG_rank, shareOne)
-names(RE_val_ranks) <-  c("Average Rank", "%rank_1")
+names(RE_val_ranks) <-  c("Mean Rank", "%rank_1")
 
 AVG_rank <- data.frame(rowMeans(apply(-CE_cal, 2, rank, ties.method = "min")))
 shareOne <- data.frame(apply(apply(-CE_cal, 2, rank, ties.method = "min"), 1,
                              count_ones) /  position)
 CE_cal_ranks <- cbind(AVG_rank, shareOne)
-names(CE_cal_ranks) <- c("Average Rank",  "%rank_1")
+names(CE_cal_ranks) <- c("Mean Rank",  "%rank_1")
 
 AVG_rank <- data.frame(rowMeans(apply(-CE_val, 2, rank, ties.method = "min")))
 shareOne <- data.frame(apply(apply(-CE_val, 2, rank, ties.method = "min"), 1,
                              count_ones) /  position)
 CE_val_ranks <- cbind(AVG_rank, shareOne)
-names(CE_val_ranks) <-  c("Average Rank",  "%rank_1")
+names(CE_val_ranks) <-  c("Mean Rank",  "%rank_1")
 
 # Results are rbinded together
 ranks_together <- rbind(r_cal_ranks, r_val_ranks,
@@ -884,11 +770,11 @@ ranks_together <- rbind(r_cal_ranks, r_val_ranks,
                        CE_cal_ranks, CE_val_ranks)
 
 # Those variables have to be defined, solution suggest on Stackoverflow.com
-ANN <- NULL
-ANN_AR <- NULL
-ANN_M <- NULL
-ANN_S1 <- NULL
-ANN_SD <- NULL
+BRNN <- NULL
+BRNN_AR <- NULL
+BRNN_M <- NULL
+BRNN_S1 <- NULL
+BRNN_SD <- NULL
 BMT <- NULL
 BMT_AR <- NULL
 BMT_S1 <- NULL
@@ -909,33 +795,21 @@ RF_AR <- NULL
 RF_M <- NULL
 RF_S1 <- NULL
 RF_SD <- NULL
-RIDGE_AR <- NULL
-RIDGE_M <- NULL
-RIDGE_S1 <- NULL
-RIDGE_SD <- NULL
-RIDGE <- NULL
-LASSO_AR <- NULL
-LASSO_M <- NULL
-LASSO_S1 <- NULL
-LASSO_SD <- NULL
-LASSO <- NULL
-POLY_AR <- NULL
-POLY_M <- NULL
-POLY_S1 <- NULL
-POLY_SD <- NULL
-POLY <- NULL
 bias <- NULL
 Method <- NULL
 value <- NULL
+pred <- NULL
+method <- NULL
 
-ranks_together$Method <- c("MLR", "ANN", "MT", "BMT", "RF", "RIDGE", "LASSO", "POLY")
-ranks_together$Period <- c(rep("cal", 8), rep("val", 8))
-ranks_together$Metric <- c(rep("r", 16),
-                            rep("RMSE", 16),
-                            rep("RRSE", 16),
-                            rep("d", 16),
-                            rep("RE", 16),
-                            rep("CE", 16))
+
+ranks_together$Method <- methods
+ranks_together$Period <- c(rep("cal", length(methods)), rep("val", length(methods)))
+ranks_together$Metric <- c(rep("r", length(methods) * 2),
+                            rep("RMSE", length(methods) * 2),
+                            rep("RRSE", length(methods) * 2),
+                            rep("d", length(methods) *2),
+                            rep("RE", length(methods) * 2),
+                            rep("CE", length(methods) * 2))
 
 colnames(ranks_together)[1] <- "Avg_rank"
 togeter_AVG_rank <- reshape::cast(ranks_together,
@@ -945,8 +819,7 @@ togeter_AVG_rank$Metric  <- factor(togeter_AVG_rank$Metric,
                                     levels = c("r", "RMSE", "RRSE", "d",
                                                "RE", "CE"))
 togeter_AVG_rank <- togeter_AVG_rank[order(togeter_AVG_rank$Metric), ]
-togeter_AVG_rank <- dplyr::select(togeter_AVG_rank, Metric, Period, MLR, RIDGE, LASSO, POLY,
-                                  ANN, MT, BMT, RF)
+togeter_AVG_rank <- dplyr::select(togeter_AVG_rank, Metric, Period, methods)
 
 colnames(ranks_together)[2] <- "Share_rank1"
 together_share1 <- reshape::cast(ranks_together,
@@ -958,57 +831,70 @@ together_share1$Metric  <- factor(together_share1$Metric,
                                               "RE", "CE"))
 
 together_share1 <- together_share1[order(together_share1$Metric), ]
-together_share1 <- dplyr::select(together_share1, Metric, Period, MLR, RIDGE, LASSO, POLY, ANN,
-                                 MT, BMT, RF)
+together_share1 <- dplyr::select(together_share1, Metric, Period, methods)
 
 ###############################################################################
 
-colnames(df_all_avg) <- c("Mean MLR", "Std MLR", "Mean ANN", "Std ANN", "Mean MT",
-                          "Std MT", "Mean BMT", "Std BMT", "Mean RF", "Std RF", "Mean RIDGE", "Std RIDGE",
-                          "Mean LASSO", "Std LASSO", "Mean POLY", "Std POLY")
+temp_string_mean <- paste("Mean", methods)
+temp_string_std <- paste("Std", methods)
+
+emptly_list = list()
+
+sp_position = 1
+for (i in 1:length(temp_string_mean)){
+  emptly_list[sp_position] <- temp_string_mean[i]
+  sp_position <- sp_position + 1
+
+  emptly_list[sp_position] <- temp_string_std[i]
+  sp_position <- sp_position + 1
+}
+
+df_all_avg_colnames <- as.vector(do.call(cbind, emptly_list))
+colnames(df_all_avg) <- df_all_avg_colnames
+
 df_all_avg$Period <- c("cal", "val")
 df_all_avg$Metric <- c("r", "r", "RMSE", "RMSE", "RRSE", "RRSE",
                             "d", "d", "RE", "RE", "CE", "CE")
 row.names(df_all_avg) <- NULL
 
-Rezults_mean_std <- dplyr::select(df_all_avg, Metric, Period, "Mean MLR", "Std MLR",
-                                  "Mean RIDGE", "Std RIDGE", "Mean LASSO", "Std LASSO","Mean POLY", "Std POLY",
-                                  "Mean ANN", "Std ANN",
-                                  "Mean MT", "Std MT", "Mean BMT", "Std BMT", "Mean RF", "Std RF")
+Rezults_mean_std <- dplyr::select(df_all_avg, Metric, Period, df_all_avg_colnames)
 
+# Here, we organize the rank and share1 data frame
+
+
+
+#1 create string for column names
+temp_string_rank <- paste("Avg rank", methods)
+colnames(togeter_AVG_rank) <- c("Metric", "Period", temp_string_rank)
+
+temp_string_share1 <- paste("%rank_1", methods)
 together_share1 <- together_share1[, -c(1,2)]
-colnames(togeter_AVG_rank) <- c("Metric", "Period", "Avg rank MLR","Avg rank RIDGE", "Avg rank LASSO", "Avg rank POLY",
-                                "Avg rank ANN", "Avg rank MT", "Avg rank BMT",
-"Avg rank RF")
-colnames(together_share1) <- c("%rank_1 MLR", "%rank_1 RIDGE","%rank_1 LASSO","%rank_1 POLY","%rank_1 ANN",
-                                "%rank_1 MT", "%rank_1 BMT", "%rank_1 RF")
+colnames(together_share1) <- temp_string_share1
+
 ranks <- cbind(togeter_AVG_rank, together_share1)
+
+# We have to create a vector of strings, cobmination avg rank and %rank 1
+emptly_list = list()
+
+sp_position = 1
+for (i in 1:length(temp_string_rank)){
+  emptly_list[sp_position] <- temp_string_rank[i]
+  sp_position <- sp_position + 1
+
+  emptly_list[sp_position] <- temp_string_share1[i]
+  sp_position <- sp_position + 1
+}
+
 Rezults_ranks <- dplyr::select(ranks, Metric, Period,
-                               "Avg rank MLR", "%rank_1 MLR",
-                               "Avg rank RIDGE", "%rank_1 RIDGE",
-                               "Avg rank LASSO", "%rank_1 LASSO",
-                               "Avg rank POLY", "%rank_1 POLY",
-                       "Avg rank ANN", "%rank_1 ANN",
-                       "Avg rank MT", "%rank_1 MT",
-                       "Avg rank BMT", "%rank_1 BMT",
-                       "Avg rank RF", "%rank_1 RF")
+                               as.vector(do.call(cbind, emptly_list)))
 
 ##################################################################
 # Here is a function to calculate bias
 df_MLR_bias$Period <- c("Calibration", "Validation")
 df_MLR_bias$Method <- "MLR"
 
-df_RIDGE_bias$Period <- c("Calibration", "Validation")
-df_RIDGE_bias$Method <- "RIDGE"
-
-df_LASSO_bias$Period <- c("Calibration", "Validation")
-df_LASSO_bias$Method <- "LASSO"
-
-df_POLY_bias$Period <- c("Calibration", "Validation")
-df_POLY_bias$Method <- "POLY"
-
-df_ANN_bias$Period <- c("Calibration", "Validation")
-df_ANN_bias$Method <- "ANN"
+df_BRNN_bias$Period <- c("Calibration", "Validation")
+df_BRNN_bias$Method <- "BRNN"
 
 df_MT_bias$Period <- c("Calibration", "Validation")
 df_MT_bias$Method <- "MT"
@@ -1019,37 +905,31 @@ df_BMT_bias$Method <- "BMT"
 df_RF_bias$Period <- c("Calibration", "Validation")
 df_RF_bias$Method <- "RF"
 
-bias_together <- rbind(df_MLR_bias,
-                       df_ANN_bias,
-                       df_MT_bias,
-                       df_BMT_bias,
-                       df_RF_bias,
-                       df_RIDGE_bias,
-                       df_LASSO_bias,
-                       df_POLY_bias)
+# Subset of methods
+start_position = 0
+method_list <- list()
+for (i in methods){
+  start_position <- start_position + 1
+  method_list[[start_position]] <- paste0("df_",i,"_bias")
+}
 
+method_vector <- unlist(method_list, use.names = FALSE)
+
+empty_LIST <- list()
+
+for (i in 1:length(method_vector)){
+  temp_DF <- get(method_vector[i])
+  empty_LIST[[i]] <- temp_DF
+}
+
+names(empty_LIST) <- method_vector
+
+bias_together <- do.call(rbind, empty_LIST)
 
 bias_together <- melt(bias_together, id.vars = c("Period", "Method"))
 
 bias_together_calibration <- dplyr::filter(bias_together, Period == "Calibration")
-bias_together_validation<- dplyr::filter(bias_together, Period == "Validation")
-
-bias_together_calibration$Method <- factor(bias_together_calibration$Method,
-                                 levels = c("MLR","RIDGE", "LASSO","POLY","ANN", "MT", "BMT", "RF"),
-                                 ordered = TRUE)
-bias_together_validation$Method <- factor(bias_together_validation$Method,
-                                            levels = c("MLR", "RIDGE", "LASSO","POLY", "ANN", "MT", "BMT", "RF"),
-                                           ordered = TRUE)
-
-if (polynomial_formula == ""){
-  bias_together_validation <- dplyr::filter(bias_together_validation, Method != "POLY")
-  bias_together_calibration <- dplyr::filter(bias_together_calibration, Method != "POLY")
-}
-
-if (numIND < 2){
-  bias_together_validation <- dplyr::filter(bias_together_validation, Method != "RIDGE" & Method != "LASSO")
-  bias_together_calibration<- dplyr::filter(bias_together_calibration, Method != "RIDGE" & Method != "LASSO")
-}
+bias_together_validation <- dplyr::filter(bias_together, Period == "Validation")
 
 bias_together_calibration$value <- round(bias_together_calibration$value, round_bias_cal)
 
@@ -1071,20 +951,106 @@ gg_object_val <- ggplot(bias_together_validation, aes(value)) +
   theme(legend.position = "NONE", legend.title = element_blank(),
         text = element_text(size = 15))
 
+
+########################################################################################
+# Here, we create transfer functions for each method
+if (numIND == 1) {
+  Ind_name <- colnames(dataset)[-DepIndex]
+  Dep_name <- colnames(dataset)[DepIndex]
+
+  range_max <- max(dataset[,-DepIndex])
+  range_min <- min(dataset[,-DepIndex])
+  full_range <- data.frame(c1 = NA, c2 = seq(range_min, range_max, 0.01))
+  colnames(full_range) <- c(Dep_name, Ind_name)
+  #full_range <- select(full_range, colnames(dataset))
+
+#MLR MODEL
+MLR <- lm(formula, data = dataset)
+predicted_MLR <- data.frame(pred = predict(MLR, full_range), method = "MLR")
+
+#BRNN Model
+capture.output(BRNN <- brnn(formula, data = dataset, BRNN_neurons = BRNN_neurons, verbose = FALSE))
+predicted_BRNN <- data.frame(pred = predict(BRNN, full_range), method = "BRNN")
+
+# Model Trees
+MT_model <- M5P(formula, data = dataset,
+                control = Weka_control(M = MT_M, N =  MT_N, U = MT_U,
+                                       R = MT_R))
+predicted_MT <- data.frame(pred = predict(MT_model, full_range), method = "MT")
+
+#M5 Model with bagging
+BMT_model <- Bagging(formula,
+                     data = dataset,
+                     control = Weka_control(P = BMT_P, I = BMT_I,
+                                            W = list("weka.classifiers.trees.M5P",
+                                                     M = BMT_M, N = BMT_N,
+                                                     U = BMT_U, R = BMT_R)))
+predicted_BMT <- data.frame(pred = predict(BMT_model, full_range), method = "BMT")
+
+# Random Forest
+RF_model <- randomForest(formula = formula, data = dataset, RF_mtry = RF_mtry,
+                         RF_maxnodes = RF_maxnodes, RF_ntree = RF_ntree)
+predicted_RF <- data.frame(pred = predict(RF_model, full_range), method = "RF")
+
+# Subset of methods
+start_position = 0
+method_list <- list()
+for (i in methods){
+  start_position <- start_position + 1
+  method_list[[start_position]] <- paste0("predicted_",i)
+}
+
+method_vector <- unlist(method_list, use.names = FALSE)
+
+empty_LIST <- list()
+
+for (i in 1:length(method_vector)){
+  temp_DF <- get(method_vector[i])
+  empty_LIST[[i]] <- temp_DF
+}
+
+names(empty_LIST) <- method_vector
+predictions <- do.call(rbind, empty_LIST)
+predictions$range <- full_range[, 2]
+colnames(predictions)
+
+journal_theme <- theme_bw() +
+  theme(axis.text = element_text(size = 16, face = "bold"),
+        axis.title = element_text(size = 18), text = element_text(size = 18),
+        plot.title = element_text(size = 16,  face = "bold"),
+        legend.position="bottom")
+
+dataset1 <-dataset
+colnames(dataset1)[DepIndex] <- "pred"
+colnames(dataset1)[-DepIndex] <- "range"
+
+plot_1 <- ggplot(predictions, aes(x = range, y = pred)) + geom_line() +
+  geom_point(data = dataset1, aes(x = range, y = pred)) +
+  facet_grid(method~.) +
+  xlab("Range of Independent Variable") +
+  ylab("Dependent Variable") +
+  ggtitle("Transfer Functions") +
+  journal_theme
+
+dataset1$method = NA
+
+plot_2 <- ggplot(predictions, aes(x = range, y = pred, group = method, colour = method)) + geom_line() +
+  geom_point(data = dataset1, aes(x = range, y = pred)) +
+  xlab("Range of Independent Variable") +
+  ylab("Dependent Variable") +
+  ggtitle("Transfer Functions Plotted Together") +
+  journal_theme
+} else (plot_1 = "transfer functions are not avaliable for regression problems with more than 1 independent variable!")
+
+class_plot_1 <- class(plot_1)[[1]]
+if (class_plot_1 == "character") {
+  plot_2 = "Transfer functions are not avaliable for regression problems with more than 1 independent variable!"
+}
+
 ##### Here both data frames are subset with round_df function #############
 
 Rezults_mean_std <- round_df(Rezults_mean_std, digits = digits)
 Rezults_ranks <- round_df(Rezults_ranks, digits = digits)
-
-if (numIND < 2){
-  Rezults_mean_std <- dplyr::select(Rezults_mean_std, -ends_with("RIDGE"), -ends_with("LASSO"))
-  Rezults_ranks <- dplyr::select(Rezults_ranks, -ends_with("RIDGE"), -ends_with("LASSO"))
-}
-
-if (polynomial_formula == ""){
-  Rezults_mean_std <- dplyr::select(Rezults_mean_std, -ends_with("POLY"))
-  Rezults_ranks <- dplyr::select(Rezults_ranks, -ends_with("POLY"))
-}
 
 # Here, Calibration Validation subset is
 a <- 0
@@ -1103,11 +1069,11 @@ c <- a + b
 # Here, all optimized parameters are saved in a data frame, which will be saved as
 # a fifth elemnt of the final_list
 parameters <- data.frame(
-  Method = c("RIDGE", "LASSO", "ANN", "MT", "MT", "MT", "MT", "BMT", "BMT", "BMT", "BMT", "BMT", "BMT",
+  Method = c("BRNN", "MT", "MT", "MT", "MT", "BMT", "BMT", "BMT", "BMT", "BMT", "BMT",
              "RF", "RF", "RF"),
-  Parameter = c("RIDGE_lambda", "LASSO_lambda","ANN_neurons", "MT_M", "MT_N", "MT_U", "MT_R", "BMT_P", "BMT_I", "BMT_M",
+  Parameter = c("BRNN_neurons", "MT_M", "MT_N", "MT_U", "MT_R", "BMT_P", "BMT_I", "BMT_M",
                 "BMT_N", "BMT_U", "BMT_R", "RF_mtry", "RF_maxnodes", "RF_ntree"),
-  Value = c(round(RIDGE_lambda,2), round(LASSO_lambda,2), ANN_neurons, MT_M,
+  Value = c(BRNN_neurons, MT_M,
             ifelse(MT_N == 1, as.character("TRUE"), as.character("FALSE")),
             ifelse(MT_U == 1, as.character("TRUE"), as.character("FALSE")),
             ifelse(MT_R == 1, as.character("TRUE"), as.character("FALSE")), BMT_P, BMT_I, BMT_M,
@@ -1116,25 +1082,36 @@ parameters <- data.frame(
             ifelse(BMT_R == 1, as.character("TRUE"), as.character("FALSE")),
             RF_mtry, RF_maxnodes, RF_ntree))
 
+parameters <- parameters[parameters$Method %in% methods,]
+
 # If Calibration and Validation data should be returned, then this is our final results
 if (c == 4){
   final_list <- list(mean_std = Rezults_mean_std, ranks = Rezults_ranks, bias_cal = gg_object_cal,
-                     bias_val = gg_object_val, parameter_values = parameters)
+                     bias_val = gg_object_val, transfer_functions = plot_1,
+                     transfer_functions_together = plot_2, parameter_values = parameters,
+                     PCA_output = PCA_result)
 }
 
 if (c == 1){
   Rezults_mean_std <- dplyr::filter(Rezults_mean_std, Period == "cal")
   Rezults_ranks <- dplyr::filter(Rezults_ranks, Period == "cal")
   final_list <- list(mean_std = Rezults_mean_std, ranks = Rezults_ranks, bias_cal = gg_object_cal,
-                     bias_val = gg_object_val, parameter_values = parameters)
+                     bias_val = gg_object_val, transfer_functions = plot_1,
+                     transfer_functions_together = plot_2, parameter_values = parameters,
+                     PCA_output = PCA_result)
 }
 
 if (c == 3){
   Rezults_mean_std <- dplyr::filter(Rezults_mean_std, Period == "val")
   Rezults_ranks <- dplyr::filter(Rezults_ranks, Period == "val")
   final_list <- list(mean_std = Rezults_mean_std, ranks = Rezults_ranks,
-                     bias_val = gg_object_val, parameter_values = parameters)
+                     bias_val = gg_object_val, transfer_functions = plot_1,
+                     transfer_functions_together = plot_2, parameter_values = parameters,
+                     PCA_output = PCA_result)
 }
+
+
+# Return the final list
 
 final_list
 

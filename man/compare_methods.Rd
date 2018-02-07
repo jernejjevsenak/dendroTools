@@ -4,16 +4,15 @@
 \alias{compare_methods}
 \title{compare_methods}
 \usage{
-compare_methods(formula, dataset, k = 3, repeats = 2, use_caret = TRUE,
-  ANN_neurons = 1, MT_M = 4, MT_N = F, MT_U = F, MT_R = F,
+compare_methods(formula, dataset, k = 10, repeats = 2, optimize = TRUE,
+  BRNN_neurons = 1, MT_M = 4, MT_N = F, MT_U = F, MT_R = F,
   BMT_P = 100, BMT_I = 100, BMT_M = 4, BMT_N = F, BMT_U = F,
   BMT_R = F, RF_mtry = 0, RF_maxnodes = 4, RF_ntree = 200,
-  RIDGE_lambda = 0.1, LASSO_lambda = 0.1, polynomial_formula = "",
   seed_factor = 5, returns = c("Calibration", "Validation"), digits = 3,
   blocked_CV = FALSE, PCA_transformation = FALSE, log_preprocess = TRUE,
   components_selection = "automatic", eigenvalues_threshold = 1,
   N_components = 2, round_bias_cal = 15, round_bias_val = 4,
-  methods = c("MLR", "RIDGE", "LASSO", "POLY", "ANN", "MT", "BMT", "RF"))
+  methods = c("MLR", "BRNN", "MT", "BMT", "RF"))
 }
 \arguments{
 \item{formula}{an object of class "formula" (or one that can be coerced
@@ -27,11 +26,10 @@ columns and (optional) years as row names.}
 \item{repeats}{number of cross-validation repeats. Should be equal or more
 than 2.}
 
-\item{use_caret}{if set to TRUE, the package caret will be used to tune parameters
+\item{optimize}{if set to TRUE, the package caret will be used to tune parameters
 for regression methods}
 
-\item{ANN_neurons}{positive integer that indicates the number of neurons used
-for brnn method}
+\item{BRNN_neurons}{number of neurons to be used for the brnn method}
 
 \item{MT_M}{minimum number of instances used by model trees}
 
@@ -61,14 +59,8 @@ have (argument for random forest)}
 
 \item{RF_ntree}{Number of trees to grow (argument for random forest)}
 
-\item{RIDGE_lambda}{lambda argument for ridge regression}
-
-\item{LASSO_lambda}{lambda argument for lasso regression}
-
-\item{polynomial_formula}{a symbolic description of polynomial model to be fitted}
-
 \item{seed_factor}{an integer that will be used to change the seed options
-for different repeats. set.seed(seed_factor*5)}
+for different repeats.}
 
 \item{returns}{A character vector that specifies, whether a calibration and/ or
 validation results should be returned.}
@@ -108,33 +100,37 @@ the outlook of the final ggplot of mean bias for validation data (element 4 of
 the output list)}
 
 \item{methods}{a vector of strings related to methods that will be compared. A full
-method vector is methods = c("MLR", "RIDGE", "LASSO", "POLY", "ANN", "MT", "BMT", "RF").
+method vector is methods = c("MLR", "BRNN", "MT", "BMT", "RF").
 To use only a subset of methods, pass a vector of methods that you would like to compare.}
 }
 \value{
-a list with five elements:
+a list with eight elements:
          $mean_std,  data frame with calculated metrics for five regression methods.
           For each regression method and each calculated metric, mean and standard
           deviation are given.
-         $ranks, data frame with ranks of calculated metrics: average rank and %rank_1
+         $ranks, data frame with ranks of calculated metrics: mean rank and %rank_1
           are given.
          $bias_cal, ggplot object of mean bias for calibration data.
          $bias_val, ggplot object of mean bias for validation data. If returns argument
           is set to return only "Calibration" or "Validation" results, only the three
           relevant elements will be returned in the list.
+         $transfer_function, ggplot object with transfer functions of methods.
+         $transfer_function_together, ggplot object with transfer functions of methods
+          plotted together.
          $parameters, a data frame with specifications of parameters used for different
           regression methods.
+         $PCA_output, princomp object: the result output of the PCA analysis.
 }
 \description{
 Calculates performance metrics for train and test data of different
-regression methods: multiple linear regression (MLR), ridge and lasso
-regression, artificial neural networks with Bayesian regularization
-training algorithm (ANN), M5P model trees (MT), model trees with bagging
-(BMT), polynomial regression (POLY) and random forest of regression
-trees (RF). Calculated performance metrics are correlation coefficient,
-root mean squared error (RMSE), root relative squared error (RSSE), index
-of agreement (d), reduction of error (RE), coefficient of efficiency
-(CE) and mean bias.
+regression methods: multiple linear regression (MLR), artificial neural
+networks with Bayesian regularization training algorithm (BRNN),
+M5P model trees (MT), model trees with bagging (BMT) and random forest
+of regression trees (RF). With the subset argument, specific methods of
+interest could be specified. Calculated performance metrics are correlation
+coefficient, root mean squared error (RMSE), root relative squared error
+(RSSE), index of agreement (d), reduction of error (RE), coefficient of
+efficiency (CE) and mean bias.
 }
 \examples{
 \dontrun{
@@ -142,20 +138,21 @@ data(example_dataset_1)
 
 # An example with default settings of machine learning algorithms
 experiment_1 <- compare_methods(formula = MVA~.,
-dataset = example_dataset_1, k = 5, repeats = 1,
-returns = c("Calibration", "Validation"), blocked_CV = TRUE, PCA_transformation = FALSE,
-components_selection = "plot_selection", use_caret = TRUE,
-polynomial_formula = "MVA ~ T_APR + T_aug_sep + T_APR^2")
-experiment_1$mean_std # See a data frame results of mean and standard deviation
-# for different methods
-experiment_1$ranks # See a data frame results of average rank and share of
-# rank 1 for different methods
-experiment_1$bias_cal # See a ggplot of mean bias for calibration data
-experiment_1[[4]] # See a ggplot of mean bias for validation data
-experiment_1[[5]] # Data frame with parameters used for regression methods
+dataset = example_dataset_1, k = 25, repeats = 10,
+returns = c("Calibration", "Validation"), blocked_CV = TRUE,
+PCA_transformation = FALSE, components_selection = "automatic",
+optimize = TRUE, methods = c("MLR", "BRNN"))
+experiment_1$mean_std
+experiment_1$ranks
+experiment_1$bias_cal
+experiment_1$bias_val
+experiment_1$transfer_functions
+experiment_1$transfer_functions_together
+experiment_1$PCA_output
+experiment_1$parameter_values
 
 experiment_2 <- compare_methods(formula = MVA ~ .,
-dataset = example_dataset_1, k = 5, repeats = 100, ANN_neurons = 1,
+dataset = example_dataset_1, k = 5, repeats = 10, BRNN_neurons = 1,
 MT_M = 4, MT_N = FALSE, MT_U = FALSE, MT_R = FALSE, BMT_P = 100,
 BMT_I = 100, BMT_M = 4, BMT_N = FALSE, BMT_U = FALSE, BMT_R = FALSE,
 RF_mtry = 0, RF_maxnodes = 4, RF_ntree = 200, seed_factor = 5,
@@ -163,13 +160,20 @@ returns = c("Calibration"))
 experiment_2$mean_std
 experiment_2$ranks
 experiment_2$bias_cal
+experiment_2$transfer_functions
+experiment_2$transfer_functions_together
+experiment_2$PCA_output
 
-experiment_3 <- compare_methods(formula = MVA~.,
-dataset = example_dataset_1, k = 5, repeats = 10,
-use_caret = TRUE, returns = c("Validation"))
+experiment_3 <- compare_methods(formula = MVA ~ .,
+dataset = example_dataset_1, k = 2, repeats = 5,
+methods = c("MLR", "BRNN", "MT", "BMT"),
+optimize = TRUE, returns = c("Validation"))
 experiment_3$mean_std
 experiment_3$ranks
 experiment_3$bias_val
+experiment_3$transfer_functions
+experiment_3$transfer_functions_together
+experiment_3$parameter_values
 }
 }
 \references{

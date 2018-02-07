@@ -62,7 +62,7 @@
 #' @param eigenvalues_threshold threshold for automatic selection of Principal Components
 #' @param N_components number of Principal Components used as predictors
 #' @param use_median if set to TRUE, median will be used instead of mean to calculate
-#' averages of various ranges of env_data.
+#' means of various ranges of env_data.
 #' @param temporal_stability_check character string, specifying, how temporal stability
 #' between the optimal selection and response variables will be analysed. Current
 #' possibilities are "sequential" and "progressive". Sequential check will split data into
@@ -181,7 +181,6 @@
 #'
 #' example_multiproxy$plot_heatmap
 #' }
-
 
 daily_response <- function(response, env_data, method = "lm",
                            metric = "r.squared", lower_limit = 30,
@@ -798,7 +797,7 @@ daily_response <- function(response, env_data, method = "lm",
   # brnn sometimes (1 - 3 % of calculations) fails to construct a realistic
   # result. In those cases, much lower r.squared (or adj.r.squared) are
   # calculated. smooth_matrix function removes unrealistic calculations and
-  # replace them with an average of values in a window 3 x 3. Maximum value
+  # replace them with mean of values in a window 3 x 3. Maximum value
   # is not affected by any means.
   # [i - 1, j - 1], [i - 1, j], [i - 1, j + 1]
   # [    i, j - 1], [    i, j], [    i, j + 1]

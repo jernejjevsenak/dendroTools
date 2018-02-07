@@ -57,8 +57,7 @@ calculate_metrics <- function(train_predicted, test_predicted,
 
   # Calculating metrics for train (calibration data)
   train_cor <- cor(train_predicted, train_observed)
-  a <- dcv::test.RE(train_observed, train_predicted)
-  train_RMSE <- unname(a[[3]])
+  train_RMSE <- MLmetrics::RMSE(train_predicted, train_observed)
   train_RRSE <- MLmetrics::RRSE(train_predicted, train_observed)
   train_d <- 1 - (sum((train_observed - train_predicted) ^ 2)) /
     sum((abs(train_predicted - mean(train_observed)) +
@@ -76,8 +75,7 @@ calculate_metrics <- function(train_predicted, test_predicted,
 
   #Calculations for test (validation) data
   test_cor <- cor(test_observed, test_predicted)
-  a <- dcv::test.RE(test_observed, test_predicted)
-  test_RMSE <- unname(a[[3]])
+  test_RMSE <- MLmetrics::RMSE(test_predicted, test_observed)
   test_d <- 1 - (sum((test_observed - test_predicted) ^ 2)) /
     sum((abs(test_predicted - mean(test_observed)) +
              abs(test_observed - mean(test_observed))) ^ 2)

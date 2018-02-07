@@ -86,7 +86,7 @@ manually enter the number of components to be used as predictors.}
 \item{N_components}{number of Principal Components used as predictors}
 
 \item{use_median}{if set to TRUE, median will be used instead of mean to calculate
-averages of various ranges of env_data.}
+means of various ranges of env_data.}
 
 \item{temporal_stability_check}{character string, specifying, how temporal stability
 between the optimal selection and response variables will be analysed. Current
