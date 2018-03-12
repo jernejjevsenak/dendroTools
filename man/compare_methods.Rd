@@ -5,14 +5,21 @@
 \title{compare_methods}
 \usage{
 compare_methods(formula, dataset, k = 10, repeats = 2, optimize = TRUE,
-  BRNN_neurons = 1, MT_M = 4, MT_N = F, MT_U = F, MT_R = F,
-  BMT_P = 100, BMT_I = 100, BMT_M = 4, BMT_N = F, BMT_U = F,
-  BMT_R = F, RF_mtry = 0, RF_maxnodes = 4, RF_ntree = 200,
-  seed_factor = 5, returns = c("Calibration", "Validation"), digits = 3,
-  blocked_CV = FALSE, PCA_transformation = FALSE, log_preprocess = TRUE,
+  dataset_complete = NULL, BRNN_neurons = 1, MT_M = 4, MT_N = F,
+  MT_U = F, MT_R = F, BMT_P = 100, BMT_I = 100, BMT_M = 4,
+  BMT_N = F, BMT_U = F, BMT_R = F, RF_P = 100, RF_I = 100,
+  RF_depth = 0, seed_factor = 5, digits = 3, blocked_CV = FALSE,
+  PCA_transformation = FALSE, log_preprocess = TRUE,
   components_selection = "automatic", eigenvalues_threshold = 1,
   N_components = 2, round_bias_cal = 15, round_bias_val = 4,
-  methods = c("MLR", "BRNN", "MT", "BMT", "RF"))
+  n_bins = 30, methods = c("MLR", "BRNN", "MT", "BMT", "RF"),
+  tuning_metric = "RMSE", BRNN_neurons_vector = c(1, 2, 3),
+  MT_M_vector = c(4, 8, 16, 25), MT_N_vector = c(TRUE, FALSE),
+  MT_U_vector = c(TRUE, FALSE), MT_R_vector = c(FALSE),
+  BMT_P_vector = c(100), BMT_I_vector = c(100), BMT_M_vector = c(4, 8, 16,
+  25), BMT_N_vector = c(TRUE, FALSE), BMT_U_vector = c(TRUE, FALSE),
+  BMT_R_vector = c(FALSE), RF_P_vector = c(100), RF_I_vector = c(100),
+  RF_depth_vector = c(0, 2))
 }
 \arguments{
 \item{formula}{an object of class "formula" (or one that can be coerced
@@ -28,6 +35,10 @@ than 2.}
 
 \item{optimize}{if set to TRUE, the package caret will be used to tune parameters
 for regression methods}
+
+\item{dataset_complete}{optional, a data frame with the full length of tree-ring
+parameter, which will be used to reconstruct the climate variable specified
+with the formula argument.}
 
 \item{BRNN_neurons}{number of neurons to be used for the brnn method}
 
@@ -51,19 +62,14 @@ for regression methods}
 
 \item{BMT_R}{use regression trees (argument for bagging of model trees)}
 
-\item{RF_mtry}{Number of variables randomly sampled as candidates at each
-split (argument for random forest)}
+\item{RF_P}{bagSizePercent (argument for random forest)}
 
-\item{RF_maxnodes}{Maximum number of terminal nodes trees in the forest can
-have (argument for random forest)}
+\item{RF_I}{number of iterations (argument for random forest)}
 
-\item{RF_ntree}{Number of trees to grow (argument for random forest)}
+\item{RF_depth}{maxDepth (argument for random forest)}
 
 \item{seed_factor}{an integer that will be used to change the seed options
 for different repeats.}
-
-\item{returns}{A character vector that specifies, whether a calibration and/ or
-validation results should be returned.}
 
 \item{digits}{integer of number of digits to be displayed in the final
 result tables}
@@ -99,27 +105,58 @@ the output list)}
 the outlook of the final ggplot of mean bias for validation data (element 4 of
 the output list)}
 
+\item{n_bins}{number of bins used for the histograms of mean bias}
+
 \item{methods}{a vector of strings related to methods that will be compared. A full
 method vector is methods = c("MLR", "BRNN", "MT", "BMT", "RF").
 To use only a subset of methods, pass a vector of methods that you would like to compare.}
+
+\item{tuning_metric}{a string that specifies what summary metric will be used to select
+the optimal value of tuning parameters. By default, the argument is set to "RMSE". It is
+also possible to use "RSquared".}
+
+\item{BRNN_neurons_vector}{a vector of possible values for BRNN_neurons argument optimization}
+
+\item{MT_M_vector}{a vector of possible values for MT_M argument optimization}
+
+\item{MT_N_vector}{a vector of possible values for MT_N argument optimization}
+
+\item{MT_U_vector}{a vector of possible values for MT_U argument optimization}
+
+\item{MT_R_vector}{a vector of possible values for MT_R argument optimization}
+
+\item{BMT_P_vector}{a vector of possible values for BMT_P argument optimization}
+
+\item{BMT_I_vector}{a vector of possible values for BMT_I argument optimization}
+
+\item{BMT_M_vector}{a vector of possible values for BMT_M argument optimization}
+
+\item{BMT_N_vector}{a vector of possible values for BMT_N argument optimization}
+
+\item{BMT_U_vector}{a vector of possible values for BMT_U argument optimization}
+
+\item{BMT_R_vector}{a vector of possible values for BMT_R argument optimization}
+
+\item{RF_P_vector}{a vector of possible values for RF_P argument optimization}
+
+\item{RF_I_vector}{a vector of possible values for RF_I argument optimization}
+
+\item{RF_depth_vector}{a vector of possible values for RF_depth argument optimization}
 }
 \value{
-a list with eight elements:
-         $mean_std,  data frame with calculated metrics for five regression methods.
-          For each regression method and each calculated metric, mean and standard
-          deviation are given.
-         $ranks, data frame with ranks of calculated metrics: mean rank and %rank_1
-          are given.
-         $bias_cal, ggplot object of mean bias for calibration data.
-         $bias_val, ggplot object of mean bias for validation data. If returns argument
-          is set to return only "Calibration" or "Validation" results, only the three
-          relevant elements will be returned in the list.
-         $transfer_function, ggplot object with transfer functions of methods.
-         $transfer_function_together, ggplot object with transfer functions of methods
-          plotted together.
-         $parameters, a data frame with specifications of parameters used for different
-          regression methods.
-         $PCA_output, princomp object: the result output of the PCA analysis.
+a list with ten elements:
+\tabular{rll}{
+ 1 \tab $mean_std   \tab data frame with calculated metrics for the selected regression methods. For each regression method and each calculated metric, mean and standard deviation are given\cr
+ 2 \tab $ranks \tab data frame with ranks of calculated metrics: mean rank and  share of rank_1 are given \cr
+ 3 \tab $bias_cal   \tab ggplot object of mean bias for calibration data \cr
+ 4 \tab $bias_val    \tab ggplot object of mean bias for validation data \cr
+ 5 \tab $transfer_functions   \tab ggplot object with transfer functions of methods \cr
+ 6 \tab $transfer_functions_together    \tab ggplot object with transfer functions of methods plotted together \cr
+ 7 \tab $parameter_values    \tab a data frame with specifications of parameters used for different regression methods \cr
+ 8 \tab $PCA_output    \tab princomp object: the result output of the PCA analysis \cr
+ 9 \tab $reconstructions    \tab ggplot object: reconstructed dependent variable based on the dataset_complete argument, facet is used to split plots by methods  \cr
+ 10 \tab $reconstructions_together    \tab ggplot object: reconstructed dependent variable based on the dataset_complete argument, all reconstructions are on the same plot
+}
 }
 \description{
 Calculates performance metrics for train and test data of different
@@ -138,10 +175,9 @@ data(example_dataset_1)
 
 # An example with default settings of machine learning algorithms
 experiment_1 <- compare_methods(formula = MVA~.,
-dataset = example_dataset_1, k = 25, repeats = 10,
-returns = c("Calibration", "Validation"), blocked_CV = TRUE,
+dataset = example_dataset_1, k = 25, repeats = 10, blocked_CV = TRUE,
 PCA_transformation = FALSE, components_selection = "automatic",
-optimize = TRUE, methods = c("MLR", "BRNN"))
+optimize = TRUE, methods = c("MLR", "BRNN"), tuning_metric = "RSquared")
 experiment_1$mean_std
 experiment_1$ranks
 experiment_1$bias_cal
@@ -151,12 +187,11 @@ experiment_1$transfer_functions_together
 experiment_1$PCA_output
 experiment_1$parameter_values
 
-experiment_2 <- compare_methods(formula = MVA ~ .,
+experiment_2 <- compare_methods(formula = MVA ~  T_APR,
 dataset = example_dataset_1, k = 5, repeats = 10, BRNN_neurons = 1,
 MT_M = 4, MT_N = FALSE, MT_U = FALSE, MT_R = FALSE, BMT_P = 100,
 BMT_I = 100, BMT_M = 4, BMT_N = FALSE, BMT_U = FALSE, BMT_R = FALSE,
-RF_mtry = 0, RF_maxnodes = 4, RF_ntree = 200, seed_factor = 5,
-returns = c("Calibration"))
+RF_P = 100, RF_I = 100, RF_depth = 0, seed_factor = 5)
 experiment_2$mean_std
 experiment_2$ranks
 experiment_2$bias_cal
@@ -167,13 +202,28 @@ experiment_2$PCA_output
 experiment_3 <- compare_methods(formula = MVA ~ .,
 dataset = example_dataset_1, k = 2, repeats = 5,
 methods = c("MLR", "BRNN", "MT", "BMT"),
-optimize = TRUE, returns = c("Validation"))
+optimize = TRUE)
 experiment_3$mean_std
 experiment_3$ranks
 experiment_3$bias_val
 experiment_3$transfer_functions
 experiment_3$transfer_functions_together
 experiment_3$parameter_values
+
+library(dendroTools)
+library(ggplot2)
+data(dataset_TRW)
+comparison_TRW <- compare_methods(formula = T_Jun_Jul ~ TRW, dataset = dataset_TRW,
+k = 3, repeats = 10, optimize = TRUE, methods = c("MLR", "MT", "BMT", "BRNN"),
+seed_factor = 5, dataset_complete = dataset_TRW_complete)
+comparison_TRW$mean_std
+comparison_TRW$bias_val
+comparison_TRW$transfer_functions + xlab(expression(paste('TRW'))) +
+ylab("June-July Mean Temperature [°C]")
+comparison_TRW$reconstructions
+comparison_TRW$reconstructions_together
+
+
 }
 }
 \references{

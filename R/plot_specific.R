@@ -12,7 +12,7 @@
 #' @return A ggplot2 object containing the plot display
 #'
 #' @examples
-#' }
+#' \dontrun{
 #' data(LJ_daily_temperatures)
 #' data(KRE_daily_temperatures)
 #' data(example_proxies_1)

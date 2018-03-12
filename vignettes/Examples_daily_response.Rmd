@@ -6,7 +6,7 @@ output: rmarkdown::html_document
 fig_caption: yes
         
 vignette: >
-  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteIndexEntry{Examples of the daily_response}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---

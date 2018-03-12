@@ -1,0 +1,183 @@
+---
+title: "compare_methods Vignette"
+author: "Jernej Jevsenak"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{compare_methods vignette}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+<style>
+body {
+text-align: justify; font-size: 16px}
+</style>
+
+
+## 1. The compare_methods() 
+
+This is a short vignette about the compare_methods() function from the dendroTools R package. The compare_methods() uses the k-fold cross-validation to compare different regression methods. Currently, there are five regression methods implemented: artificial neural networks with the Bayesian regularization training algorithm (BRNN), model trees (MT), bagging of model trees (BMT), random forests of regression trees (RF) and (multiple) linear regression (MLR). The calculated performance metrics are the correlation coefficient (r), the root mean squared error, the root relative squared error, the index of agreement, the reduction of error, the coefficient of efficiency and mean bias, calculated as the difference between observed and estimated mean response for the validation and calibration data. The output of the compare_methods() function is a list with 10 elements, which could be retrieved by calling the “$” operator and the element name. Please note, the examples presented here are made computationally less intensive to satisfy the CRAN policy. 
+```{r, echo = FALSE, warning = FALSE}
+library(knitr)
+dt <- data.frame(Element = c("$mean_std", "$std_ranks", "bias_cal", "bias_val", "$transfer_functions", "$transfer_functions_together", "$parameter_values", "$PCA_output", "$reconstructions", "$reconstructions_together"), 
+                 Element_description = c("data frame with calculated metrics for the selected regression methods. For each regression method and each calculated metric, mean and standard deviation are given", "data frame with ranks of calculated metrics: mean rank and  share of rank_1 are given", "ggplot object of mean bias for calibration data", "ggplot object of mean bias for validation data", "ggplot object with transfer functions of different methods, facet is used to separate methods", "ggplot object with transfer functions of methods plotted together", "a data frame with specifications of parameters used for different regression methods", "princomp object: the result output of the PCA analysis", "ggplot object: reconstructed dependent variable based on the dataset_complete argument, facet is used to split plots by methods", "ggplot object: reconstructed dependent variable based on the dataset_complete argument, all reconstructions are on the same plot"))
+kable(dt, "html")
+
+```
+## 2. Basic example
+
+For the basic example, we will use the dataset with the mean vessel area (MVA) chronology and the mean April temperature, the dataset is saved as dataset_MVA. All five regression methods will be compared with 10-fold cross-validation repeated 2 times. The *optimize* argument is set to TRUE, therefore all tuning parameters will be defined in a preliminary optimization phase. After the comparison, the output elements are retrieved. 
+
+```{r, results = 'hide', warning=FALSE}
+# Load the dendroTools R package
+library(dendroTools)
+
+# Load the data
+data(dataset_MVA)
+
+# Basic example
+basic_example <- compare_methods(formula = T_Apr ~ MVA, dataset = dataset_MVA, k = 10, repeats = 2, optimize = TRUE)
+```
+
+```{r }
+# The data frame with mean and standard deviation of performance metrics for the calibration and the validation data
+basic_example$mean_std
+```
+
+```{r }
+# The data frame with non-parametric estimation of different methods: average rank and share of rank one
+basic_example$rank
+```
+
+```{r, fig.align='center', warning=FALSE, fig.width=7, fig.height=5, fig.cap=paste("Histogram for the validation data for the basic_example")}
+# See the histogram of mean bias for the validation data
+basic_example$bias_val
+```
+
+```{r, fig.align='center', warning=FALSE, fig.width=7, fig.height=5, fig.cap=paste("Histogram for the calibration data for the basic_example")}
+# See the histogram of mean bias for the calibration data
+basic_example$bias_cal
+```
+
+```{r, fig.align='center', warning=FALSE, fig.width=7, fig.height=5, fig.cap=paste("The transfer functions of different methods, facet is used to separate plots by method.")}
+# See the transfer functions, separated by facets. This is a ggplot object and could be easily customized. 
+library(ggplot2)
+basic_example$transfer_functions +   
+  xlab(expression(paste('MVA [',mm^2,']'))) +
+  ylab("April Mean Temperature [°C]")
+```
+
+```{r, fig.align='center', warning=FALSE, fig.width=7, fig.height=5, fig.cap=paste("The transfer functions of different methods, all functions are on the same plot, therefore it is easy to see the differences among different methods.")}
+# See the transfer functions, plotted together. This is a ggplot object and could be easily customized. 
+basic_example$transfer_functions_together +   
+  xlab(expression(paste('MVA [',mm^2,']'))) +
+  ylab("April Mean Temperature [°C]")
+```
+
+```{r }
+# The data frame of optimized tuning parameters for different methods
+basic_example$parameter_values
+```
+
+
+## 3. Principal component analysis in combination with the *compare_methods()*
+
+Principal Component Analysis (PCA) is commonly used with tree-ring data to reduce the full set of original tree-ring chronologies to a more manageable set of transformed variables. These transformed variables, the set of principal component scores, are then used as predictors in climate reconstruction models. The PCA also acts to strengthen the common regional-scale climate response within a group of tree-ring chronologies by concentrating the common signal in the components with the largest eigenvalues. 
+
+To use PCA regression within the *compare_methods()*, set the argument *PCA_transformation* to TRUE. All independent variables in the *dataset* data frame will be transformed using the PCA transformation. If the parameter *log_preprocess* is set to TRUE, variables will be transformed with logarithmic transformation before used in PCA. With the argument *components_selection*, we specify how to select PC scores that will be used as predictors. There are three options: "automatic", "manual" and "plot_selection". If argument is set to "automatic", all PC scores with eigenvalues above 1 will be selected. This threshold could be changed by changing the *eigenvalues_threshold* argument. If argument is set to "manual", user should set the number of components with *N_components* argument. If *components_selection* is set to "plot_selection", A scree plot will be shown, and a user must manually enter the number of components to be used as predictors. The latter seems to be the most reasonable choice. 
+
+For the example with PCA, we use dataset dataset_MVA_individual, which consist of 10 individual Mean Vessel Area (MVA) chronologies and mean April temperature for the Ljubljana region, Slovenia. The dataset has 56 observations. The selection of components is set to "manual", *N_components* to be used in the later analysis is set to 2. In this example, the 5-fold cross-validation with 2 repeats will be used to compare MT, MLR and BRNN. The subset of methods could be set with the *methods* argument. The argument optimize is set to TRUE, therefore all tuning parameters will be set automatically. 
+
+```{r, results = 'hide', warning=FALSE}
+# Load the dendroTools R package
+library(dendroTools)
+
+# Load data
+data(dataset_MVA_individual)
+
+# Example PCA
+example_PCA <- compare_methods(formula = T_Apr ~ ., dataset = dataset_MVA_individual, k = 5, repeats = 2, optimize = TRUE, methods = c("MLR", "MT", "BRNN"), PCA_transformation = TRUE, components_selection = "manual", N_components = 2, seed_factor = 5)
+```
+```{r }
+# Get the summary statistics for the PCA
+summary(example_PCA$PCA_output)
+```
+
+```{r }
+# The mean and standard deviation data frame 
+example_PCA$mean_std
+```
+
+
+## 4. Example of multiproxy analysis
+
+The *compare_methods()* enables the comparison of methods for regression problems with two or more independent variables. However, users should select multiple proxies reasonably and with caution, since there is nothing to prevent from including colinear variables. To perform the comparison of methods with multiproxy variables, simply include dataset with more than one independent variable and specify the relationship with the *formula* argument. If metrics on validation data are much lower than on calibration data, there is a problem of overfitting and users should exclude some independent variables and repeat the analysis.
+
+For the *multiproxy_example*, we will use *example_dataset_1*, which consist of the mean vessel area (MVA) chronology and two temperature variables, the mean April temperature (T_APR) and the mean temperature from August to September (T_aug_sep) from the previous growing season. To compare methods with multiproxy approach, specify formula with two independent variables, such as *formula = MVA ~ T_APR + T_aug_sep*. Here, we will compare MT, BMT and RF with 10-fold cross-validation and two repeats. 
+
+```{r, results = 'hide'}
+# Load the dendroTools R package
+library(dendroTools)
+
+# Load data
+data(example_dataset_1)
+
+# Example multiproxy
+example_multiproxy <- compare_methods(formula = MVA ~ T_APR + T_aug_sep, dataset = example_dataset_1, k = 10, repeats = 2, optimize = TRUE, methods = c("MT", "BMT", "RF"))
+```
+
+
+## 5. Example of climate reconstruction
+
+Reconstructions of past climate conditions include reconstructions of past temperature, precipitation, vegetation, streamflow, sea surface temperature, and other climatic or climate-dependent conditions. With the *compare_methods()* it is possible to directly reconstruct the dependent variable specified with the *formula* argument. To do so, supply additional complete dataset with tree-ring chronology that goes beyond the observations of instrumental records. 
+
+For the *example_reconstruction*, we use *data_TRW* dataset, which includes a tree-ring width (TRW) chronology of *Pinus nigra* from Albania and mean June-July temperature from Albania. The complete TRW chronology is supplied with the *dataset_TRW_complete*. In this example, we will compare RF and MLR models with 3-fold cross-validation and 1 repeat.
+
+```{r, results = 'hide'}
+# Load the dendroTools R package
+library(dendroTools)
+
+# Load the data
+data(dataset_TRW)
+data(dataset_TRW_complete)
+
+# Example reconstruction
+example_reconstruction <- compare_methods(formula = T_Jun_Jul ~ TRW, dataset = dataset_TRW, k = 3, optimize = TRUE, methods = c("MLR", "RF"), dataset_complete = dataset_TRW_complete)
+```
+
+```{r, fig.align='center', warning=FALSE, fig.width=7, fig.height=5, fig.cap=paste("The reconstructed June-July temperatures based on the dataset_complete argument, facet is used to split plots by methods.")}
+example_reconstruction$reconstructions
+```
+
+```{r, fig.align='center', warning=FALSE, fig.width=7, fig.height=5, fig.cap=paste("The reconstructed June-July temperatures based on the dataset_complete argument, all reconstructions are on the same plot. The RF model reconstructed temperatures with much lower variance than the MLR model.")}
+example_reconstruction$reconstructions_together
+```
+ 
+
+## 6. Tuning the machine learning parameters
+
+Machine learning methods have several tuning parameters that need to be set, e.g. the number of neurons for the BRNN (parameter *BRNN_neurons = 2*). By default the *optimize* argument is set to *TRUE*, therefore all parameters will be automatically optimizied in a preliminary cross-validation phase, where different combinations of parameters are tested and the best combination for each methods is later used for the final model comparison. Each parameter has a pre-defined vector of possible values, however, this vector of possible values could be extended and therefore a wider space of tunned values could be explored. To change the vector of possible values for the *BRNN_neurons* parameter, use e.g.  *BRNN_neurons_vector = c(1, 2, 3, 4, 5)*. Bellow, see the table of all tuning parameters together with the vectors of possible values.
+
+```{r, echo = FALSE, warning = FALSE}
+library(knitr)
+dt <- data.frame(Method = c("BRNN", "MT", "MT", "MT", "MT", "BMT", "BMT", "BMT", "BMT", "BMT", "BMT", "RF", "RF"),
+                 Parameter = c("BRNN_neurons", "MT_M", "MT_N", "MT_U", "MT_R", "BMT_P", "BMT_I", "BMT_M", "BMT_N", "BMT_U", "BMT_R", "RF_P", "RF_I"), Vector_for_optimization = c("BRNN_neurons_vector", "MT_M_vector", "MT_N_vector", "MT_U_vector", "MT_R_vector", "BMT_P_vector", "BMT_I_vector", "BMT_M_vector", "BMT_N_vector", "BMT_U_vector", "BMT_R_vector", "RF_P_vector", "RF_I_vector"))
+kable(dt, "html")
+
+```
+To set the tuning parameters manually, set the parameter *optimize* to *FALSE* and supply the selected value of each tuning parameter with the corresponding argument (if not, the default value will be used). Here is a simple example, where tuning parameters are set manually.
+
+```{r, results = 'hide'}
+# Load the dendroTools R package
+library(dendroTools)
+
+# Load the data
+data(example_dataset_1)
+
+example_optimize <- compare_methods(formula = MVA ~  T_APR, dataset = example_dataset_1, k = 5, repeats = 10, optimize = FALSE, BRNN_neurons = 1, MT_M = 4, MT_N = FALSE, MT_U = FALSE, MT_R = FALSE, BMT_P = 100, BMT_I = 100, BMT_M = 4, BMT_N = FALSE, BMT_U = FALSE, BMT_R = FALSE, RF_P = 100, RF_I = 100, RF_depth = 0, seed_factor = 5)
+```
+```{r }
+# The data frame of tuning parameters, as defined by the user
+example_optimize$parameter_values
+```

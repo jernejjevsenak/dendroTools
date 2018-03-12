@@ -2,15 +2,16 @@ citHeader("To cite dendroTools in publications use:")
 
 citEntry(entry = "Article",
 title        = "{dendroTools}: R package for studying linear and nonlinear responses between tree-rings and daily environmental data",
-author       = personList(as.person("Jevsenak J."),
-                 as.person("Levanic T.")),
+author       = personList(as.person("Jevsenak J."), as.person("Levanic T.")),
 journal      = "Dendrochronologia",
+volume       = "48",
+pages        = "32-39",
 year         = "2018",
 doi          = "10.1016/j.dendro.2018.01.005",
 
 textVersion  =
 paste("Jevsenak J. and Levanic T., 2018.",
     "dendroTools: R package for studying linear and nonlinear responses between tree-rings and daily environmental data.",
-    "Dendrochronologia.",
+    "Dendrochronologia, 48, 32-39.",
     "doi 10.1016/j.dendro.2018.01.005")
 )
