@@ -1678,7 +1678,7 @@ if (numIND == 1) {
   # difference among transfer functions
   diff2 <- (range_max - range_min)/4
 
-  full_range <- data.frame(c1 = NA, c2 = seq(range_min - abs(diff2), range_max + abs(diff2), diff2/100))
+  full_range <- data.frame(c1 = NA, c2 = seq(range_min - abs(diff2), range_max + abs(diff2), diff2/1000))
   colnames(full_range) <- c(Dep_name, Ind_name)
   #full_range <- select(full_range, colnames(dataset))
 
