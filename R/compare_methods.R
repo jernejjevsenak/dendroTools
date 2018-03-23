@@ -40,6 +40,10 @@
 #' for different repeats.
 #' @param digits integer of number of digits to be displayed in the final
 #' result tables
+#' @param edge_share the share of the data to be considered as the edge (extreme) data.
+#' This argument could be between 0.10 and 0.50. If the argument is set to 0.10, then
+#' the 5 % of the maximal extreme values and 5 % of the minimal extreme values are
+#' considered to be the edge data.
 #' @param blocked_CV default is FALSE, if changed to TRUE, blocked cross-validation
 #' will be used to compare regression methods.
 #' @param PCA_transformation if set to TRUE, all independent variables will be
@@ -89,14 +93,15 @@
 #'\tabular{rll}{
 #'  1 \tab $mean_std   \tab data frame with calculated metrics for the selected regression methods. For each regression method and each calculated metric, mean and standard deviation are given\cr
 #'  2 \tab $ranks \tab data frame with ranks of calculated metrics: mean rank and  share of rank_1 are given \cr
-#'  3 \tab $bias_cal   \tab ggplot object of mean bias for calibration data \cr
-#'  4 \tab $bias_val    \tab ggplot object of mean bias for validation data \cr
-#'  5 \tab $transfer_functions   \tab ggplot object with transfer functions of methods \cr
-#'  6 \tab $transfer_functions_together    \tab ggplot object with transfer functions of methods plotted together \cr
-#'  7 \tab $parameter_values    \tab a data frame with specifications of parameters used for different regression methods \cr
-#'  8 \tab $PCA_output    \tab princomp object: the result output of the PCA analysis \cr
-#'  9 \tab $reconstructions    \tab ggplot object: reconstructed dependent variable based on the dataset_complete argument, facet is used to split plots by methods  \cr
-#'  10 \tab $reconstructions_together    \tab ggplot object: reconstructed dependent variable based on the dataset_complete argument, all reconstructions are on the same plot
+#'  3 \tab $edge_results   \tab data frame with calculated performance metrics for the central-edge test. The central part of the data represents the calibration data, while the edge data, i.e. extreme values, represent the edge data. Different regression models are calibrated using the central data and validated for the edge (extreme) data. This test is particularly important to assess the performance of models for the prediction of the extreme data. The share of the edge (extreme) data is defined with the edge_share argument \cr
+#'  4 \tab $bias_cal   \tab ggplot object of mean bias for calibration data \cr
+#'  5 \tab $bias_val    \tab ggplot object of mean bias for validation data \cr
+#'  6 \tab $transfer_functions   \tab ggplot object with transfer functions of methods \cr
+#'  7 \tab $transfer_functions_together    \tab ggplot object with transfer functions of methods plotted together \cr
+#'  8 \tab $parameter_values    \tab a data frame with specifications of parameters used for different regression methods \cr
+#'  9 \tab $PCA_output    \tab princomp object: the result output of the PCA analysis \cr
+#'  10 \tab $reconstructions    \tab ggplot object: reconstructed dependent variable based on the dataset_complete argument, facet is used to split plots by methods  \cr
+#'  11 \tab $reconstructions_together    \tab ggplot object: reconstructed dependent variable based on the dataset_complete argument, all reconstructions are on the same plot
 #'}
 #'
 #' @export
@@ -199,7 +204,7 @@ compare_methods <- function(formula, dataset, k = 10, repeats = 2,
                             components_selection = 'automatic',
                             eigenvalues_threshold = 1, N_components = 2,
                             round_bias_cal = 15, round_bias_val = 4,
-                            n_bins = 30,
+                            n_bins = 30, edge_share = 0.10,
                             methods = c("MLR", "BRNN", "MT", "BMT", "RF"),
                             tuning_metric = "RMSE",
                             BRNN_neurons_vector = c(1, 2, 3),
@@ -227,7 +232,7 @@ if (repeats > 1 & blocked_CV == TRUE){
 
 dataset <- data.frame(dataset) # dataset needs to be of class data.frame!
 
-full_methods = c("MLR", "BRNN", "MT", "BMT", "RF")
+full_methods <- c("MLR", "BRNN", "MT", "BMT", "RF")
 
 methods <- sort(methods)
 
@@ -1510,6 +1515,10 @@ pred <- NULL
 method <- NULL
 Year <- NULL
 reconstruction <- NULL
+edge_observation <- NULL
+edge_prediction <- NULL
+type <- NULL
+data_edge_central <- NULL
 
 ranks_together$Method <- methods
 ranks_together$Period <- c(rep("cal", length(methods)), rep("val", length(methods)))
@@ -1865,10 +1874,203 @@ plot_4 <- ggplot(reconstructions, aes(x = Year, y = reconstruction, group = meth
   plot_4 <- "The dataset full argument is not supplied, therefore reconstrucions are not calculated."
 }
 
-#####################################################################
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+############################################################
+#   The comparison of methods, only the edge instances     #
+############################################################
+# Here, I extract the "edge data", I calibrate models using the central part of the data and
+# afterwards use it on the edge data to see, how methods perform in modeling
+if (numIND == 1) {
+edge_factor <- round(nrow(dataset)*(edge_share/2),1)
+
+dataset_max <- dplyr::arrange(dataset, desc(dataset[, -DepIndex]))[1:edge_factor,]
+dataset_min <- dplyr::arrange(dataset, desc(dataset[, -DepIndex]))[(nrow(dataset)-edge_factor+1):nrow(dataset),]
+dataset_edges <- rbind(dataset_max, dataset_min)
+dataset_central <- dplyr::arrange(dataset, desc(dataset[, -DepIndex]))[(edge_factor+1):(nrow(dataset)-edge_factor),]
+
+
+
+  MLR_model <- lm(formula, data = dataset_central)
+  edge_prediction <- data.frame(value = predict(MLR_model, dataset_edges), data_edge_central = "edge", type = "predicted", method = "MLR")
+  central_prediction <- data.frame(value = predict(MLR_model, dataset_central), data_edge_central = "central", type = "predicted", method = "MLR")
+  edge_observed <- data.frame(value = dataset_edges[, DepIndex], data_edge_central = "edge", type = "observed", method = "MLR")
+  central_observed <- data.frame(value = dataset_central[, DepIndex], data_edge_central = "central", type = "observed", method = "MLR")
+  MLR_central_edge <- rbind(edge_prediction, central_prediction, edge_observed, central_observed)
+
+
+    #BRNN Model
+  capture.output(BRNN_model <- brnn(formula, data = dataset_central, BRNN_neurons = BRNN_neurons, verbose = FALSE))
+  edge_prediction <- data.frame(value = predict(BRNN_model, dataset_edges), data_edge_central = "edge", type = "predicted", method = "BRNN")
+  central_prediction <- data.frame(value = predict(BRNN_model, dataset_central), data_edge_central = "central", type = "predicted", method = "BRNN")
+  edge_observed <- data.frame(value = dataset_edges[, DepIndex], data_edge_central = "edge", type = "observed", method = "BRNN")
+  central_observed <- data.frame(value = dataset_central[, DepIndex], data_edge_central = "central", type = "observed", method = "BRNN")
+  BRNN_central_edge <- rbind(edge_prediction, central_prediction, edge_observed, central_observed)
+
+  # Model Trees
+  MT_model <- M5P(formula, data = dataset_central,
+                  control = Weka_control(M = MT_M, N =  MT_N, U = MT_U, R = MT_R))
+  edge_prediction <- data.frame(value = predict(MT_model, dataset_edges), data_edge_central = "edge", type = "predicted", method = "MT")
+  central_prediction <- data.frame(value = predict(MT_model, dataset_central), data_edge_central = "central", type = "predicted", method = "MT")
+  edge_observed <- data.frame(value = dataset_edges[, DepIndex], data_edge_central = "edge", type = "observed", method = "MT")
+  central_observed <- data.frame(value = dataset_central[, DepIndex], data_edge_central = "central", type = "observed", method = "MT")
+  MT_central_edge <- rbind(edge_prediction, central_prediction, edge_observed, central_observed)
+
+  #M5 Model with bagging
+  BMT_model <- Bagging(formula,
+                       data = dataset_central,
+                       control = Weka_control(P = BMT_P, I = BMT_I,
+                                              W = list("weka.classifiers.trees.M5P",
+                                                       M = BMT_M, N = BMT_N,
+                                                       U = BMT_U, R = BMT_R)))
+  edge_prediction <- data.frame(value = predict(BMT_model, dataset_edges), data_edge_central = "edge", type = "predicted", method = "BMT")
+  central_prediction <- data.frame(value = predict(BMT_model, dataset_central), data_edge_central = "central", type = "predicted", method = "BMT")
+  edge_observed <- data.frame(value = dataset_edges[, DepIndex], data_edge_central = "edge", type = "observed", method = "BMT")
+  central_observed <- data.frame(value = dataset_central[, DepIndex], data_edge_central = "central", type = "observed", method = "BMT")
+  BMT_central_edge <- rbind(edge_prediction, central_prediction, edge_observed, central_observed)
+
+  # Random Forest
+  RF <- make_Weka_classifier("weka/classifiers/trees/RandomForest")
+  RF_model <- RF(formula = formula, data = dataset_central,
+                 control = Weka_control(P = RF_P, I = RF_I, depth = RF_depth))
+  edge_prediction <- data.frame(value = predict(RF_model, dataset_edges), data_edge_central = "edge", type = "predicted", method = "RF")
+  central_prediction <- data.frame(value = predict(RF_model, dataset_central), data_edge_central = "central", type = "predicted", method = "RF")
+  edge_observed <- data.frame(value = dataset_edges[, DepIndex], data_edge_central = "edge", type = "observed", method = "RF")
+  central_observed <- data.frame(value = dataset_central[, DepIndex], data_edge_central = "central", type = "observed", method = "RF")
+  RF_central_edge <- rbind(edge_prediction, central_prediction, edge_observed, central_observed)
+
+  edge_central_data <- rbind(MLR_central_edge,
+                             BRNN_central_edge,
+                             MT_central_edge,
+                             BMT_central_edge,
+                             RF_central_edge)
+
+  edge_central_data <- dplyr::filter(edge_central_data, method %in% methods)
+
+  edge_rezults <- edge_central_data %>%
+                    group_by(method) %>%
+                    summarise(r_central = cor(value[data_edge_central == "central" & type == "predicted"],
+                                          value[data_edge_central == "central" & type == "observed"]),
+                             r_edge = cor(value[data_edge_central == "edge" & type == "predicted"],
+                                      value[data_edge_central == "edge" & type == "observed"]),
+
+                             RMSE_central = MLmetrics::RMSE(value[data_edge_central == "central" & type == "predicted"],
+                                                            value[data_edge_central == "central" & type == "observed"]),
+                             RMSE_edge =  MLmetrics::RMSE(value[data_edge_central == "edge" & type == "predicted"],
+                                                           value[data_edge_central == "edge" & type == "observed"]),
+
+                             RRSE_central = MLmetrics::RRSE(value[data_edge_central == "central" & type == "predicted"],
+                                                            value[data_edge_central == "central" & type == "observed"]),
+                             RRSE_edge = MLmetrics::RRSE(value[data_edge_central == "edge" & type == "predicted"],
+                                                           value[data_edge_central == "edge" & type == "observed"]),
+
+                             d_central  = 1 - (sum((value[data_edge_central == "central" & type == "observed"] -
+                                                      value[data_edge_central == "central" & type == "predicted"]) ^ 2)) /
+                               sum((abs(value[data_edge_central == "central" & type == "predicted"] -
+                                          mean(value[data_edge_central == "central" & type == "observed"])) +
+                                      abs(value[data_edge_central == "central" & type == "observed"] -
+                                            mean(value[data_edge_central == "central" & type == "observed"]))) ^ 2),
+                             d_edge = 1 - (sum((value[data_edge_central == "edge" & type == "observed"] -
+                                                   value[data_edge_central == "edge" & type == "predicted"]) ^ 2)) /
+                                sum((abs(value[data_edge_central == "edge" & type == "predicted"] -
+                                           mean(value[data_edge_central == "edge" & type == "observed"])) +
+                                       abs(value[data_edge_central == "edge" & type == "observed"] -
+                                             mean(value[data_edge_central == "edge" & type == "observed"]))) ^ 2),
+
+                             RE_central = 1 - (sum((value[data_edge_central == "central" & type == "observed"] -
+                                                      value[data_edge_central == "central" & type == "predicted"]) ^ 2) /
+                                                 sum((value[data_edge_central == "central" & type == "observed"] -
+                                                        mean(value[data_edge_central == "edge" & type == "observed"])) ^ 2)),
+                             RE_edge = 1 - (sum((value[data_edge_central == "edge" & type == "observed"] -
+                                                    value[data_edge_central == "edge" & type == "predicted"]) ^ 2) /
+                                             sum((value[data_edge_central == "edge" & type == "observed"] -
+                                                    mean(value[data_edge_central == "central" & type == "observed"])) ^ 2)),
+
+                             CE_central  = 1 - (sum((value[data_edge_central == "central" & type == "observed"] -
+                                                       value[data_edge_central == "central" & type == "predicted"]) ^ 2) /
+                                                  sum((value[data_edge_central == "central" & type == "observed"] -
+                                                         mean(value[data_edge_central == "central" & type == "observed"])) ^ 2)),
+                              CE_edge  = 1 - (sum((value[data_edge_central == "edge" & type == "observed"] -
+                                                     value[data_edge_central == "edge" & type == "predicted"]) ^ 2) /
+                                                sum((value[data_edge_central == "edge" & type == "observed"] -
+                                                       mean(value[data_edge_central == "edge" & type == "observed"])) ^ 2))
+
+                              )
+
+
+
+# test_observed: value[data_edge_central == "edge" & type == "observed"]
+# test_predicted: value[data_edge_central == "edge" & type == "predicted"]
+# train_observed: value[data_edge_central == "central" & type == "observed"]
+# train_predicted: value[data_edge_central == "central" & type == "predicted"]
+
+
+
+  edge_rezults_t <- t(edge_rezults[,-1])
+  colnames(edge_rezults_t) <- edge_rezults$method
+  edge_rezults_t <- round(edge_rezults_t, digits)
+  edge_rezults_t <- data.frame(edge_rezults_t, Period =  c("cal_central", "val_edge"),
+                               Metric = c("r", "r", "RMSE", "RMSE", "RRSE", "RRSE",
+                             "d", "d", "RE", "RE", "CE", "CE"))
+  edge_rezults_t <- select(edge_rezults_t, Metric, Period, methods)
+  row.names(edge_rezults_t) <- NULL
+
+
+} else {
+  edge_rezults_t <- "No edge experiment is performed for regression problems with more than 2 independent variables."
+}
+
+
+
+
+  #####################################################################
 
 # If Calibration and Validation data should be returned, then this is our final results
   final_list <- list(mean_std = Rezults_mean_std, ranks = Rezults_ranks,
+                     edge_results = edge_rezults_t,
                      bias_cal = suppressMessages(gg_object_cal),
                      bias_val = suppressMessages(gg_object_val),
                      transfer_functions = plot_1,
@@ -1877,8 +2079,7 @@ plot_4 <- ggplot(reconstructions, aes(x = Year, y = reconstruction, group = meth
                      PCA_output = PCA_result,
                      reconstructions = plot_4,
                      reconstructions_together = plot_3)
-# Return the final list
 
-final_list
+return(final_list) # Return the final list
 
 }
