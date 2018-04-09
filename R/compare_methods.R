@@ -96,8 +96,8 @@
 #'  3 \tab $edge_results   \tab data frame with calculated performance metrics for the central-edge test. The central part of the data represents the calibration data, while the edge data, i.e. extreme values, represent the edge data. Different regression models are calibrated using the central data and validated for the edge (extreme) data. This test is particularly important to assess the performance of models for the prediction of the extreme data. The share of the edge (extreme) data is defined with the edge_share argument \cr
 #'  4 \tab $bias_cal   \tab ggplot object of mean bias for calibration data \cr
 #'  5 \tab $bias_val    \tab ggplot object of mean bias for validation data \cr
-#'  6 \tab $transfer_functions   \tab ggplot object with transfer functions of methods \cr
-#'  7 \tab $transfer_functions_together    \tab ggplot object with transfer functions of methods plotted together \cr
+#'  6 \tab $transfer_functions   \tab ggplot or plotly object with transfer functions of methods \cr
+#'  7 \tab $transfer_functions_together    \tab ggplot or plotly object with transfer functions of methods plotted together \cr
 #'  8 \tab $parameter_values    \tab a data frame with specifications of parameters used for different regression methods \cr
 #'  9 \tab $PCA_output    \tab princomp object: the result output of the PCA analysis \cr
 #'  10 \tab $reconstructions    \tab ggplot object: reconstructed dependent variable based on the dataset_complete argument, facet is used to split plots by methods  \cr
@@ -153,6 +153,7 @@
 #' experiment_1$transfer_functions_together
 #' experiment_1$PCA_output
 #' experiment_1$parameter_values
+#' experiment_1$transfer_functions
 #'
 #' experiment_2 <- compare_methods(formula = MVA ~  T_APR,
 #' dataset = example_dataset_1, k = 5, repeats = 10, BRNN_neurons = 1,
@@ -220,7 +221,7 @@ compare_methods <- function(formula, dataset, k = 10, repeats = 2,
                             BMT_R_vector = c(FALSE),
                             RF_P_vector = c(100),
                             RF_I_vector = c(100),
-                            RF_depth_vector  = c(0, 2)){
+                            RF_depth_vector  = c(0, 2)) {
 
 if (k < 2 | k > 26){
   stop(paste0("Selected k is ", k,", but it should be between 2 and 26"))
@@ -235,6 +236,8 @@ dataset <- data.frame(dataset) # dataset needs to be of class data.frame!
 full_methods <- c("MLR", "BRNN", "MT", "BMT", "RF")
 
 methods <- sort(methods)
+
+set.seed(seed_factor) # We ensure that the optimization results are always the same
 
 # This function is used to calculate metrics r, RMSE, RRSE, d, RE, CE and bias
 # for train and test data
@@ -303,6 +306,8 @@ DepIndex <- grep(as.character(formula[[2]]), colnames(dataset))
 quazi_mod <- lm(formula, data = dataset)
 numIND <- length(quazi_mod[[1]]) - 1
 indep_names <- colnames(quazi_mod[[7]][[1]])[-1]
+indep_name_1 <- colnames(quazi_mod[[7]][[1]])[-1][1]
+indep_name_2 <- colnames(quazi_mod[[7]][[1]])[-1][2]
 allnames <- c(as.character(formula[[2]]), indep_names)
 
 # So, sometimes there are variables in dataframe, which are not used as predictors.
@@ -763,12 +768,6 @@ if (optimize == TRUE & blocked_CV == TRUE){
 
 
 
-
-
-
-
-
-
   if ("MT" %in% methods){
 
     print("Tuning parameters for the MT method...")
@@ -1075,7 +1074,7 @@ if (blocked_CV == FALSE){
 # create progress bar
 pb <- txtProgressBar(min = 0, max = repeats, style = 3)
 
-b = 0 # place holder for saving rezults
+b = 0 # place holder for saving results
 
 for (m in 1:repeats){
 
@@ -1175,7 +1174,7 @@ if (blocked_CV == TRUE){
   # create progress bar
   pb <- txtProgressBar(min = 0, max = k, style = 3)
 
-  b = 0 # place holder for saving rezults
+  b = 0 # place holder for saving results
 
   # Here, idex of dependent variable is extracted and later used to locate the
   # observed values
@@ -1575,7 +1574,7 @@ df_all_avg$Metric <- c("r", "r", "RMSE", "RMSE", "RRSE", "RRSE",
                             "d", "d", "RE", "RE", "CE", "CE")
 row.names(df_all_avg) <- NULL
 
-Rezults_mean_std <- dplyr::select(df_all_avg, Metric, Period, df_all_avg_colnames)
+Results_mean_std <- dplyr::select(df_all_avg, Metric, Period, df_all_avg_colnames)
 
 # Here, we organize the rank and share1 data frame
 
@@ -1603,7 +1602,7 @@ for (i in 1:length(temp_string_rank)){
   sp_position <- sp_position + 1
 }
 
-Rezults_ranks <- dplyr::select(ranks, Metric, Period,
+Results_ranks <- dplyr::select(ranks, Metric, Period,
                                as.vector(do.call(cbind, emptly_list)))
 
 ##################################################################
@@ -1769,17 +1768,243 @@ plot_2 <- ggplot(predictions, aes(x = range, y = pred, group = method, colour = 
   ylab("Dependent Variable") +
   ggtitle("Transfer Functions Plotted Together") +
   journal_theme
-} else (plot_1 = "transfer functions are not avaliable for regression problems with more than 1 independent variable!")
 
-class_plot_1 <- class(plot_1)[[1]]
-if (class_plot_1 == "character") {
-  plot_2 = "Transfer functions are not avaliable for regression problems with more than 1 independent variable!"
-}
+} else if (numIND == 2){
+
+  modelList = list()
+  plotList = list()
+  plotListNames = methods
+
+  if ("BMT" %in% methods){
+    modelList$BMT = Bagging(formula, dataset, control = Weka_control(P = BMT_P, I = BMT_I,
+                                                                    W = list("weka.classifiers.trees.M5P",
+                                                                             M = BMT_M, N = BMT_N, U = BMT_U, R = BMT_R)))
+  }
+
+  if ("BRNN" %in% methods){
+    modelList$BRNN = brnn(formula, dataset, neurons = BRNN_neurons)
+  }
+
+  if ("MLR" %in% methods){
+    modelList$MLR = lm(formula, dataset)
+  }
+
+  if ("MT" %in% methods){
+    modelList$MT = M5P(formula, dataset, control = Weka_control(M = MT_M, N = MT_N, U = MT_U, R = MT_R))
+  }
+
+  if ("RF" %in% methods){
+    RF = make_Weka_classifier("weka/classifiers/trees/RandomForest")
+    modelList$RF = RF(formula, dataset, control = Weka_control(P = RF_P, I = RF_I, depth = RF_depth))
+  }
+
+  for (i in 1:length(modelList)){
+
+    model = modelList[[i]]
+
+    x1 = dataset[[indep_name_1]]
+    x2 = dataset[[indep_name_2]]
+    y = dataset[[DepName]]
+
+    grd <- data.frame(X1 = seq(range(x1)[1],range(x1)[2],len=40),
+                      X2 = seq(range(x2)[1],range(x2)[2],len=40))
+
+    names(grd) <- c(indep_names)
+    grd$pred <- predict(model, newdata=grd)
+    grd <- grd[order(grd[[indep_name_1]],grd[[indep_name_2]]),]
+
+
+    x1 <- unique(grd[[indep_name_1]])
+    x2 <- unique(grd[[indep_name_2]])   # shouldn't have used y
+    z=matrix(grd$pred,length(x1),length(x2))
+
+    color_workaround <- rep(0,length(grd$pred))
+    dim(color_workaround) <- dim(grd$pred)
+
+    thisName = plotListNames[i]
+    plotList[[thisName]] = plot_ly(x = x1, y = x2, z = ~z, name =thisName,
+                                   scene = paste0('scene',i)) %>%
+      add_surface(opacity = 0.5,  showscale=FALSE, hoverinfo = "name", surfacecolor=color_workaround,
+                  hoverlabel = list(color = "black")) %>%
+      layout(scene = list(xaxis = list(title = indep_name_1),
+                          yaxis = list(title = indep_name_2),
+                          zaxis = list(title = DepName))) %>%
+      add_trace(x = dataset[[indep_name_1]], y = dataset[[indep_name_2]], z = dataset[[DepName]],   mode = "markers", type = "scatter3d",
+                marker = list(size = 5, color = "red", symbol = 104), hoverinfo = "name",
+                hoverlabel = list(color = "black")) %>%
+      #add_annotations(x = 0.5, y = 0.8, text = paste(plotListNames[i]), showarrow = FALSE) %>%
+      layout(showlegend = FALSE) %>% plotly_build()
+
+  }
+
+  if (length (plotList) == 1){
+    plot_1 <- subplot(plotList)%>%
+      layout(scene = list(aspectmode='cube',
+                          yaxis = list(title = indep_name_2),
+                          xaxis = list(title = indep_name_1),
+                          zaxis = list(title = DepName)))
+  }
+
+  if (length (plotList) == 2){
+    plot_1 <- subplot(plotList)%>%
+      layout(scene = list(domain=list(x=c(0,0.5),y=c(0,1)),
+                          aspectmode='cube',
+                          yaxis = list(title = indep_name_2),
+                          xaxis = list(title = indep_name_1),
+                          zaxis = list(title = DepName)),
+             scene2 = list(domain=list(x=c(0.5,1),y=c(0,1)),
+                           aspectmode='cube',
+                           yaxis = list(title = indep_name_2),
+                           xaxis = list(title = indep_name_1),
+                           zaxis = list(title = DepName)))
+  }
+
+  if (length (plotList) == 3){
+    plot_1 <- subplot(plotList)%>%
+      layout(scene = list(domain=list(x=c(0,0.5),y=c(0.5,1)),
+                          aspectmode='cube',
+                          yaxis = list(title = indep_name_2),
+                          xaxis = list(title = indep_name_1),
+                          zaxis = list(title = DepName)),
+             scene2 = list(domain=list(x=c(0.5,1),y=c(0.5,1)),
+                           aspectmode='cube',
+                           yaxis = list(title = indep_name_2),
+                           xaxis = list(title = indep_name_1),
+                           zaxis = list(title = DepName)),
+             scene3 = list(domain=list(x=c(0,0.5),y=c(0,0.5)),
+                           aspectmode='cube',
+                           yaxis = list(title = indep_name_2),
+                           xaxis = list(title = indep_name_1),
+                           zaxis = list(title = DepName)))
+  }
+
+  if (length (plotList) == 4){
+    plot_1 <- subplot(plotList)%>%
+      layout(scene = list(domain=list(x=c(0,0.5),y=c(0.5,1)),
+                          aspectmode='cube',
+                          yaxis = list(title = indep_name_2),
+                          xaxis = list(title = indep_name_1),
+                          zaxis = list(title = DepName)),
+             scene2 = list(domain=list(x=c(0.5,1),y=c(0.5,1)),
+                           aspectmode='cube',
+                           yaxis = list(title = indep_name_2),
+                           xaxis = list(title = indep_name_1),
+                           zaxis = list(title = DepName)),
+             scene3 = list(domain=list(x=c(0,0.5),y=c(0,0.5)),
+                           aspectmode='cube',
+                           yaxis = list(title = indep_name_2),
+                           xaxis = list(title = indep_name_1),
+                           zaxis = list(title = DepName)),
+             scene4 = list(domain=list(x=c(0.5,1),y=c(0,0.5)),
+                           aspectmode='cube',
+                           yaxis = list(title = indep_name_2),
+                           xaxis = list(title = indep_name_1),
+                           zaxis = list(title = DepName)))
+  }
+
+  if (length (plotList) == 5){
+    plot_1 <- subplot(plotList)%>%
+      layout(scene = list(domain=list(x=c(0,0.33),y=c(0.5,1)),
+                          aspectmode='cube',
+                          yaxis = list(title = indep_name_2),
+                          xaxis = list(title = indep_name_1),
+                          zaxis = list(title = DepName)),
+             scene2 = list(domain=list(x=c(0.33,0.66),y=c(0.5,1)),
+                           aspectmode='cube',
+                           yaxis = list(title = indep_name_2),
+                           xaxis = list(title = indep_name_1),
+                           zaxis = list(title = DepName)),
+             scene3 = list(domain=list(x=c(0.66,1),y=c(0.5,1)),
+                           aspectmode='cube',
+                           yaxis = list(title = indep_name_2),
+                           xaxis = list(title = indep_name_1),
+                           zaxis = list(title = DepName)),
+             scene4 = list(domain=list(x=c(0,0.33),y=c(0,0.5)),
+                           aspectmode='cube',
+                           yaxis = list(title = indep_name_2),
+                           xaxis = list(title = indep_name_1),
+                           zaxis = list(title = DepName)),
+             scene5 = list(domain=list(x=c(0.33,0.66),y=c(0,0.5)),
+                           aspectmode='cube',
+                           yaxis = list(title = indep_name_2),
+                           xaxis = list(title = indep_name_1),
+                           zaxis = list(title = DepName))
+             )
+  }
+
+
+
+  for (i in 1:length(modelList)){
+
+    model = modelList[[i]]
+
+    x1 = dataset[[indep_name_1]]
+    x2 = dataset[[indep_name_2]]
+    y = dataset[[DepName]]
+
+    grd <- data.frame(X1 = seq(range(x1)[1],range(x1)[2],len=40),
+                      X2 = seq(range(x2)[1],range(x2)[2],len=40))
+
+    names(grd) <- c(indep_names)
+    grd$pred <- predict(model, newdata=grd)
+    grd <- grd[order(grd[[indep_name_1]],grd[[indep_name_2]]),]
+
+
+    x1 <- unique(grd[[indep_name_1]])
+    x2 <- unique(grd[[indep_name_2]])   # shouldn't have used y
+    z <- matrix(grd$pred,length(x1),length(x2))
+
+    color_workaround <- rep(i,length(grd$pred))
+    dim(color_workaround) <- dim(grd$pred)
+
+    color_vector = c("red", "blue", "green", "orange", "brown")
+
+    thisName = plotListNames[i]
+
+    z1 <- list()
+    z1[[1]] <- z
+    names(z1) <- thisName
+
+
+    plotList[[thisName]] = plot_ly(x = x1, y = x2, z = ~z1[[1]], name = thisName,
+                                   scene = 'scene') %>%
+      add_surface(opacity = 0.5, hoverinfo = "name", surfacecolor = color_workaround, colors = color_vector[i],
+                  colorbar =list(title=methods[i], dtick = "tick0", tickvals = c()),
+                  hoverlabel = list(color = "black")) %>%
+      layout(scene = list(xaxis = list(title = indep_name_1),
+                          yaxis = list(title = indep_name_2),
+                          zaxis = list(title = DepName))) %>%
+      add_trace(x = dataset[[indep_name_1]], y = dataset[[indep_name_2]], z = dataset[[DepName]],   mode = "markers", type = "scatter3d",
+                marker = list(size = 5, color= "red", symbol = 104), hoverinfo = "none",
+                hoverlabel = list(color = "black")) %>%
+      layout(showlegend = FALSE) %>% plotly_build()
+
+  }
+
+
+  plot_2 <- subplot(plotList)%>%
+    layout(scene = list(aspectmode='cube',
+                        yaxis = list(title = indep_name_2),
+                        xaxis = list(title = indep_name_1),
+                        zaxis = list(title = DepName)))
+
+
+
+
+
+  } else {
+
+  plot_1 <- "transfer functions are not avaliable for regression problems with more than 2 independent variables!"
+  plot_2 <- "Transfer functions are not avaliable for regression problems with more than 2 independent variables!"
+
+  }
+
+
 
 ##### Here both data frames are subset with round_df function #############
 
-Rezults_mean_std <- round_df(Rezults_mean_std, digits = digits)
-Rezults_ranks <- round_df(Rezults_ranks, digits = digits)
+Results_mean_std <- round_df(Results_mean_std, digits = digits)
+Results_ranks <- round_df(Results_ranks, digits = digits)
 
 # Here, all optimized parameters are saved in a data frame, which will be saved as
 # a fifth elemnt of the final_list
@@ -1990,7 +2215,7 @@ dataset_central <- dplyr::arrange(dataset, desc(dataset[, -DepIndex]))[(edge_fac
 
   edge_central_data <- dplyr::filter(edge_central_data, method %in% methods)
 
-  edge_rezults <- edge_central_data %>%
+  edge_results <- edge_central_data %>%
                     group_by(method) %>%
                     summarise(r_central = cor(value[data_edge_central == "central" & type == "predicted"],
                                           value[data_edge_central == "central" & type == "observed"]),
@@ -2049,18 +2274,18 @@ dataset_central <- dplyr::arrange(dataset, desc(dataset[, -DepIndex]))[(edge_fac
 
 
 
-  edge_rezults_t <- t(edge_rezults[,-1])
-  colnames(edge_rezults_t) <- edge_rezults$method
-  edge_rezults_t <- round(edge_rezults_t, digits)
-  edge_rezults_t <- data.frame(edge_rezults_t, Period =  c("cal_central", "val_edge"),
+  edge_results_t <- t(edge_results[,-1])
+  colnames(edge_results_t) <- edge_results$method
+  edge_results_t <- round(edge_results_t, digits)
+  edge_results_t <- data.frame(edge_results_t, Period =  c("cal_central", "val_edge"),
                                Metric = c("r", "r", "RMSE", "RMSE", "RRSE", "RRSE",
                              "d", "d", "RE", "RE", "CE", "CE"))
-  edge_rezults_t <- select(edge_rezults_t, Metric, Period, methods)
-  row.names(edge_rezults_t) <- NULL
+  edge_results_t <- select(edge_results_t, Metric, Period, methods)
+  row.names(edge_results_t) <- NULL
 
 
 } else {
-  edge_rezults_t <- "No edge experiment is performed for regression problems with more than 2 independent variables."
+  edge_results_t <- "No edge experiment is performed for regression problems with more than 2 independent variables."
 }
 
 
@@ -2069,8 +2294,8 @@ dataset_central <- dplyr::arrange(dataset, desc(dataset[, -DepIndex]))[(edge_fac
   #####################################################################
 
 # If Calibration and Validation data should be returned, then this is our final results
-  final_list <- list(mean_std = Rezults_mean_std, ranks = Rezults_ranks,
-                     edge_results = edge_rezults_t,
+  final_list <- list(mean_std = Results_mean_std, ranks = Results_ranks,
+                     edge_results = edge_results_t,
                      bias_cal = suppressMessages(gg_object_cal),
                      bias_val = suppressMessages(gg_object_val),
                      transfer_functions = plot_1,

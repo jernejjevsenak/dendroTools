@@ -156,8 +156,8 @@ a list with ten elements:
  3 \tab $edge_results   \tab data frame with calculated performance metrics for the central-edge test. The central part of the data represents the calibration data, while the edge data, i.e. extreme values, represent the edge data. Different regression models are calibrated using the central data and validated for the edge (extreme) data. This test is particularly important to assess the performance of models for the prediction of the extreme data. The share of the edge (extreme) data is defined with the edge_share argument \cr
  4 \tab $bias_cal   \tab ggplot object of mean bias for calibration data \cr
  5 \tab $bias_val    \tab ggplot object of mean bias for validation data \cr
- 6 \tab $transfer_functions   \tab ggplot object with transfer functions of methods \cr
- 7 \tab $transfer_functions_together    \tab ggplot object with transfer functions of methods plotted together \cr
+ 6 \tab $transfer_functions   \tab ggplot or plotly object with transfer functions of methods \cr
+ 7 \tab $transfer_functions_together    \tab ggplot or plotly object with transfer functions of methods plotted together \cr
  8 \tab $parameter_values    \tab a data frame with specifications of parameters used for different regression methods \cr
  9 \tab $PCA_output    \tab princomp object: the result output of the PCA analysis \cr
  10 \tab $reconstructions    \tab ggplot object: reconstructed dependent variable based on the dataset_complete argument, facet is used to split plots by methods  \cr
@@ -192,6 +192,7 @@ experiment_1$transfer_functions
 experiment_1$transfer_functions_together
 experiment_1$PCA_output
 experiment_1$parameter_values
+experiment_1$transfer_functions
 
 experiment_2 <- compare_methods(formula = MVA ~  T_APR,
 dataset = example_dataset_1, k = 5, repeats = 10, BRNN_neurons = 1,

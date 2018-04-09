@@ -19,7 +19,7 @@ RoxygenNote: 6.0.1
 Imports: ggplot2 (>= 2.2.0), brnn (>= 0.6), reshape2 (>= 1.4.2), 
         scales (>= 0.4.1), stats, oce(>= 0.9-21), MLmetrics (>= 1.1.1), 
         RWeka (>= 0.4-34), dplyr (>= 0.7.0), reshape (>= 0.8.6), 
-        gridExtra (>= 2.2.1), knitr (>= 1.19), magrittr (>= 1.5)
+        gridExtra (>= 2.2.1), knitr (>= 1.19), magrittr (>= 1.5), plotly (>= 4.7.1)
 Depends: R (>= 3.4)
 NeedsCompilation: no
 Repository: CRAN
