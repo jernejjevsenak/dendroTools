@@ -190,8 +190,6 @@
 #' ylab("June-July Mean Temperature [°C]")
 #' comparison_TRW$reconstructions
 #' comparison_TRW$reconstructions_together
-#'
-#'
 #' }
 
 compare_methods <- function(formula, dataset, k = 10, repeats = 2,
