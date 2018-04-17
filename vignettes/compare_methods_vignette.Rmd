@@ -41,12 +41,12 @@ basic_example <- compare_methods(formula = T_Apr ~ MVA, dataset = dataset_MVA, k
 
 ```{r }
 # The data frame with mean and standard deviation of performance metrics for the calibration and the validation data
-basic_example$mean_std
+kable(basic_example$mean_std)
 ```
 
 ```{r }
 # The data frame with non-parametric estimation of different methods: average rank and share of rank one
-basic_example$rank
+kable(basic_example$rank)
 ```
 
 ```{r, fig.align='center', warning=FALSE, fig.width=7, fig.height=5, fig.cap=paste("Histogram for the validation data for the basic_example")}
@@ -105,7 +105,7 @@ summary(example_PCA$PCA_output)
 
 ```{r }
 # The mean and standard deviation data frame 
-example_PCA$mean_std
+kable(example_PCA$mean_std)
 ```
 
 
