@@ -29,4 +29,4 @@ Authors
 Collaborators
 -------------
 
--   **Prof. dr. Tom Levanič**
+-   **Prof. dr. Tom Levanic**

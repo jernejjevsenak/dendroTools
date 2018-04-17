@@ -34,4 +34,4 @@ install.packages("dendroTools") # from CRAN
 * **Jernej Jevšenak**
 
 ## Collaborators
-* **Prof. dr. Tom Levanič**
+* **Prof. dr. Tom Levanic**
