@@ -229,8 +229,6 @@ comparison_TRW$transfer_functions + xlab(expression(paste('TRW'))) +
 ylab("June-July Mean Temperature [°C]")
 comparison_TRW$reconstructions
 comparison_TRW$reconstructions_together
-
-
 }
 }
 \references{
