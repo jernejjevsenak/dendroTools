@@ -811,21 +811,13 @@ daily_response <- function(response, env_data, method = "lm",
       stop("All calculations are insignificant!")
     }
 
-    # With the following chunk, we need to cosider negative correlations
-    # and threat them separately
-    overall_max <- max(temporal_matrix, na.rm = TRUE)
-    overall_min <- min(temporal_matrix, na.rm = TRUE)
-
-    # 1 positive correlations
-    if (method == "cor" & (abs(overall_max) > abs(overall_min))) {
-      temporal_matrix[abs(temporal_matrix) < critical_threshold_cor] <- NA
-    # 2 negative correlations
-    } else if (method == "cor" & (abs(overall_max) < abs(overall_min))) {
-      temporal_matrix[temporal_matrix > -critical_threshold_cor] <- NA
-    # 3 lm and brnn method
+  # 1 Method is correlation
+   if (method == "cor") {
+     temporal_matrix[abs(temporal_matrix) < abs(critical_threshold_cor)] <- NA
+  # 2 lm and brnn method
       } else if (method == "lm" | method == "brnn") {
-      temporal_matrix[temporal_matrix < critical_threshold_cor2] <- NA
-      }
+    temporal_matrix[abs(temporal_matrix) < abs(critical_threshold_cor2)] <- NA
+     }
   }
 
   ########################################################################
