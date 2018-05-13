@@ -13,13 +13,14 @@ compare_methods(formula, dataset, k = 10, repeats = 2, optimize = TRUE,
   components_selection = "automatic", eigenvalues_threshold = 1,
   N_components = 2, round_bias_cal = 15, round_bias_val = 4,
   n_bins = 30, edge_share = 0.1, MLR_stepwise = FALSE,
-  methods = c("MLR", "BRNN", "MT", "BMT", "RF"), tuning_metric = "RMSE",
-  BRNN_neurons_vector = c(1, 2, 3), MT_M_vector = c(4, 8, 16, 25),
-  MT_N_vector = c(TRUE, FALSE), MT_U_vector = c(TRUE, FALSE),
-  MT_R_vector = c(FALSE), BMT_P_vector = c(100), BMT_I_vector = c(100),
-  BMT_M_vector = c(4, 8, 16, 25), BMT_N_vector = c(TRUE, FALSE),
-  BMT_U_vector = c(TRUE, FALSE), BMT_R_vector = c(FALSE),
-  RF_P_vector = c(100), RF_I_vector = c(100), RF_depth_vector = c(0, 2))
+  stepwise_direction = "both", methods = c("MLR", "BRNN", "MT", "BMT",
+  "RF"), tuning_metric = "RMSE", BRNN_neurons_vector = c(1, 2, 3),
+  MT_M_vector = c(4, 8, 16, 25), MT_N_vector = c(TRUE, FALSE),
+  MT_U_vector = c(TRUE, FALSE), MT_R_vector = c(FALSE),
+  BMT_P_vector = c(100), BMT_I_vector = c(100), BMT_M_vector = c(4, 8, 16,
+  25), BMT_N_vector = c(TRUE, FALSE), BMT_U_vector = c(TRUE, FALSE),
+  BMT_R_vector = c(FALSE), RF_P_vector = c(100), RF_I_vector = c(100),
+  RF_depth_vector = c(0, 2))
 }
 \arguments{
 \item{formula}{an object of class "formula" (or one that can be coerced
@@ -114,6 +115,9 @@ considered to be the edge data.}
 
 \item{MLR_stepwise}{if set to TRUE, stepwise selection of predictors will be used
 for the MLR method}
+
+\item{stepwise_direction}{the mode of stepwise search, can be one of "both",
+"backward", or "forward", with a default of "both".}
 
 \item{methods}{a vector of strings related to methods that will be compared. A full
 method vector is methods = c("MLR", "BRNN", "MT", "BMT", "RF").
@@ -212,7 +216,7 @@ experiment_2$PCA_output
 experiment_3 <- compare_methods(formula = MVA ~ .,
 dataset = example_dataset_1, k = 2, repeats = 5,
 methods = c("MLR", "BRNN", "MT", "BMT"),
-optimize = TRUE)
+optimize = TRUE, MLR_stepwise = TRUE)
 experiment_3$mean_std
 experiment_3$ranks
 experiment_3$bias_val
@@ -225,7 +229,7 @@ library(ggplot2)
 data(dataset_TRW)
 comparison_TRW <- compare_methods(formula = T_Jun_Jul ~ TRW, dataset = dataset_TRW,
 k = 3, repeats = 10, optimize = TRUE, methods = c("MLR", "MT", "BMT", "BRNN"),
-seed_factor = 5, dataset_complete = dataset_TRW_complete)
+seed_factor = 5, dataset_complete = dataset_TRW_complete, MLR_stepwise = TRUE, stepwise_direction = "backward")
 comparison_TRW$mean_std
 comparison_TRW$bias_val
 comparison_TRW$transfer_functions + xlab(expression(paste('TRW'))) +
