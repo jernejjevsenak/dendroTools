@@ -46,6 +46,8 @@
 #' considered to be the edge data.
 #' @param blocked_CV default is FALSE, if changed to TRUE, blocked cross-validation
 #' will be used to compare regression methods.
+#' @param MLR_stepwise if set to TRUE, stepwise selection of predictors will be used
+#' for the MLR method
 #' @param PCA_transformation if set to TRUE, all independent variables will be
 #' transformed using PCA transformation.
 #' @param log_preprocess if set to TRUE, variables will be transformed with
@@ -204,6 +206,7 @@ compare_methods <- function(formula, dataset, k = 10, repeats = 2,
                             eigenvalues_threshold = 1, N_components = 2,
                             round_bias_cal = 15, round_bias_val = 4,
                             n_bins = 30, edge_share = 0.10,
+                            MLR_stepwise = FALSE,
                             methods = c("MLR", "BRNN", "MT", "BMT", "RF"),
                             tuning_metric = "RMSE",
                             BRNN_neurons_vector = c(1, 2, 3),
@@ -1099,14 +1102,27 @@ for (j in 1:k){
   train <- dataset[-testIndexes, ]
 
   #MLR MODEL
-  MLR <- lm(formula, data = train)
-  train_predicted <- predict(MLR, train)
-  test_predicted <- predict(MLR, test)
-  train_observed <- train[, DepIndex]
-  test_observed <- test[, DepIndex]
-  calculations <- calculate_metrics(train_predicted, test_predicted,
-                                         train_observed, test_observed, digits = 15)
-  list_MLR[[b]] <- calculations
+  if (MLR_stepwise == FALSE) {
+    MLR <- lm(formula, data = train)
+    train_predicted <- predict(MLR, train)
+    test_predicted <- predict(MLR, test)
+    train_observed <- train[, DepIndex]
+    test_observed <- test[, DepIndex]
+    calculations <- calculate_metrics(train_predicted, test_predicted,
+                                      train_observed, test_observed, digits = 15)
+    list_MLR[[b]] <- calculations
+  } else {
+    MLR = step(lm(formula = formula, data = train, direction = "backward"))
+    train_predicted <- predict(MLR, train)
+    test_predicted <- predict(MLR, test)
+    train_observed <- train[, DepIndex]
+    test_observed <- test[, DepIndex]
+    calculations <- calculate_metrics(train_predicted, test_predicted,
+                                      train_observed, test_observed, digits = 15)
+
+
+  }
+
 
   #BRNN Model
   capture.output(BRNN <- brnn(formula, data = train, neurons = BRNN_neurons, verbose = FALSE))
@@ -1193,14 +1209,25 @@ if (blocked_CV == TRUE){
     train <- dataset[-testIndexes, ]
 
     #MLR MODEL
-    MLR <- lm(formula, data = train)
-    train_predicted <- predict(MLR, train)
-    test_predicted <- predict(MLR, test)
-    train_observed <- train[, DepIndex]
-    test_observed <- test[, DepIndex]
-    calculations <- calculate_metrics(train_predicted, test_predicted,
-                                       train_observed, test_observed, digits = 15)
-    list_MLR[[b]] <- calculations
+    if (MLR_stepwise == FALSE) {
+      MLR <- lm(formula, data = train)
+      train_predicted <- predict(MLR, train)
+      test_predicted <- predict(MLR, test)
+      train_observed <- train[, DepIndex]
+      test_observed <- test[, DepIndex]
+      calculations <- calculate_metrics(train_predicted, test_predicted,
+                                        train_observed, test_observed, digits = 15)
+      list_MLR[[b]] <- calculations
+    } else {
+      MLR = step(lm(formula = formula, data = train, direction = "backward"))
+      train_predicted <- predict(MLR, train)
+      test_predicted <- predict(MLR, test)
+      train_observed <- train[, DepIndex]
+      test_observed <- test[, DepIndex]
+      calculations <- calculate_metrics(train_predicted, test_predicted,
+                                        train_observed, test_observed, digits = 15)
+
+    }
 
     #BRNN Model
     capture.output(BRNN <- brnn(formula, data = train, neurons = BRNN_neurons, verbose = FALSE))
