@@ -48,6 +48,8 @@
 #' will be used to compare regression methods.
 #' @param MLR_stepwise if set to TRUE, stepwise selection of predictors will be used
 #' for the MLR method
+#' @param stepwise_direction the mode of stepwise search, can be one of "both",
+#' "backward", or "forward", with a default of "both".
 #' @param PCA_transformation if set to TRUE, all independent variables will be
 #' transformed using PCA transformation.
 #' @param log_preprocess if set to TRUE, variables will be transformed with
@@ -172,7 +174,7 @@
 #' experiment_3 <- compare_methods(formula = MVA ~ .,
 #' dataset = example_dataset_1, k = 2, repeats = 5,
 #' methods = c("MLR", "BRNN", "MT", "BMT"),
-#' optimize = TRUE)
+#' optimize = TRUE, MLR_stepwise = TRUE)
 #' experiment_3$mean_std
 #' experiment_3$ranks
 #' experiment_3$bias_val
@@ -185,7 +187,7 @@
 #' data(dataset_TRW)
 #' comparison_TRW <- compare_methods(formula = T_Jun_Jul ~ TRW, dataset = dataset_TRW,
 #' k = 3, repeats = 10, optimize = TRUE, methods = c("MLR", "MT", "BMT", "BRNN"),
-#' seed_factor = 5, dataset_complete = dataset_TRW_complete)
+#' seed_factor = 5, dataset_complete = dataset_TRW_complete, MLR_stepwise = TRUE, stepwise_direction = "backward")
 #' comparison_TRW$mean_std
 #' comparison_TRW$bias_val
 #' comparison_TRW$transfer_functions + xlab(expression(paste('TRW'))) +
@@ -206,7 +208,7 @@ compare_methods <- function(formula, dataset, k = 10, repeats = 2,
                             eigenvalues_threshold = 1, N_components = 2,
                             round_bias_cal = 15, round_bias_val = 4,
                             n_bins = 30, edge_share = 0.10,
-                            MLR_stepwise = FALSE,
+                            MLR_stepwise = FALSE, stepwise_direction = "both",
                             methods = c("MLR", "BRNN", "MT", "BMT", "RF"),
                             tuning_metric = "RMSE",
                             BRNN_neurons_vector = c(1, 2, 3),
@@ -1113,7 +1115,7 @@ for (j in 1:k){
     list_MLR[[b]] <- calculations
 
   } else {
-    MLR = step(lm(formula = formula, data = train), direction = "backward")
+    capture.output(MLR = step(lm(formula = formula, data = train), direction = stepwise_direction))
     train_predicted <- predict(MLR, train)
     test_predicted <- predict(MLR, test)
     train_observed <- train[, DepIndex]
@@ -1222,7 +1224,7 @@ if (blocked_CV == TRUE){
       list_MLR[[b]] <- calculations
 
     } else {
-      MLR = step(lm(formula = formula, data = train), direction = "backward")
+      capture.output(MLR = step(lm(formula = formula, data = train), direction = stepwise_direction))
       train_predicted <- predict(MLR, train)
       test_predicted <- predict(MLR, test)
       train_observed <- train[, DepIndex]
