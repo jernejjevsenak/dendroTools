@@ -12,14 +12,14 @@ compare_methods(formula, dataset, k = 10, repeats = 2, optimize = TRUE,
   PCA_transformation = FALSE, log_preprocess = TRUE,
   components_selection = "automatic", eigenvalues_threshold = 1,
   N_components = 2, round_bias_cal = 15, round_bias_val = 4,
-  n_bins = 30, edge_share = 0.1, methods = c("MLR", "BRNN", "MT", "BMT",
-  "RF"), tuning_metric = "RMSE", BRNN_neurons_vector = c(1, 2, 3),
-  MT_M_vector = c(4, 8, 16, 25), MT_N_vector = c(TRUE, FALSE),
-  MT_U_vector = c(TRUE, FALSE), MT_R_vector = c(FALSE),
-  BMT_P_vector = c(100), BMT_I_vector = c(100), BMT_M_vector = c(4, 8, 16,
-  25), BMT_N_vector = c(TRUE, FALSE), BMT_U_vector = c(TRUE, FALSE),
-  BMT_R_vector = c(FALSE), RF_P_vector = c(100), RF_I_vector = c(100),
-  RF_depth_vector = c(0, 2))
+  n_bins = 30, edge_share = 0.1, MLR_stepwise = FALSE,
+  methods = c("MLR", "BRNN", "MT", "BMT", "RF"), tuning_metric = "RMSE",
+  BRNN_neurons_vector = c(1, 2, 3), MT_M_vector = c(4, 8, 16, 25),
+  MT_N_vector = c(TRUE, FALSE), MT_U_vector = c(TRUE, FALSE),
+  MT_R_vector = c(FALSE), BMT_P_vector = c(100), BMT_I_vector = c(100),
+  BMT_M_vector = c(4, 8, 16, 25), BMT_N_vector = c(TRUE, FALSE),
+  BMT_U_vector = c(TRUE, FALSE), BMT_R_vector = c(FALSE),
+  RF_P_vector = c(100), RF_I_vector = c(100), RF_depth_vector = c(0, 2))
 }
 \arguments{
 \item{formula}{an object of class "formula" (or one that can be coerced
@@ -112,6 +112,9 @@ This argument could be between 0.10 and 0.50. If the argument is set to 0.10, th
 the 5 % of the maximal extreme values and 5 % of the minimal extreme values are
 considered to be the edge data.}
 
+\item{MLR_stepwise}{if set to TRUE, stepwise selection of predictors will be used
+for the MLR method}
+
 \item{methods}{a vector of strings related to methods that will be compared. A full
 method vector is methods = c("MLR", "BRNN", "MT", "BMT", "RF").
 To use only a subset of methods, pass a vector of methods that you would like to compare.}
@@ -153,7 +156,7 @@ a list with ten elements:
 \tabular{rll}{
  1 \tab $mean_std   \tab data frame with calculated metrics for the selected regression methods. For each regression method and each calculated metric, mean and standard deviation are given\cr
  2 \tab $ranks \tab data frame with ranks of calculated metrics: mean rank and  share of rank_1 are given \cr
- 3 \tab $edge_results   \tab data frame with calculated performance metrics for the central-edge test. The central part of the data represents the calibration data, while the edge data, i.e. extreme values, represent the edge data. Different regression models are calibrated using the central data and validated for the edge (extreme) data. This test is particularly important to assess the performance of models for the prediction of the extreme data. The share of the edge (extreme) data is defined with the edge_share argument \cr
+ 3 \tab $edge_results   \tab data frame with calculated performance metrics for the central-edge test. The central part of the data represents the calibration data, while the edge data, i.e. extreme values, represent the test/validation data. Different regression models are calibrated using the central data and validated for the edge (extreme) data. This test is particularly important to assess the performance of models for the predictions of the extreme data. The share of the edge (extreme) data is defined with the edge_share argument \cr
  4 \tab $bias_cal   \tab ggplot object of mean bias for calibration data \cr
  5 \tab $bias_val    \tab ggplot object of mean bias for validation data \cr
  6 \tab $transfer_functions   \tab ggplot or plotly object with transfer functions of methods \cr

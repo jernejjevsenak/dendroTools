@@ -1111,14 +1111,16 @@ for (j in 1:k){
     calculations <- calculate_metrics(train_predicted, test_predicted,
                                       train_observed, test_observed, digits = 15)
     list_MLR[[b]] <- calculations
+
   } else {
-    MLR = step(lm(formula = formula, data = train, direction = "backward"))
+    MLR = step(lm(formula = formula, data = train), direction = "backward")
     train_predicted <- predict(MLR, train)
     test_predicted <- predict(MLR, test)
     train_observed <- train[, DepIndex]
     test_observed <- test[, DepIndex]
     calculations <- calculate_metrics(train_predicted, test_predicted,
                                       train_observed, test_observed, digits = 15)
+    list_MLR[[b]] <- calculations
 
 
   }
@@ -1218,15 +1220,16 @@ if (blocked_CV == TRUE){
       calculations <- calculate_metrics(train_predicted, test_predicted,
                                         train_observed, test_observed, digits = 15)
       list_MLR[[b]] <- calculations
+
     } else {
-      MLR = step(lm(formula = formula, data = train, direction = "backward"))
+      MLR = step(lm(formula = formula, data = train), direction = "backward")
       train_predicted <- predict(MLR, train)
       test_predicted <- predict(MLR, test)
       train_observed <- train[, DepIndex]
       test_observed <- test[, DepIndex]
       calculations <- calculate_metrics(train_predicted, test_predicted,
                                         train_observed, test_observed, digits = 15)
-
+      list_MLR[[b]] <- calculations
     }
 
     #BRNN Model
