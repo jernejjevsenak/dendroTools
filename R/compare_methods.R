@@ -187,7 +187,8 @@
 #' data(dataset_TRW)
 #' comparison_TRW <- compare_methods(formula = T_Jun_Jul ~ TRW, dataset = dataset_TRW,
 #' k = 3, repeats = 10, optimize = TRUE, methods = c("MLR", "MT", "BMT", "BRNN"),
-#' seed_factor = 5, dataset_complete = dataset_TRW_complete, MLR_stepwise = TRUE, stepwise_direction = "backward")
+#' seed_factor = 5, dataset_complete = dataset_TRW_complete, MLR_stepwise = TRUE,
+#' stepwise_direction = "backward")
 #' comparison_TRW$mean_std
 #' comparison_TRW$bias_val
 #' comparison_TRW$transfer_functions + xlab(expression(paste('TRW'))) +
