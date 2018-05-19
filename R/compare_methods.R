@@ -49,7 +49,7 @@
 #' @param MLR_stepwise if set to TRUE, stepwise selection of predictors will be used
 #' for the MLR method
 #' @param stepwise_direction the mode of stepwise search, can be one of "both",
-#' "backward", or "forward", with a default of "both".
+#' "backward", or "forward", with a default of "backward".
 #' @param PCA_transformation if set to TRUE, all independent variables will be
 #' transformed using PCA transformation.
 #' @param log_preprocess if set to TRUE, variables will be transformed with
@@ -209,7 +209,7 @@ compare_methods <- function(formula, dataset, k = 10, repeats = 2,
                             eigenvalues_threshold = 1, N_components = 2,
                             round_bias_cal = 15, round_bias_val = 4,
                             n_bins = 30, edge_share = 0.10,
-                            MLR_stepwise = FALSE, stepwise_direction = "both",
+                            MLR_stepwise = FALSE, stepwise_direction = "backward",
                             methods = c("MLR", "BRNN", "MT", "BMT", "RF"),
                             tuning_metric = "RMSE",
                             BRNN_neurons_vector = c(1, 2, 3),
@@ -368,7 +368,8 @@ if (optimize == TRUE & blocked_CV == FALSE){
         train <- dataset[-testIndexes, ]
 
         #MLR MODEL
-        capture.output(model_temp <- brnn(formula, data = train, neurons = neurons, verbose = FALSE))
+        capture.output(model_temp <- brnn(formula, data = train, neurons = neurons, verbose = FALSE,
+                                          tol = 1e-6))
         test_observed <- test[, DepIndex]
         test_predicted <- predict(model_temp, test)
 
@@ -1116,7 +1117,7 @@ for (j in 1:k){
     list_MLR[[b]] <- calculations
 
   } else {
-    capture.output(MLR = step(lm(formula = formula, data = train), direction = stepwise_direction))
+    capture.output(MLR <- step(lm(formula = formula, data = train), direction = stepwise_direction))
     train_predicted <- predict(MLR, train)
     test_predicted <- predict(MLR, test)
     train_observed <- train[, DepIndex]
@@ -1124,13 +1125,12 @@ for (j in 1:k){
     calculations <- calculate_metrics(train_predicted, test_predicted,
                                       train_observed, test_observed, digits = 15)
     list_MLR[[b]] <- calculations
-
-
   }
 
 
   #BRNN Model
-  capture.output(BRNN <- brnn(formula, data = train, neurons = BRNN_neurons, verbose = FALSE))
+  capture.output(BRNN <- brnn(formula, data = train, neurons = BRNN_neurons, verbose = FALSE,
+                              tol = 1e-6))
   train_predicted <- predict(BRNN, train)
   test_predicted <- predict(BRNN, test)
   calculations <- calculate_metrics(train_predicted, test_predicted,
@@ -1225,7 +1225,7 @@ if (blocked_CV == TRUE){
       list_MLR[[b]] <- calculations
 
     } else {
-      capture.output(MLR = step(lm(formula = formula, data = train), direction = stepwise_direction))
+      capture.output(MLR <- step(lm(formula = formula, data = train), direction = stepwise_direction))
       train_predicted <- predict(MLR, train)
       test_predicted <- predict(MLR, test)
       train_observed <- train[, DepIndex]
@@ -1236,7 +1236,8 @@ if (blocked_CV == TRUE){
     }
 
     #BRNN Model
-    capture.output(BRNN <- brnn(formula, data = train, neurons = BRNN_neurons, verbose = FALSE))
+    capture.output(BRNN <- brnn(formula, data = train, neurons = BRNN_neurons, verbose = FALSE,
+                                tol = 1e-6))
     train_predicted <- predict(BRNN, train)
     test_predicted <- predict(BRNN, test)
     calculations <- calculate_metrics(train_predicted, test_predicted,
@@ -1292,8 +1293,8 @@ if (blocked_CV == TRUE){
 
 listVec <- lapply(list_MLR, c, recursive = TRUE)
 m <- do.call(cbind, listVec)
-averages <- apply(m, 1, mean)
-std <- apply(m, 1, sd)
+averages <- apply(m, 1, mean, na.rm = TRUE)
+std <- apply(m, 1, sd, na.rm = TRUE)
 m <- cbind(m, averages, std)
 df_MLR <- data.frame(m)
 df_MLR_bias <- df_MLR[c(13, 14), c(1: position)]
@@ -1305,8 +1306,8 @@ rownames(df_MLR_avg) <- c("r_cal", "r_val", "RMSE_cal", "RMSE_val", "RSSE_cal",
 
 listVec <- lapply(list_BRNN, c, recursive = TRUE)
 m <- do.call(cbind, listVec)
-averages <- apply(m, 1, mean)
-std <- apply(m, 1, sd)
+averages <- apply(m, 1, mean, na.rm = TRUE)
+std <- apply(m, 1, sd, na.rm = TRUE)
 m <- cbind(m, averages, std)
 df_BRNN <- data.frame(m)
 df_BRNN_bias <- df_BRNN[c(13, 14), c(1: position)]
@@ -1318,8 +1319,8 @@ rownames(df_BRNN_avg) <- c("r_cal", "r_val", "RMSE_cal", "RMSE_val", "RSSE_cal",
 
 listVec <- lapply(list_MT, c, recursive = TRUE)
 m <- do.call(cbind, listVec)
-averages <- apply(m, 1, mean)
-std <- apply(m, 1, sd)
+averages <- apply(m, 1, mean, na.rm = TRUE)
+std <- apply(m, 1, sd, na.rm = TRUE)
 m <- cbind(m, averages, std)
 df_MT <- data.frame(m)
 df_MT_bias <- df_MT[c(13, 14), c(1: position)]
@@ -1331,8 +1332,8 @@ rownames(df_MT_avg) <- c("r_cal", "r_val", "RMSE_cal", "RMSE_val", "RSSE_cal",
 
 listVec <- lapply(list_BMT, c, recursive = TRUE)
 m <- do.call(cbind, listVec)
-averages <- apply(m, 1, mean)
-std <- apply(m, 1, sd)
+averages <- apply(m, 1, mean, na.rm = TRUE)
+std <- apply(m, 1, sd, na.rm = TRUE)
 m <- cbind(m, averages, std)
 df_BMT <- data.frame(m)
 df_BMT_bias <- df_BMT[c(13, 14), c(1: position)]
@@ -1344,8 +1345,8 @@ rownames(df_BMT_avg) <- c("r_cal", "r_val", "RMSE_cal", "RMSE_val", "RSSE_cal",
 
 listVec <- lapply(list_RF, c, recursive = TRUE)
 m <- do.call(cbind, listVec)
-averages <- apply(m, 1, mean)
-std <- apply(m, 1, sd)
+averages <- apply(m, 1, mean, na.rm = TRUE)
+std <- apply(m, 1, sd, na.rm = TRUE)
 m <- cbind(m, averages, std)
 df_RF <- data.frame(m)
 df_RF_bias <- df_RF[c(13, 14), c(1: position)]

@@ -13,7 +13,7 @@ compare_methods(formula, dataset, k = 10, repeats = 2, optimize = TRUE,
   components_selection = "automatic", eigenvalues_threshold = 1,
   N_components = 2, round_bias_cal = 15, round_bias_val = 4,
   n_bins = 30, edge_share = 0.1, MLR_stepwise = FALSE,
-  stepwise_direction = "both", methods = c("MLR", "BRNN", "MT", "BMT",
+  stepwise_direction = "backward", methods = c("MLR", "BRNN", "MT", "BMT",
   "RF"), tuning_metric = "RMSE", BRNN_neurons_vector = c(1, 2, 3),
   MT_M_vector = c(4, 8, 16, 25), MT_N_vector = c(TRUE, FALSE),
   MT_U_vector = c(TRUE, FALSE), MT_R_vector = c(FALSE),
@@ -117,7 +117,7 @@ considered to be the edge data.}
 for the MLR method}
 
 \item{stepwise_direction}{the mode of stepwise search, can be one of "both",
-"backward", or "forward", with a default of "both".}
+"backward", or "forward", with a default of "backward".}
 
 \item{methods}{a vector of strings related to methods that will be compared. A full
 method vector is methods = c("MLR", "BRNN", "MT", "BMT", "RF").
@@ -229,7 +229,8 @@ library(ggplot2)
 data(dataset_TRW)
 comparison_TRW <- compare_methods(formula = T_Jun_Jul ~ TRW, dataset = dataset_TRW,
 k = 3, repeats = 10, optimize = TRUE, methods = c("MLR", "MT", "BMT", "BRNN"),
-seed_factor = 5, dataset_complete = dataset_TRW_complete, MLR_stepwise = TRUE, stepwise_direction = "backward")
+seed_factor = 5, dataset_complete = dataset_TRW_complete, MLR_stepwise = TRUE,
+stepwise_direction = "backward")
 comparison_TRW$mean_std
 comparison_TRW$bias_val
 comparison_TRW$transfer_functions + xlab(expression(paste('TRW'))) +
