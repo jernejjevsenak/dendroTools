@@ -146,7 +146,7 @@
 #'
 #' # An example with default settings of machine learning algorithms
 #' experiment_1 <- compare_methods(formula = MVA~.,
-#' dataset = example_dataset_1, k = 25, repeats = 10, blocked_CV = TRUE,
+#' dataset = example_dataset_1, k = 10, repeats = 10, blocked_CV = TRUE,
 #' PCA_transformation = FALSE, components_selection = "automatic",
 #' optimize = TRUE, methods = c("MLR", "BRNN"), tuning_metric = "RSquared")
 #' experiment_1$mean_std
@@ -1113,7 +1113,8 @@ for (j in 1:k){
     train_observed <- train[, DepIndex]
     test_observed <- test[, DepIndex]
     calculations <- calculate_metrics(train_predicted, test_predicted,
-                                      train_observed, test_observed, digits = 15)
+                                      train_observed, test_observed, digits = 15,
+                                      formula = formula, test = test)
     list_MLR[[b]] <- calculations
 
   } else {
@@ -1123,7 +1124,8 @@ for (j in 1:k){
     train_observed <- train[, DepIndex]
     test_observed <- test[, DepIndex]
     calculations <- calculate_metrics(train_predicted, test_predicted,
-                                      train_observed, test_observed, digits = 15)
+                                      train_observed, test_observed, digits = 15,
+                                      formula = formula, test = test)
     list_MLR[[b]] <- calculations
   }
 
@@ -1134,7 +1136,8 @@ for (j in 1:k){
   train_predicted <- predict(BRNN, train)
   test_predicted <- predict(BRNN, test)
   calculations <- calculate_metrics(train_predicted, test_predicted,
-                                     train_observed, test_observed, digits = 15)
+                                     train_observed, test_observed, digits = 15,
+                                    formula = formula, test = test)
   list_BRNN[[b]] <- calculations
 
   # Model Trees
@@ -1143,7 +1146,8 @@ for (j in 1:k){
   train_predicted <- predict(MT_model, train)
   test_predicted <- predict(MT_model, test)
   calculations <- calculate_metrics(train_predicted, test_predicted,
-                                    train_observed, test_observed, digits = 15)
+                                    train_observed, test_observed, digits = 15,
+                                    formula = formula, test = test)
   list_MT[[b]] <- calculations
 
   #M5 Model with bagging
@@ -1156,7 +1160,8 @@ for (j in 1:k){
   train_predicted <- predict(BMT_model, train)
   test_predicted <- predict(BMT_model, test)
   calculations <- calculate_metrics(train_predicted, test_predicted,
-                                    train_observed, test_observed, digits = 15)
+                                    train_observed, test_observed, digits = 15,
+                                    formula = formula, test = test)
   list_BMT[[b]] <- calculations
 
 
@@ -1168,7 +1173,8 @@ for (j in 1:k){
   train_predicted <- predict(RF_model, train)
   test_predicted <- predict(RF_model, test)
   calculations <- calculate_metrics(train_predicted, test_predicted,
-                                     train_observed, test_observed, digits = 15)
+                                     train_observed, test_observed, digits = 15,
+                                    formula = formula, test = test)
   list_RF[[b]] <- calculations
 }
   setTxtProgressBar(pb, m)
@@ -1221,7 +1227,8 @@ if (blocked_CV == TRUE){
       train_observed <- train[, DepIndex]
       test_observed <- test[, DepIndex]
       calculations <- calculate_metrics(train_predicted, test_predicted,
-                                        train_observed, test_observed, digits = 15)
+                                        train_observed, test_observed, digits = 15,
+                                        formula = formula, test = test)
       list_MLR[[b]] <- calculations
 
     } else {
@@ -1231,7 +1238,8 @@ if (blocked_CV == TRUE){
       train_observed <- train[, DepIndex]
       test_observed <- test[, DepIndex]
       calculations <- calculate_metrics(train_predicted, test_predicted,
-                                        train_observed, test_observed, digits = 15)
+                                        train_observed, test_observed, digits = 15,
+                                        formula = formula, test = test)
       list_MLR[[b]] <- calculations
     }
 
@@ -1241,7 +1249,8 @@ if (blocked_CV == TRUE){
     train_predicted <- predict(BRNN, train)
     test_predicted <- predict(BRNN, test)
     calculations <- calculate_metrics(train_predicted, test_predicted,
-                                       train_observed, test_observed, digits = 15)
+                                       train_observed, test_observed, digits = 15,
+                                      formula = formula, test = test)
     list_BRNN[[b]] <- calculations
 
     # Model Trees
@@ -1251,7 +1260,8 @@ if (blocked_CV == TRUE){
     train_predicted <- predict(MT_model, train)
     test_predicted <- predict(MT_model, test)
     calculations <- calculate_metrics(train_predicted, test_predicted,
-                                      train_observed, test_observed, digits = 15)
+                                      train_observed, test_observed, digits = 15,
+                                      formula = formula, test = test)
     list_MT[[b]] <- calculations
 
     #M5 Model with bagging
@@ -1264,7 +1274,8 @@ if (blocked_CV == TRUE){
     train_predicted <- predict(BMT_model, train)
     test_predicted <- predict(BMT_model, test)
     calculations <- calculate_metrics(train_predicted, test_predicted,
-                                      train_observed, test_observed, digits = 15)
+                                      train_observed, test_observed, digits = 15,
+                                      formula = formula, test = test)
     list_BMT[[b]] <- calculations
 
     ##Random Forest
@@ -1274,7 +1285,8 @@ if (blocked_CV == TRUE){
     train_predicted <- predict(RegTree_Weka, train)
     test_predicted <- predict(RegTree_Weka, test)
     calculations <- calculate_metrics(train_predicted, test_predicted,
-                                       train_observed, test_observed, digits = 15)
+                                       train_observed, test_observed, digits = 15,
+                                      formula = formula, test = test)
     list_RF[[b]] <- calculations
 
     setTxtProgressBar(pb, m)
@@ -1297,12 +1309,12 @@ averages <- apply(m, 1, mean, na.rm = TRUE)
 std <- apply(m, 1, sd, na.rm = TRUE)
 m <- cbind(m, averages, std)
 df_MLR <- data.frame(m)
-df_MLR_bias <- df_MLR[c(13, 14), c(1: position)]
-df_MLR_rank <- df_MLR[-c(13, 14), c(1: position)]
-df_MLR_avg <- df_MLR[-c(13, 14), c(position + 1, position + 2)]
+df_MLR_bias <- df_MLR[c(15, 16), c(1: position)]
+df_MLR_rank <- df_MLR[-c(15, 16), c(1: position)]
+df_MLR_avg <- df_MLR[-c(15, 16), c(position + 1, position + 2)]
 rownames(df_MLR_avg) <- c("r_cal", "r_val", "RMSE_cal", "RMSE_val", "RSSE_cal",
                       "RSSE_val", "d_cal", "d_val", "RE_cal", "RE_val",
-                      "CE_cal", "CE_val")
+                      "CE_cal", "CE_val", "DE_cal", "DE_val")
 
 listVec <- lapply(list_BRNN, c, recursive = TRUE)
 m <- do.call(cbind, listVec)
@@ -1310,12 +1322,12 @@ averages <- apply(m, 1, mean, na.rm = TRUE)
 std <- apply(m, 1, sd, na.rm = TRUE)
 m <- cbind(m, averages, std)
 df_BRNN <- data.frame(m)
-df_BRNN_bias <- df_BRNN[c(13, 14), c(1: position)]
-df_BRNN_rank <- df_BRNN[-c(13, 14), c(1: position)]
-df_BRNN_avg <- df_BRNN[-c(13, 14), c(position + 1, position + 2)]
+df_BRNN_bias <- df_BRNN[c(15, 16), c(1: position)]
+df_BRNN_rank <- df_BRNN[-c(15, 16), c(1: position)]
+df_BRNN_avg <- df_BRNN[-c(15, 16), c(position + 1, position + 2)]
 rownames(df_BRNN_avg) <- c("r_cal", "r_val", "RMSE_cal", "RMSE_val", "RSSE_cal",
                       "RSSE_val", "d_cal", "d_val", "RE_cal", "RE_val",
-                      "CE_cal", "CE_val")
+                      "CE_cal", "CE_val", "DE_cal", "DE_val")
 
 listVec <- lapply(list_MT, c, recursive = TRUE)
 m <- do.call(cbind, listVec)
@@ -1323,12 +1335,12 @@ averages <- apply(m, 1, mean, na.rm = TRUE)
 std <- apply(m, 1, sd, na.rm = TRUE)
 m <- cbind(m, averages, std)
 df_MT <- data.frame(m)
-df_MT_bias <- df_MT[c(13, 14), c(1: position)]
-df_MT_rank <- df_MT[-c(13, 14), c(1: position)]
-df_MT_avg <- df_MT[-c(13, 14), c(position + 1, position + 2)]
+df_MT_bias <- df_MT[c(15, 16), c(1: position)]
+df_MT_rank <- df_MT[-c(15, 16), c(1: position)]
+df_MT_avg <- df_MT[-c(15, 16), c(position + 1, position + 2)]
 rownames(df_MT_avg) <- c("r_cal", "r_val", "RMSE_cal", "RMSE_val", "RSSE_cal",
                       "RSSE_val", "d_cal", "d_val", "RE_cal", "RE_val",
-                      "CE_cal", "CE_val")
+                      "CE_cal", "CE_val", "DE_cal", "DE_val")
 
 listVec <- lapply(list_BMT, c, recursive = TRUE)
 m <- do.call(cbind, listVec)
@@ -1336,12 +1348,12 @@ averages <- apply(m, 1, mean, na.rm = TRUE)
 std <- apply(m, 1, sd, na.rm = TRUE)
 m <- cbind(m, averages, std)
 df_BMT <- data.frame(m)
-df_BMT_bias <- df_BMT[c(13, 14), c(1: position)]
-df_BMT_rank <- df_BMT[-c(13, 14), c(1: position)]
-df_BMT_avg <- df_BMT[-c(13, 14), c(position + 1, position + 2)]
+df_BMT_bias <- df_BMT[c(15, 16), c(1: position)]
+df_BMT_rank <- df_BMT[-c(15, 16), c(1: position)]
+df_BMT_avg <- df_BMT[-c(15, 16), c(position + 1, position + 2)]
 rownames(df_BMT_avg) <- c("r_cal", "r_val", "RMSE_cal", "RMSE_val", "RSSE_cal",
                       "RSSE_val", "d_cal", "d_val", "RE_cal", "RE_val",
-                      "CE_cal", "CE_val")
+                      "CE_cal", "CE_val", "DE_cal", "DE_val")
 
 listVec <- lapply(list_RF, c, recursive = TRUE)
 m <- do.call(cbind, listVec)
@@ -1349,12 +1361,12 @@ averages <- apply(m, 1, mean, na.rm = TRUE)
 std <- apply(m, 1, sd, na.rm = TRUE)
 m <- cbind(m, averages, std)
 df_RF <- data.frame(m)
-df_RF_bias <- df_RF[c(13, 14), c(1: position)]
-df_RF_rank <- df_RF[-c(13, 14), c(1: position)]
-df_RF_avg <- df_RF[-c(13, 14), c(position + 1, position + 2)]
+df_RF_bias <- df_RF[c(15, 16), c(1: position)]
+df_RF_rank <- df_RF[-c(15, 16), c(1: position)]
+df_RF_avg <- df_RF[-c(15, 16), c(position + 1, position + 2)]
 rownames(df_RF_avg) <- c("r_cal", "r_val", "RMSE_cal", "RMSE_val", "RSSE_cal",
                       "RSSE_val", "d_cal", "d_val", "RE_cal", "RE_val",
-                      "CE_cal", "CE_val")
+                      "CE_cal", "CE_val", "DE_cal", "DE_val")
 
 
 ##################################################################################################
@@ -1411,23 +1423,26 @@ df_all <- round(do.call(rbind, empty_LIST), 8)
 
 # Now, all metrics (except bias) are extracted for calibration and validation
 # data.
-r_cal <- df_all[c(seq(1, nrow(df_all), by = 12)), ]
-r_val <- df_all[c(seq(2, nrow(df_all), by = 12)), ]
+r_cal <- df_all[c(seq(1, nrow(df_all), by = 14)), ]
+r_val <- df_all[c(seq(2, nrow(df_all), by = 14)), ]
 
-RMSE_cal <- df_all[c(seq(3, nrow(df_all), by = 12)), ]
-RMSE_val <- df_all[c(seq(4, nrow(df_all), by = 12)), ]
+RMSE_cal <- df_all[c(seq(3, nrow(df_all), by = 14)), ]
+RMSE_val <- df_all[c(seq(4, nrow(df_all), by = 14)), ]
 
-RSSE_cal <- df_all[c(seq(5, nrow(df_all), by = 12)), ]
-RSSE_val <- df_all[c(seq(6, nrow(df_all), by = 12)), ]
+RSSE_cal <- df_all[c(seq(5, nrow(df_all), by = 14)), ]
+RSSE_val <- df_all[c(seq(6, nrow(df_all), by = 14)), ]
 
-d_cal <- df_all[c(seq(7, nrow(df_all), by = 12)), ]
-d_val <- df_all[c(seq(8, nrow(df_all), by = 12)), ]
+d_cal <- df_all[c(seq(7, nrow(df_all), by = 14)), ]
+d_val <- df_all[c(seq(8, nrow(df_all), by = 14)), ]
 
-RE_cal <- df_all[c(seq(9, nrow(df_all), by = 12)), ]
-RE_val <- df_all[c(seq(10, nrow(df_all), by = 12)), ]
+RE_cal <- df_all[c(seq(9, nrow(df_all), by = 14)), ]
+RE_val <- df_all[c(seq(10, nrow(df_all), by = 14)), ]
 
-CE_cal <- df_all[c(seq(11, nrow(df_all), by = 12)), ]
-CE_val <- df_all[c(seq(12, nrow(df_all), by = 12)), ]
+CE_cal <- df_all[c(seq(11, nrow(df_all), by = 14)), ]
+CE_val <- df_all[c(seq(12, nrow(df_all), by = 14)), ]
+
+DE_cal <- df_all[c(seq(13, nrow(df_all), by = 14)), ]
+DE_val <- df_all[c(seq(14, nrow(df_all), by = 14)), ]
 
 
 # Mean rank and share of rank 1 is calculated
@@ -1505,13 +1520,32 @@ shareOne <- data.frame(apply(apply(-CE_val, 2, rank, ties.method = "min"), 1,
 CE_val_ranks <- cbind(AVG_rank, shareOne)
 names(CE_val_ranks) <-  c("Mean Rank",  "%rank_1")
 
+
+
+
+AVG_rank <- data.frame(rowMeans(apply(-DE_cal, 2, rank, ties.method = "min")))
+shareOne <- data.frame(apply(apply(-DE_cal, 2, rank, ties.method = "min"), 1,
+                             count_ones) /  position)
+DE_cal_ranks <- cbind(AVG_rank, shareOne)
+names(DE_cal_ranks) <- c("Mean Rank",  "%rank_1")
+
+AVG_rank <- data.frame(rowMeans(apply(-DE_val, 2, rank, ties.method = "min")))
+shareOne <- data.frame(apply(apply(-DE_val, 2, rank, ties.method = "min"), 1,
+                             count_ones) /  position)
+DE_val_ranks <- cbind(AVG_rank, shareOne)
+names(DE_val_ranks) <-  c("Mean Rank",  "%rank_1")
+
+
+
+
 # Results are rbinded together
 ranks_together <- rbind(r_cal_ranks, r_val_ranks,
                        RMSE_cal_ranks, RMSE_val_ranks,
                        RSSE_cal_ranks, RSSE_val_ranks,
                        d_cal_ranks, d_val_ranks,
                        RE_cal_ranks, RE_val_ranks,
-                       CE_cal_ranks, CE_val_ranks)
+                       CE_cal_ranks, CE_val_ranks,
+                       DE_cal_ranks, DE_val_ranks)
 
 # Those variables have to be defined, solution suggest on Stackoverflow.com
 BRNN <- NULL
@@ -1558,7 +1592,8 @@ ranks_together$Metric <- c(rep("r", length(methods) * 2),
                             rep("RRSE", length(methods) * 2),
                             rep("d", length(methods) *2),
                             rep("RE", length(methods) * 2),
-                            rep("CE", length(methods) * 2))
+                            rep("CE", length(methods) * 2),
+                            rep("DE", length(methods) * 2))
 
 colnames(ranks_together)[1] <- "Avg_rank"
 togeter_AVG_rank <- reshape::cast(ranks_together,
@@ -1566,7 +1601,7 @@ togeter_AVG_rank <- reshape::cast(ranks_together,
                                   value = c("Avg_rank"))
 togeter_AVG_rank$Metric  <- factor(togeter_AVG_rank$Metric,
                                     levels = c("r", "RMSE", "RRSE", "d",
-                                               "RE", "CE"))
+                                               "RE", "CE", "DE"))
 togeter_AVG_rank <- togeter_AVG_rank[order(togeter_AVG_rank$Metric), ]
 togeter_AVG_rank <- dplyr::select(togeter_AVG_rank, Metric, Period, methods)
 
@@ -1577,7 +1612,7 @@ together_share1 <- reshape::cast(ranks_together,
 
 together_share1$Metric  <- factor(together_share1$Metric,
                                    levels = c("r", "RMSE", "RRSE", "d",
-                                              "RE", "CE"))
+                                              "RE", "CE", "DE"))
 
 together_share1 <- together_share1[order(together_share1$Metric), ]
 together_share1 <- dplyr::select(together_share1, Metric, Period, methods)
@@ -1603,7 +1638,7 @@ colnames(df_all_avg) <- df_all_avg_colnames
 
 df_all_avg$Period <- c("cal", "val")
 df_all_avg$Metric <- c("r", "r", "RMSE", "RMSE", "RRSE", "RRSE",
-                            "d", "d", "RE", "RE", "CE", "CE")
+                            "d", "d", "RE", "RE", "CE", "CE", "DE", "DE")
 row.names(df_all_avg) <- NULL
 
 Results_mean_std <- dplyr::select(df_all_avg, Metric, Period, df_all_avg_colnames)
@@ -2318,6 +2353,14 @@ dataset_central <- dplyr::arrange(dataset, desc(dataset[, -DepIndex]))[(edge_fac
 
 } else {
   edge_results_t <- "No edge experiment is performed for regression problems with more than 2 independent variables."
+}
+
+# Here, we once again subset the data frames with preformance metrics, to exclude
+# RE, CE and DE for the calibration data
+Results_mean_std <- Results_mean_std[-c(9, 11, 13), ]
+Results_ranks <- Results_ranks[-c(9, 11, 13), ]
+if (numIND == 1){
+  edge_results_t <- edge_results_t[-c(9, 11, 13), ]
 }
 
 

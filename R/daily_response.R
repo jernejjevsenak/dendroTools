@@ -1198,7 +1198,8 @@ analysed_period
         train_observed <- train[, 1]
         test_observed <- test[, 1]
         calculations <- calculate_metrics(train_predicted, test_predicted,
-                                          train_observed, test_observed, digits = 15)
+                                          train_observed, test_observed, test = test,
+                                          formula = optimized_return ~ ., digits = 15)
 
         empty_list[[m]] <- calculations
       }
@@ -1211,7 +1212,9 @@ analysed_period
           train_observed <- train[, 1]
           test_observed <- test[, 1]
           calculations <- calculate_metrics(train_predicted, test_predicted,
-                                            train_observed, test_observed, digits = 15)
+                                            train_observed, test_observed, digits = 15,
+                                            test = test,
+                                            formula = optimized_return ~ .)
 
           empty_list[[m]] <- calculations
 

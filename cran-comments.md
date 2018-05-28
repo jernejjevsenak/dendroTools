@@ -1,3 +1,12 @@
+## Special Request
+
+Dear CRAN, I kindly ask for an exception to update our package only one week after our previous update. We added a new metric to the compare_methods(), this metric was suggested by the reviewer of our article submitted to Geochronometria journal. The deadline to resubmit the article is June 4th, so we are under time pressure. We apologize that we did not include this update in our previously submitted update of the dendroTools, but we somehow overlooked the suggestion by the reviewer. 
+
+Thank you for your understanding. 
+
+Best Regards,
+Jernej 
+
 ##  Resubmission
 * This is a resubmission of the package dendroTools.
 

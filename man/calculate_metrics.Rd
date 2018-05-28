@@ -5,7 +5,7 @@
 \title{calculate_metrics}
 \usage{
 calculate_metrics(train_predicted, test_predicted, train_observed,
-  test_observed, digits = 4)
+  test_observed, digits = 4, formula, test)
 }
 \arguments{
 \item{train_predicted}{a vector indicating predicted data for training set}
@@ -17,6 +17,12 @@ calculate_metrics(train_predicted, test_predicted, train_observed,
 \item{test_observed}{a vector indicating observed data for training set}
 
 \item{digits}{integer of number of digits to be displayed}
+
+\item{formula}{an object of class "formula" (or one that can be coerced
+to that class): a symbolic description of the model to be fitted. This
+additional argument is needed to calculate DE metrics.}
+
+\item{test}{data frame with test data.}
 }
 \value{
 a data frame of calculated test and train metrics
@@ -25,7 +31,8 @@ a data frame of calculated test and train metrics
 Calculates performance metrics for train and test data. Calculated
 performance metrics are correlation coefficient (r), root mean squared
 error (RMSE), root relative squared error (RSSE), index of agreement
-(d), reduction of error (RE) coefficient of efficiency (CE) and bias.
+(d), reduction of error (RE), coefficient of efficiency (CE), detrended
+efficiency (DE) and bias.
 }
 \examples{
 data(example_dataset_1)
@@ -37,7 +44,7 @@ test_predicted <- predict(lin_mod, test_data)
 train_observed <- train_data[, 1]
 test_observed <- test_data[, 1]
 calculate_metrics(train_predicted, test_predicted, train_observed,
-test_observed)
+test_observed, test = test_data, formula = MVA ~.)
 
 test_data <- example_dataset_1[1:20, ]
 train_data <- example_dataset_1[21:55, ]
@@ -48,7 +55,7 @@ test_predicted <- predict(lin_mod, test_data)
 train_observed <- train_data[, 1]
 test_observed <- test_data[, 1]
 calculate_metrics(train_predicted, test_predicted, train_observed,
-test_observed)
+test_observed, test = test_data, formula = MVA ~.)
 }
 \references{
 Briffa, K.R., Jones, P.D., Pilcher, J.R., Hughes, M.K., 1988. Reconstructing

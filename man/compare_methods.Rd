@@ -188,7 +188,7 @@ data(example_dataset_1)
 
 # An example with default settings of machine learning algorithms
 experiment_1 <- compare_methods(formula = MVA~.,
-dataset = example_dataset_1, k = 25, repeats = 10, blocked_CV = TRUE,
+dataset = example_dataset_1, k = 10, repeats = 10, blocked_CV = TRUE,
 PCA_transformation = FALSE, components_selection = "automatic",
 optimize = TRUE, methods = c("MLR", "BRNN"), tuning_metric = "RSquared")
 experiment_1$mean_std
