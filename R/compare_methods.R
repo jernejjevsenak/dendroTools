@@ -5,10 +5,11 @@
 #' networks with Bayesian regularization training algorithm (BRNN),
 #' M5P model trees (MT), model trees with bagging (BMT) and random forest
 #' of regression trees (RF). With the subset argument, specific methods of
-#' interest could be specified. Calculated performance metrics are correlation
-#' coefficient, root mean squared error (RMSE), root relative squared error
-#' (RSSE), index of agreement (d), reduction of error (RE), coefficient of
-#' efficiency (CE) and mean bias.
+#' interest could be specified. Calculated performance metrics are the
+#' correlation coefficient (r), the root mean squared error (RMSE), the root
+#' relative squared error (RRSE), the index of agreement (d), the reduction
+#' of error (RE), the coefficient of efficiency (CE), the detrended
+#' efficiency (DE) and mean bias.
 #'
 #' @param formula an object of class "formula" (or one that can be coerced
 #' to that class): a symbolic description of the model to be fitted.
@@ -92,20 +93,35 @@
 #' @param RF_P_vector a vector of possible values for RF_P argument optimization
 #' @param RF_I_vector a vector of possible values for RF_I argument optimization
 #' @param RF_depth_vector a vector of possible values for RF_depth argument optimization
+#' @param holdout this argument is used to define observations, which are excluded
+#' from the cross-validation and hyperparameters optimization. The holdout argument must be
+#' a character with one of the following inputs: “early”, “late” or “manual”. If
+#' "early" or "late" characters are specified, then the early or late years will be
+#' used as a holdout data. How many of the "early" or "late" years are used as a holdout
+#' is specified with the argument holdout_share. If the argument holdout is set to “manual”,
+#' then supply a vector of years (or row names) to the argument holdout_manual. Defined
+#' years will be used as a holdout. For the holdout data, the same statistical measures are
+#' calculated as for the cross-validation. The results for holdout metrics are given in the
+#' output element $holdout_results.
+#' @param holdout_share the share of the whole dataset to be used as a holdout.
+#' Default is 0.10.
+#' @param holdout_manual a vector of years (or row names) which will be used as a holdout.
+#' calculated as for the cross-validation.
 #'
 #' @return a list with ten elements:
 #'\tabular{rll}{
 #'  1 \tab $mean_std   \tab data frame with calculated metrics for the selected regression methods. For each regression method and each calculated metric, mean and standard deviation are given\cr
 #'  2 \tab $ranks \tab data frame with ranks of calculated metrics: mean rank and  share of rank_1 are given \cr
 #'  3 \tab $edge_results   \tab data frame with calculated performance metrics for the central-edge test. The central part of the data represents the calibration data, while the edge data, i.e. extreme values, represent the test/validation data. Different regression models are calibrated using the central data and validated for the edge (extreme) data. This test is particularly important to assess the performance of models for the predictions of the extreme data. The share of the edge (extreme) data is defined with the edge_share argument \cr
-#'  4 \tab $bias_cal   \tab ggplot object of mean bias for calibration data \cr
-#'  5 \tab $bias_val    \tab ggplot object of mean bias for validation data \cr
-#'  6 \tab $transfer_functions   \tab ggplot or plotly object with transfer functions of methods \cr
-#'  7 \tab $transfer_functions_together    \tab ggplot or plotly object with transfer functions of methods plotted together \cr
-#'  8 \tab $parameter_values    \tab a data frame with specifications of parameters used for different regression methods \cr
-#'  9 \tab $PCA_output    \tab princomp object: the result output of the PCA analysis \cr
-#'  10 \tab $reconstructions    \tab ggplot object: reconstructed dependent variable based on the dataset_complete argument, facet is used to split plots by methods  \cr
-#'  11 \tab $reconstructions_together    \tab ggplot object: reconstructed dependent variable based on the dataset_complete argument, all reconstructions are on the same plot
+#'  4 \tab $holdout_results    \tab calculated metrics for the holdout data \cr
+#'  5 \tab $bias_cal   \tab ggplot object of mean bias for calibration data \cr
+#'  6 \tab $bias_val    \tab ggplot object of mean bias for validation data \cr
+#'  7 \tab $transfer_functions   \tab ggplot or plotly object with transfer functions of methods \cr
+#'  8 \tab $transfer_functions_together    \tab ggplot or plotly object with transfer functions of methods plotted together \cr
+#'  9 \tab $parameter_values    \tab a data frame with specifications of parameters used for different regression methods \cr
+#'  10 \tab $PCA_output    \tab princomp object: the result output of the PCA analysis \cr
+#'  11 \tab $reconstructions    \tab ggplot object: reconstructed dependent variable based on the dataset_complete argument, facet is used to split plots by methods  \cr
+#'  12 \tab $reconstructions_together    \tab ggplot object: reconstructed dependent variable based on the dataset_complete argument, all reconstructions are on the same plot
 #'}
 #'
 #' @export
@@ -225,7 +241,9 @@ compare_methods <- function(formula, dataset, k = 10, repeats = 2,
                             BMT_R_vector = c(FALSE),
                             RF_P_vector = c(100),
                             RF_I_vector = c(100),
-                            RF_depth_vector  = c(0, 2)) {
+                            RF_depth_vector  = c(0, 2),
+                            holdout = NULL, holdout_share = 0.10,
+                            holdout_manual = NULL){
 
 if (k < 2 | k > 26){
   stop(paste0("Selected k is ", k,", but it should be between 2 and 26"))
@@ -242,9 +260,6 @@ full_methods <- c("MLR", "BRNN", "MT", "BMT", "RF")
 methods <- sort(methods)
 
 set.seed(seed_factor) # We ensure that the optimization results are always the same
-
-# This function is used to calculate metrics r, RMSE, RRSE, d, RE, CE and bias
-# for train and test data
 
 #############################################################################
 
@@ -317,6 +332,30 @@ allnames <- c(as.character(formula[[2]]), indep_names)
 # So, sometimes there are variables in dataframe, which are not used as predictors.
 # Let's remove them
 dataset <- dataset[ names(dataset)[names(dataset) %in% allnames] ]
+
+
+# Here, if holdout data is defined, we exclude those observations from cross-validation
+# and hyperparameters optimization
+if (!is.null(holdout)){
+  if (holdout == "early"){
+  dataset <- dataset[ order(as.numeric(row.names(dataset)), decreasing = TRUE),]
+  dataset_holdout = dataset[1:(nrow(dataset)*holdout_share),]
+  dataset = dataset[((nrow(dataset)*holdout_share)+1):nrow(dataset),]
+
+  } else if (holdout == "late"){
+    dataset <- dataset[ order(as.numeric(row.names(dataset)), decreasing = TRUE),]
+    dataset_holdout = dataset[(nrow(dataset) - (round(nrow(dataset)*holdout_share, 0))):nrow(dataset), ]
+    dataset = dataset[1:((nrow(dataset) - (round(nrow(dataset)*holdout_share, 0))) -1), ]
+
+  } else if (holdout == "manual"){
+    dataset_holdout = dataset[row.names(dataset) %in% holdout_manual, ]
+    dataset = dataset[!row.names(dataset) %in% holdout_manual, ]
+
+  } else {
+      stop(paste0("The argument holdout is set to ", holdout,". Instead, it should be early, late or manual. ",
+                 "Please, see the compare_methods() documentation."))
+    }
+  }
 
 
 # Here we use caret package to tune parameters of different methods
@@ -1584,6 +1623,8 @@ edge_observation <- NULL
 edge_prediction <- NULL
 type <- NULL
 data_edge_central <- NULL
+DE <- NULL
+data_holdout_calibration <- NULL
 
 ranks_together$Method <- methods
 ranks_together$Period <- c(rep("cal", length(methods)), rep("val", length(methods)))
@@ -2167,51 +2208,7 @@ plot_4 <- ggplot(reconstructions, aes(x = Year, y = reconstruction, group = meth
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-############################################################
+##########################################################
 #   The comparison of methods, only the edge instances     #
 ############################################################
 # Here, I extract the "edge data", I calibrate models using the central part of the data and
@@ -2224,23 +2221,28 @@ dataset_min <- dplyr::arrange(dataset, desc(dataset[, -DepIndex]))[(nrow(dataset
 dataset_edges <- rbind(dataset_max, dataset_min)
 dataset_central <- dplyr::arrange(dataset, desc(dataset[, -DepIndex]))[(edge_factor+1):(nrow(dataset)-edge_factor),]
 
+   MLR_model <- lm(formula, data = dataset_central)
+   edge_prediction <- data.frame(value = predict(MLR_model, dataset_edges), data_edge_central = "edge", type = "predicted", method = "MLR")
+   central_prediction <- data.frame(value = predict(MLR_model, dataset_central), data_edge_central = "central", type = "predicted", method = "MLR")
+   edge_observed <- data.frame(value = dataset_edges[, DepIndex], data_edge_central = "edge", type = "observed", method = "MLR")
+   central_observed <- data.frame(value = dataset_central[, DepIndex], data_edge_central = "central", type = "observed", method = "MLR")
 
-
-  MLR_model <- lm(formula, data = dataset_central)
-  edge_prediction <- data.frame(value = predict(MLR_model, dataset_edges), data_edge_central = "edge", type = "predicted", method = "MLR")
-  central_prediction <- data.frame(value = predict(MLR_model, dataset_central), data_edge_central = "central", type = "predicted", method = "MLR")
-  edge_observed <- data.frame(value = dataset_edges[, DepIndex], data_edge_central = "edge", type = "observed", method = "MLR")
-  central_observed <- data.frame(value = dataset_central[, DepIndex], data_edge_central = "central", type = "observed", method = "MLR")
   MLR_central_edge <- rbind(edge_prediction, central_prediction, edge_observed, central_observed)
 
+  test_1 <- data.frame(dataset_edges[, DepIndex])
+  colnames(test_1) <- "DE_TRICK"
+  test_1$sequence <- seq(1:nrow(dataset_edges))
+  MLR_DE <- lm(formula = DE_TRICK~., data = test_1)
+  DE_predicted <- predict(MLR_DE, test_1)
 
-    #BRNN Model
+  #BRNN Model
   capture.output(BRNN_model <- brnn(formula, data = dataset_central, BRNN_neurons = BRNN_neurons, verbose = FALSE))
   edge_prediction <- data.frame(value = predict(BRNN_model, dataset_edges), data_edge_central = "edge", type = "predicted", method = "BRNN")
   central_prediction <- data.frame(value = predict(BRNN_model, dataset_central), data_edge_central = "central", type = "predicted", method = "BRNN")
   edge_observed <- data.frame(value = dataset_edges[, DepIndex], data_edge_central = "edge", type = "observed", method = "BRNN")
   central_observed <- data.frame(value = dataset_central[, DepIndex], data_edge_central = "central", type = "observed", method = "BRNN")
   BRNN_central_edge <- rbind(edge_prediction, central_prediction, edge_observed, central_observed)
+
 
   # Model Trees
   MT_model <- M5P(formula, data = dataset_central,
@@ -2280,61 +2282,69 @@ dataset_central <- dplyr::arrange(dataset, desc(dataset[, -DepIndex]))[(edge_fac
                              BMT_central_edge,
                              RF_central_edge)
 
+  edge_central_data$DE = 0
+
+  DE_data_MLR <- data.frame(value = DE_predicted, data_edge_central = "edge", type = "predicted", method = "MLR", DE = 1)
+  DE_data_BRNN <- data.frame(value = DE_predicted, data_edge_central = "edge", type = "predicted", method = "BRNN", DE = 1)
+  DE_data_MT <- data.frame(value = DE_predicted, data_edge_central = "edge", type = "predicted", method = "MT", DE = 1)
+  DE_data_BMT <- data.frame(value = DE_predicted, data_edge_central = "edge", type = "predicted", method = "BMT", DE = 1)
+  DE_data_RF <- data.frame(value = DE_predicted, data_edge_central = "edge", type = "predicted", method = "RF", DE = 1)
+
+  DE_data <- rbind(DE_data_MLR,DE_data_BRNN,DE_data_MT,DE_data_BMT, DE_data_MT)
+
+  edge_central_data <- rbind(edge_central_data, DE_data)
+
   edge_central_data <- dplyr::filter(edge_central_data, method %in% methods)
 
   edge_results <- edge_central_data %>%
                     group_by(method) %>%
-                    summarise(r_central = cor(value[data_edge_central == "central" & type == "predicted"],
-                                          value[data_edge_central == "central" & type == "observed"]),
-                             r_edge = cor(value[data_edge_central == "edge" & type == "predicted"],
-                                      value[data_edge_central == "edge" & type == "observed"]),
+                    summarise(r_central = cor(value[data_edge_central == "central" & type == "predicted"  & DE == 0 ],
+                                          value[data_edge_central == "central" & type == "observed" & DE == 0 ]),
+                             r_edge = cor(value[data_edge_central == "edge" & type == "predicted" & DE == 0 ],
+                                      value[data_edge_central == "edge" & type == "observed" & DE == 0 ]),
 
-                             RMSE_central = MLmetrics::RMSE(value[data_edge_central == "central" & type == "predicted"],
-                                                            value[data_edge_central == "central" & type == "observed"]),
-                             RMSE_edge =  MLmetrics::RMSE(value[data_edge_central == "edge" & type == "predicted"],
-                                                           value[data_edge_central == "edge" & type == "observed"]),
+                             RMSE_central = MLmetrics::RMSE(value[data_edge_central == "central" & type == "predicted" & DE == 0 ],
+                                                            value[data_edge_central == "central" & type == "observed" & DE == 0 ]),
+                             RMSE_edge =  MLmetrics::RMSE(value[data_edge_central == "edge" & type == "predicted" & DE == 0 ],
+                                                          value[data_edge_central == "edge" & type == "observed" & DE == 0 ]),
 
-                             RRSE_central = MLmetrics::RRSE(value[data_edge_central == "central" & type == "predicted"],
-                                                            value[data_edge_central == "central" & type == "observed"]),
-                             RRSE_edge = MLmetrics::RRSE(value[data_edge_central == "edge" & type == "predicted"],
-                                                           value[data_edge_central == "edge" & type == "observed"]),
+                             RRSE_central = MLmetrics::RRSE(value[data_edge_central == "central" & type == "predicted" & DE == 0 ],
+                                                            value[data_edge_central == "central" & type == "observed" & DE == 0 ]),
+                             RRSE_edge = MLmetrics::RRSE(value[data_edge_central == "edge" & type == "predicted" & DE == 0 ],
+                                                         value[data_edge_central == "edge" & type == "observed" & DE == 0 ]),
+                             d_central  = 1 - (sum((value[data_edge_central == "central" & type == "observed" & DE == 0 ] -
+                                                      value[data_edge_central == "central" & type == "predicted" & DE == 0 ]) ^ 2)) /
+                               sum((abs(value[data_edge_central == "central" & type == "predicted" & DE == 0 ] -
+                                          mean(value[data_edge_central == "central" & type == "observed" & DE == 0 ])) +
+                                      abs(value[data_edge_central == "central" & type == "observed" & DE == 0 ] -
+                                            mean(value[data_edge_central == "central" & type == "observed" & DE == 0 ]))) ^ 2),
+                             d_edge = 1 - (sum((value[data_edge_central == "edge" & type == "observed" & DE == 0 ] -
+                                                  value[data_edge_central == "edge" & type == "predicted" & DE == 0 ]) ^ 2)) /
+                               sum((abs(value[data_edge_central == "edge" & type == "predicted" & DE == 0 ] -
+                                          mean(value[data_edge_central == "edge" & type == "observed" & DE == 0 ])) +
+                                      abs(value[data_edge_central == "edge" & type == "observed" & DE == 0 ] -
+                                            mean(value[data_edge_central == "edge" & type == "observed" & DE == 0 ]))) ^ 2),
 
-                             d_central  = 1 - (sum((value[data_edge_central == "central" & type == "observed"] -
-                                                      value[data_edge_central == "central" & type == "predicted"]) ^ 2)) /
-                               sum((abs(value[data_edge_central == "central" & type == "predicted"] -
-                                          mean(value[data_edge_central == "central" & type == "observed"])) +
-                                      abs(value[data_edge_central == "central" & type == "observed"] -
-                                            mean(value[data_edge_central == "central" & type == "observed"]))) ^ 2),
-                             d_edge = 1 - (sum((value[data_edge_central == "edge" & type == "observed"] -
-                                                   value[data_edge_central == "edge" & type == "predicted"]) ^ 2)) /
-                                sum((abs(value[data_edge_central == "edge" & type == "predicted"] -
-                                           mean(value[data_edge_central == "edge" & type == "observed"])) +
-                                       abs(value[data_edge_central == "edge" & type == "observed"] -
-                                             mean(value[data_edge_central == "edge" & type == "observed"]))) ^ 2),
+                             RE_edge = 1 - (sum((value[data_edge_central == "edge" & type == "observed" & DE == 0 ] -
+                                                   value[data_edge_central == "edge" & type == "predicted" & DE == 0 ]) ^ 2) /
+                                              sum((value[data_edge_central == "edge" & type == "observed" & DE == 0 ] -
+                                                     mean(value[data_edge_central == "central" & type == "observed" & DE == 0 ])) ^ 2)),
 
-                             RE_central = 1 - (sum((value[data_edge_central == "central" & type == "observed"] -
-                                                      value[data_edge_central == "central" & type == "predicted"]) ^ 2) /
-                                                 sum((value[data_edge_central == "central" & type == "observed"] -
-                                                        mean(value[data_edge_central == "edge" & type == "observed"])) ^ 2)),
-                             RE_edge = 1 - (sum((value[data_edge_central == "edge" & type == "observed"] -
-                                                    value[data_edge_central == "edge" & type == "predicted"]) ^ 2) /
-                                             sum((value[data_edge_central == "edge" & type == "observed"] -
-                                                    mean(value[data_edge_central == "central" & type == "observed"])) ^ 2)),
-
-                             CE_central  = 1 - (sum((value[data_edge_central == "central" & type == "observed"] -
-                                                       value[data_edge_central == "central" & type == "predicted"]) ^ 2) /
-                                                  sum((value[data_edge_central == "central" & type == "observed"] -
-                                                         mean(value[data_edge_central == "central" & type == "observed"])) ^ 2)),
-                              CE_edge  = 1 - (sum((value[data_edge_central == "edge" & type == "observed"] -
-                                                     value[data_edge_central == "edge" & type == "predicted"]) ^ 2) /
-                                                sum((value[data_edge_central == "edge" & type == "observed"] -
-                                                       mean(value[data_edge_central == "edge" & type == "observed"])) ^ 2))
-
-                              )
+                             CE_edge  = 1 - (sum((value[data_edge_central == "edge" & type == "observed" & DE == 0 ] -
+                                                    value[data_edge_central == "edge" & type == "predicted" & DE == 0 ]) ^ 2) /
+                                               sum((value[data_edge_central == "edge" & type == "observed" & DE == 0 ] -
+                                                      mean(value[data_edge_central == "edge" & type == "observed" & DE == 0 ])) ^ 2)),
+                             DE_edge = 1 - (sum((value[data_edge_central == "edge" & type == "observed" & DE == 0 ] -
+                                                   value[data_edge_central == "edge" & type == "predicted" & DE == 0 ]) ^ 2) /
+                                              sum((value[data_edge_central == "edge" & type == "observed" & DE == 0 ] -
+                                                     value[data_edge_central == "edge" & type == "predicted" & DE == 1 ]) ^ 2))
 
 
+                               )
 
-# test_observed: value[data_edge_central == "edge" & type == "observed"]
+
+# summary(edge_central_data)
+# test_observed: edge_central_data$value[edge_central_data$data_edge_central == "edge" & edge_central_data$type == "predicted" & edge_central_data$DE == 1 & edge_central_data$method == "MLR"]
 # test_predicted: value[data_edge_central == "edge" & type == "predicted"]
 # train_observed: value[data_edge_central == "central" & type == "observed"]
 # train_predicted: value[data_edge_central == "central" & type == "predicted"]
@@ -2344,9 +2354,15 @@ dataset_central <- dplyr::arrange(dataset, desc(dataset[, -DepIndex]))[(edge_fac
   edge_results_t <- t(edge_results[,-1])
   colnames(edge_results_t) <- edge_results$method
   edge_results_t <- round(edge_results_t, digits)
-  edge_results_t <- data.frame(edge_results_t, Period =  c("cal_central", "val_edge"),
+  edge_results_t <- data.frame(edge_results_t, Period =  c("cal_central", "val_edge",
+                                                           "cal_central", "val_edge",
+                                                           "cal_central", "val_edge",
+                                                           "cal_central", "val_edge",
+                                                           "val_edge","val_edge",
+                                                           "val_edge"
+                                                            ),
                                Metric = c("r", "r", "RMSE", "RMSE", "RRSE", "RRSE",
-                             "d", "d", "RE", "RE", "CE", "CE"))
+                             "d", "d", "RE", "CE", "DE"))
   edge_results_t <- select(edge_results_t, Metric, Period, methods)
   row.names(edge_results_t) <- NULL
 
@@ -2366,11 +2382,178 @@ if (numIND == 1){
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+##########################################################
+#   holdout calculations    #
+############################################################
+
+if (!is.null(holdout)) {
+
+  MLR_model <- lm(formula, data = dataset)
+  holdout_prediction <- data.frame(value = predict(MLR_model, dataset_holdout), data_holdout_calibration = "holdout", type = "predicted", method = "MLR")
+  calibration_prediction <- data.frame(value = predict(MLR_model, dataset), data_holdout_calibration = "calibration", type = "predicted", method = "MLR")
+  holdout_observed <- data.frame(value = dataset_holdout[, DepIndex], data_holdout_calibration = "holdout", type = "observed", method = "MLR")
+  calibration_observed <- data.frame(value = dataset[, DepIndex], data_holdout_calibration = "calibration", type = "observed", method = "MLR")
+
+  MLR_calibration_holdout <- rbind(holdout_prediction, calibration_prediction, holdout_observed, calibration_observed)
+
+  test_1 <- data.frame(dataset_holdout[, DepIndex])
+  colnames(test_1) <- "DE_TRICK"
+  test_1$sequence <- seq(1:nrow(dataset_holdout))
+  MLR_DE <- lm(formula = DE_TRICK~., data = test_1)
+  DE_predicted <- predict(MLR_DE, test_1)
+
+  #BRNN Model
+  capture.output(BRNN_model <- brnn(formula, data = dataset, BRNN_neurons = BRNN_neurons, verbose = FALSE))
+  holdout_prediction <- data.frame(value = predict(BRNN_model, dataset_holdout), data_holdout_calibration = "holdout", type = "predicted", method = "BRNN")
+  calibration_prediction <- data.frame(value = predict(BRNN_model, dataset), data_holdout_calibration = "calibration", type = "predicted", method = "BRNN")
+  holdout_observed <- data.frame(value = dataset_holdout[, DepIndex], data_holdout_calibration = "holdout", type = "observed", method = "BRNN")
+  calibration_observed <- data.frame(value = dataset[, DepIndex], data_holdout_calibration = "calibration", type = "observed", method = "BRNN")
+  BRNN_calibration_holdout <- rbind(holdout_prediction, calibration_prediction, holdout_observed, calibration_observed)
+
+
+  # Model Trees
+  MT_model <- M5P(formula, data = dataset,
+                  control = Weka_control(M = MT_M, N =  MT_N, U = MT_U, R = MT_R))
+  holdout_prediction <- data.frame(value = predict(MT_model, dataset_holdout), data_holdout_calibration = "holdout", type = "predicted", method = "MT")
+  calibration_prediction <- data.frame(value = predict(MT_model, dataset), data_holdout_calibration = "calibration", type = "predicted", method = "MT")
+  holdout_observed <- data.frame(value = dataset_holdout[, DepIndex], data_holdout_calibration = "holdout", type = "observed", method = "MT")
+  calibration_observed <- data.frame(value = dataset[, DepIndex], data_holdout_calibration = "calibration", type = "observed", method = "MT")
+  MT_calibration_holdout <- rbind(holdout_prediction, calibration_prediction, holdout_observed, calibration_observed)
+
+  #M5 Model with bagging
+  BMT_model <- Bagging(formula,
+                       data = dataset,
+                       control = Weka_control(P = BMT_P, I = BMT_I,
+                                              W = list("weka.classifiers.trees.M5P",
+                                                       M = BMT_M, N = BMT_N,
+                                                       U = BMT_U, R = BMT_R)))
+  holdout_prediction <- data.frame(value = predict(BMT_model, dataset_holdout), data_holdout_calibration = "holdout", type = "predicted", method = "BMT")
+  calibration_prediction <- data.frame(value = predict(BMT_model, dataset), data_holdout_calibration = "calibration", type = "predicted", method = "BMT")
+  holdout_observed <- data.frame(value = dataset_holdout[, DepIndex], data_holdout_calibration = "holdout", type = "observed", method = "BMT")
+  calibration_observed <- data.frame(value = dataset[, DepIndex], data_holdout_calibration = "calibration", type = "observed", method = "BMT")
+  BMT_calibration_holdout <- rbind(holdout_prediction, calibration_prediction, holdout_observed, calibration_observed)
+
+  # Random Forest
+  RF <- make_Weka_classifier("weka/classifiers/trees/RandomForest")
+  RF_model <- RF(formula = formula, data = dataset,
+                 control = Weka_control(P = RF_P, I = RF_I, depth = RF_depth))
+  holdout_prediction <- data.frame(value = predict(RF_model, dataset_holdout), data_holdout_calibration = "holdout", type = "predicted", method = "RF")
+  calibration_prediction <- data.frame(value = predict(RF_model, dataset), data_holdout_calibration = "calibration", type = "predicted", method = "RF")
+  holdout_observed <- data.frame(value = dataset_holdout[, DepIndex], data_holdout_calibration = "holdout", type = "observed", method = "RF")
+  calibration_observed <- data.frame(value = dataset[, DepIndex], data_holdout_calibration = "calibration", type = "observed", method = "RF")
+  RF_calibration_holdout <- rbind(holdout_prediction, calibration_prediction, holdout_observed, calibration_observed)
+
+  holdout_calibration_data <- rbind(MLR_calibration_holdout,
+                             BRNN_calibration_holdout,
+                             MT_calibration_holdout,
+                             BMT_calibration_holdout,
+                             RF_calibration_holdout)
+
+  holdout_calibration_data$DE = 0
+
+  DE_data_MLR <- data.frame(value = DE_predicted, data_holdout_calibration = "holdout", type = "predicted", method = "MLR", DE = 1)
+  DE_data_BRNN <- data.frame(value = DE_predicted, data_holdout_calibration = "holdout", type = "predicted", method = "BRNN", DE = 1)
+  DE_data_MT <- data.frame(value = DE_predicted, data_holdout_calibration = "holdout", type = "predicted", method = "MT", DE = 1)
+  DE_data_BMT <- data.frame(value = DE_predicted, data_holdout_calibration = "holdout", type = "predicted", method = "BMT", DE = 1)
+  DE_data_RF <- data.frame(value = DE_predicted, data_holdout_calibration = "holdout", type = "predicted", method = "RF", DE = 1)
+
+  DE_data <- rbind(DE_data_MLR,DE_data_BRNN,DE_data_MT,DE_data_BMT, DE_data_MT)
+
+  holdout_calibration_data <- rbind(holdout_calibration_data, DE_data)
+
+  holdout_calibration_data <- dplyr::filter(holdout_calibration_data, method %in% methods)
+
+  holdout_results <- holdout_calibration_data %>%
+    group_by(method) %>%
+    summarise(r_calibration = cor(value[data_holdout_calibration == "calibration" & type == "predicted"  & DE == 0 ],
+                              value[data_holdout_calibration == "calibration" & type == "observed" & DE == 0 ]),
+              r_holdout = cor(value[data_holdout_calibration == "holdout" & type == "predicted" & DE == 0 ],
+                           value[data_holdout_calibration == "holdout" & type == "observed" & DE == 0 ]),
+
+              RMSE_calibration = MLmetrics::RMSE(value[data_holdout_calibration == "calibration" & type == "predicted" & DE == 0 ],
+                                             value[data_holdout_calibration == "calibration" & type == "observed" & DE == 0 ]),
+              RMSE_holdout =  MLmetrics::RMSE(value[data_holdout_calibration == "holdout" & type == "predicted" & DE == 0 ],
+                                           value[data_holdout_calibration == "holdout" & type == "observed" & DE == 0 ]),
+
+              RRSE_calibration = MLmetrics::RRSE(value[data_holdout_calibration == "calibration" & type == "predicted" & DE == 0 ],
+                                             value[data_holdout_calibration == "calibration" & type == "observed" & DE == 0 ]),
+              RRSE_holdout = MLmetrics::RRSE(value[data_holdout_calibration == "holdout" & type == "predicted" & DE == 0 ],
+                                          value[data_holdout_calibration == "holdout" & type == "observed" & DE == 0 ]),
+              d_calibration  = 1 - (sum((value[data_holdout_calibration == "calibration" & type == "observed" & DE == 0 ] -
+                                       value[data_holdout_calibration == "calibration" & type == "predicted" & DE == 0 ]) ^ 2)) /
+                sum((abs(value[data_holdout_calibration == "calibration" & type == "predicted" & DE == 0 ] -
+                           mean(value[data_holdout_calibration == "calibration" & type == "observed" & DE == 0 ])) +
+                       abs(value[data_holdout_calibration == "calibration" & type == "observed" & DE == 0 ] -
+                             mean(value[data_holdout_calibration == "calibration" & type == "observed" & DE == 0 ]))) ^ 2),
+              d_holdout = 1 - (sum((value[data_holdout_calibration == "holdout" & type == "observed" & DE == 0 ] -
+                                   value[data_holdout_calibration == "holdout" & type == "predicted" & DE == 0 ]) ^ 2)) /
+                sum((abs(value[data_holdout_calibration == "holdout" & type == "predicted" & DE == 0 ] -
+                           mean(value[data_holdout_calibration == "holdout" & type == "observed" & DE == 0 ])) +
+                       abs(value[data_holdout_calibration == "holdout" & type == "observed" & DE == 0 ] -
+                             mean(value[data_holdout_calibration == "holdout" & type == "observed" & DE == 0 ]))) ^ 2),
+
+              RE_holdout = 1 - (sum((value[data_holdout_calibration == "holdout" & type == "observed" & DE == 0 ] -
+                                    value[data_holdout_calibration == "holdout" & type == "predicted" & DE == 0 ]) ^ 2) /
+                               sum((value[data_holdout_calibration == "holdout" & type == "observed" & DE == 0 ] -
+                                      mean(value[data_holdout_calibration == "calibration" & type == "observed" & DE == 0 ])) ^ 2)),
+
+              CE_holdout  = 1 - (sum((value[data_holdout_calibration == "holdout" & type == "observed" & DE == 0 ] -
+                                     value[data_holdout_calibration == "holdout" & type == "predicted" & DE == 0 ]) ^ 2) /
+                                sum((value[data_holdout_calibration == "holdout" & type == "observed" & DE == 0 ] -
+                                       mean(value[data_holdout_calibration == "holdout" & type == "observed" & DE == 0 ])) ^ 2)),
+              DE_holdout = 1 - (sum((value[data_holdout_calibration == "holdout" & type == "observed" & DE == 0 ] -
+                                    value[data_holdout_calibration == "holdout" & type == "predicted" & DE == 0 ]) ^ 2) /
+                               sum((value[data_holdout_calibration == "holdout" & type == "observed" & DE == 0 ] -
+                                      value[data_holdout_calibration == "holdout" & type == "predicted" & DE == 1 ]) ^ 2))
+
+
+    )
+
+
+  holdout_results_t <- t(holdout_results[,-1])
+  colnames(holdout_results_t) <- holdout_results$method
+  holdout_results_t <- round(holdout_results_t, digits)
+  holdout_results_t <- data.frame(holdout_results_t, Period =  c("calibration", "holdout",
+                                                           "calibration", "holdout",
+                                                           "calibration", "holdout",
+                                                           "calibration", "holdout",
+                                                           "holdout","holdout",
+                                                           "holdout"
+  ),
+  Metric = c("r", "r", "RMSE", "RMSE", "RRSE", "RRSE",
+             "d", "d", "RE", "CE", "DE"))
+  holdout_results_t <- select(holdout_results_t, Metric, Period, methods)
+  row.names(holdout_results_t) <- NULL
+
+
+} else {
+  holdout_results_t <- "No holdout data was defined."
+}
+
+
+
   #####################################################################
 
 # If Calibration and Validation data should be returned, then this is our final results
   final_list <- list(mean_std = Results_mean_std, ranks = Results_ranks,
                      edge_results = edge_results_t,
+                     holdout_results = holdout_results_t,
                      bias_cal = suppressMessages(gg_object_cal),
                      bias_val = suppressMessages(gg_object_val),
                      transfer_functions = plot_1,

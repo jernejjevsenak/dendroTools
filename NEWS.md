@@ -1,4 +1,4 @@
-# dendroTools 0.0.9.
+# dendroTools 1.0.0.
 
-* There is a new metric implemented - detrended efficiency (DE)
-* Package version is changed to 0.0.9
+* Additional arguments are added, holdout, holdout_share and holdout_manual
+* Package version is changed to 1.0.0

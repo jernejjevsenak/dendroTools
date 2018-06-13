@@ -129,7 +129,7 @@
 #' row_names_subset = TRUE, previous_year = TRUE,
 #' remove_insignificant = TRUE, alpha = 0.05,
 #' plot_specific_window = 60, subset_years = c(1940, 1980))
-
+#'
 #' example_MVA_present <- daily_response(response = data_MVA, env_data = LJ_daily_temperatures,
 #'                                       method = "cor", lower_limit = 21, upper_limit = 180,
 #'                                       row_names_subset = TRUE, previous_year = TRUE,
@@ -186,8 +186,8 @@ daily_response <- function(response, env_data, method = "lm",
                            components_selection = 'automatic',
                            eigenvalues_threshold = 1,
                            N_components = 2, use_median = FALSE,
-                           temporal_stability_check = "sequential", k = 5,
-                           cross_validation_type = "randomized",
+                           temporal_stability_check = "sequential", k = 2,
+                           cross_validation_type = "blocked",
                            subset_years = NULL, plot_specific_window = NULL,
                            ylimits = NULL, seed = NULL, tidy_env_data = FALSE) {
 
@@ -1183,7 +1183,7 @@ analysed_period
 
       MAKS <- max(as.numeric(row.names(train)))
       MIN <- min(as.numeric(row.names(train)))
-      empty_list_period[[bl]] <- "NA"
+      empty_list_period[[bl]] <- paste(MIN, "-", MAKS)
       bl <- bl + 1
 
       MAKS <- max(as.numeric(row.names(test)))
@@ -1225,14 +1225,22 @@ analysed_period
 
     }
     m1 <- do.call(rbind, empty_list)
-    m1 <- m1[, -c(3, 4, 7)]
+    # m1 <- m1[, -c(3, 4, 7)]
     m2 <- do.call(rbind, empty_list_period)
 
     cross_validation <- cbind(Years = m2, m1)
     cross_validation$Period <- c("Calibration", "Validation")
     cross_validation$CV <- rep(1:k, each = 2)
-    cross_validation <- dplyr::select(cross_validation, CV, Period, cor, RMSE, RE, CE)
     row.names(cross_validation) <- NULL
+
+    if (cross_validation_type == "blocked"){
+      cross_validation <- dplyr::select(cross_validation, CV, Period, Years, cor, RMSE, RRSE, d, RE, CE, DE)
+    }
+    if (cross_validation_type == "randomized"){
+      cross_validation <- dplyr::select(cross_validation, CV, Period, cor, RMSE, RRSE, d, RE, CE, DE)
+    }
+
+
 
   ################################################################
   #### Here the final list is being filled with six elements #####

@@ -20,7 +20,8 @@ compare_methods(formula, dataset, k = 10, repeats = 2, optimize = TRUE,
   BMT_P_vector = c(100), BMT_I_vector = c(100), BMT_M_vector = c(4, 8, 16,
   25), BMT_N_vector = c(TRUE, FALSE), BMT_U_vector = c(TRUE, FALSE),
   BMT_R_vector = c(FALSE), RF_P_vector = c(100), RF_I_vector = c(100),
-  RF_depth_vector = c(0, 2))
+  RF_depth_vector = c(0, 2), holdout = NULL, holdout_share = 0.1,
+  holdout_manual = NULL)
 }
 \arguments{
 \item{formula}{an object of class "formula" (or one that can be coerced
@@ -154,6 +155,23 @@ also possible to use "RSquared".}
 \item{RF_I_vector}{a vector of possible values for RF_I argument optimization}
 
 \item{RF_depth_vector}{a vector of possible values for RF_depth argument optimization}
+
+\item{holdout}{this argument is used to define observations, which are excluded
+from the cross-validation and hyperparameters optimization. The holdout argument must be
+a character with one of the following inputs: “early”, “late” or “manual”. If
+"early" or "late" characters are specified, then the early or late years will be
+used as a holdout data. How many of the "early" or "late" years are used as a holdout
+is specified with the argument holdout_share. If the argument holdout is set to “manual”,
+then supply a vector of years (or row names) to the argument holdout_manual. Defined
+years will be used as a holdout. For the holdout data, the same statistical measures are
+calculated as for the cross-validation. The results for holdout metrics are given in the
+output element $holdout_results.}
+
+\item{holdout_share}{the share of the whole dataset to be used as a holdout.
+Default is 0.10.}
+
+\item{holdout_manual}{a vector of years (or row names) which will be used as a holdout.
+calculated as for the cross-validation.}
 }
 \value{
 a list with ten elements:
@@ -161,14 +179,15 @@ a list with ten elements:
  1 \tab $mean_std   \tab data frame with calculated metrics for the selected regression methods. For each regression method and each calculated metric, mean and standard deviation are given\cr
  2 \tab $ranks \tab data frame with ranks of calculated metrics: mean rank and  share of rank_1 are given \cr
  3 \tab $edge_results   \tab data frame with calculated performance metrics for the central-edge test. The central part of the data represents the calibration data, while the edge data, i.e. extreme values, represent the test/validation data. Different regression models are calibrated using the central data and validated for the edge (extreme) data. This test is particularly important to assess the performance of models for the predictions of the extreme data. The share of the edge (extreme) data is defined with the edge_share argument \cr
- 4 \tab $bias_cal   \tab ggplot object of mean bias for calibration data \cr
- 5 \tab $bias_val    \tab ggplot object of mean bias for validation data \cr
- 6 \tab $transfer_functions   \tab ggplot or plotly object with transfer functions of methods \cr
- 7 \tab $transfer_functions_together    \tab ggplot or plotly object with transfer functions of methods plotted together \cr
- 8 \tab $parameter_values    \tab a data frame with specifications of parameters used for different regression methods \cr
- 9 \tab $PCA_output    \tab princomp object: the result output of the PCA analysis \cr
- 10 \tab $reconstructions    \tab ggplot object: reconstructed dependent variable based on the dataset_complete argument, facet is used to split plots by methods  \cr
- 11 \tab $reconstructions_together    \tab ggplot object: reconstructed dependent variable based on the dataset_complete argument, all reconstructions are on the same plot
+ 4 \tab $holdout_results    \tab calculated metrics for the holdout data \cr
+ 5 \tab $bias_cal   \tab ggplot object of mean bias for calibration data \cr
+ 6 \tab $bias_val    \tab ggplot object of mean bias for validation data \cr
+ 7 \tab $transfer_functions   \tab ggplot or plotly object with transfer functions of methods \cr
+ 8 \tab $transfer_functions_together    \tab ggplot or plotly object with transfer functions of methods plotted together \cr
+ 9 \tab $parameter_values    \tab a data frame with specifications of parameters used for different regression methods \cr
+ 10 \tab $PCA_output    \tab princomp object: the result output of the PCA analysis \cr
+ 11 \tab $reconstructions    \tab ggplot object: reconstructed dependent variable based on the dataset_complete argument, facet is used to split plots by methods  \cr
+ 12 \tab $reconstructions_together    \tab ggplot object: reconstructed dependent variable based on the dataset_complete argument, all reconstructions are on the same plot
 }
 }
 \description{
@@ -177,10 +196,11 @@ regression methods: multiple linear regression (MLR), artificial neural
 networks with Bayesian regularization training algorithm (BRNN),
 M5P model trees (MT), model trees with bagging (BMT) and random forest
 of regression trees (RF). With the subset argument, specific methods of
-interest could be specified. Calculated performance metrics are correlation
-coefficient, root mean squared error (RMSE), root relative squared error
-(RSSE), index of agreement (d), reduction of error (RE), coefficient of
-efficiency (CE) and mean bias.
+interest could be specified. Calculated performance metrics are the
+correlation coefficient (r), the root mean squared error (RMSE), the root
+relative squared error (RRSE), the index of agreement (d), the reduction
+of error (RE), the coefficient of efficiency (CE), the detrended
+efficiency (DE) and mean bias.
 }
 \examples{
 \dontrun{
@@ -234,7 +254,7 @@ stepwise_direction = "backward")
 comparison_TRW$mean_std
 comparison_TRW$bias_val
 comparison_TRW$transfer_functions + xlab(expression(paste('TRW'))) +
-ylab("June-July Mean Temperature [°C]")
+ylab("June-July Mean Temperature [Â°C]")
 comparison_TRW$reconstructions
 comparison_TRW$reconstructions_together
 }
