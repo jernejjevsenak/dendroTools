@@ -11,8 +11,8 @@ daily_response(response, env_data, method = "lm", metric = "r.squared",
   PCA_transformation = FALSE, log_preprocess = TRUE,
   components_selection = "automatic", eigenvalues_threshold = 1,
   N_components = 2, use_median = FALSE,
-  temporal_stability_check = "sequential", k = 5,
-  cross_validation_type = "randomized", subset_years = NULL,
+  temporal_stability_check = "sequential", k = 2,
+  cross_validation_type = "blocked", subset_years = NULL,
   plot_specific_window = NULL, ylimits = NULL, seed = NULL,
   tidy_env_data = FALSE)
 }
@@ -172,6 +172,7 @@ method = "cor", lower_limit = 21, upper_limit = 180,
 row_names_subset = TRUE, previous_year = TRUE,
 remove_insignificant = TRUE, alpha = 0.05,
 plot_specific_window = 60, subset_years = c(1940, 1980))
+
 example_MVA_present <- daily_response(response = data_MVA, env_data = LJ_daily_temperatures,
                                       method = "cor", lower_limit = 21, upper_limit = 180,
                                       row_names_subset = TRUE, previous_year = TRUE,
