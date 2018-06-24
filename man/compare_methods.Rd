@@ -21,7 +21,7 @@ compare_methods(formula, dataset, k = 10, repeats = 2, optimize = TRUE,
   25), BMT_N_vector = c(TRUE, FALSE), BMT_U_vector = c(TRUE, FALSE),
   BMT_R_vector = c(FALSE), RF_P_vector = c(100), RF_I_vector = c(100),
   RF_depth_vector = c(0, 2), holdout = NULL, holdout_share = 0.1,
-  holdout_manual = NULL)
+  holdout_manual = NULL, total_reproducibility = FALSE)
 }
 \arguments{
 \item{formula}{an object of class "formula" (or one that can be coerced
@@ -172,9 +172,18 @@ Default is 0.10.}
 
 \item{holdout_manual}{a vector of years (or row names) which will be used as a holdout.
 calculated as for the cross-validation.}
+
+\item{total_reproducibility}{logical, default is FALSE. This argument ensures total
+reproducibility despite the inclusion/exclusion of different methods. By default, the
+optimization is done only for the methods, that are included in the methods vector. If
+one method is absent or added, the optimization phase is different, and this affects
+all the final cross-validation results. By setting the total_reproducibility = TRUE,
+all methods will be optimized, even though they are not included in the methods vector
+and the final results will be subset based on the methods vector. Setting the
+total_reproducibility to TRUE will result in longer optimization phase as well.}
 }
 \value{
-a list with ten elements:
+a list with twelve elements:
 \tabular{rll}{
  1 \tab $mean_std   \tab data frame with calculated metrics for the selected regression methods. For each regression method and each calculated metric, mean and standard deviation are given\cr
  2 \tab $ranks \tab data frame with ranks of calculated metrics: mean rank and  share of rank_1 are given \cr
@@ -204,7 +213,6 @@ efficiency (DE) and mean bias.
 }
 \examples{
 \dontrun{
-data(example_dataset_1)
 
 # An example with default settings of machine learning algorithms
 experiment_1 <- compare_methods(formula = MVA~.,

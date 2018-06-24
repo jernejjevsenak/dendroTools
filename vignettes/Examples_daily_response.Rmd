@@ -256,7 +256,7 @@ plot(row.names(data_TRW),reconstruction$predictions, type = "l", xlab = "Year",
 
 The current version of the *daily_response()* does not allow for using more than 1 daily environmental data, but the analysis with, e.g., daily temperature and precipitation data could be done separately and visualised together. In the following example, we analyse the relationship between Mean Vessel Area (MVA) chronology and daily temperature and precipitation data for the period 1960 – 2010. The period is defined with the *subset_ years* argument.
 
-The daily precipitation data is in tidy form, i.e. data frame with three columns representing “Year”, “DOY” and “Precipitation”. When tidy data is used, the argument *tidy_env_data* has to be set to TRUE. 
+The daily precipitation data is in tidy form, i.e. data frame with three columns representing “Year”, “DOY” and “Precipitation”. When tidy data is used, the argument *tidy_env_data* has to be set to TRUE. Additionally, to aggregate daily precipitation data, it makes more sense to use sum instead of mean. To do so, set the argument *aggregate_function* to 'sum'.  
 
 ```{r, results = 'hide'}
 # Load the dendroTools and brnn R package
@@ -278,7 +278,8 @@ example_MVA_PREC <- daily_response(response = data_MVA, env_data = LJ_daily_prec
                                    method = "cor", lower_limit = 30, upper_limit = 70,
                                    row_names_subset = TRUE, previous_year = FALSE,
                                    remove_insignificant = TRUE, alpha = 0.05, 
-                                   tidy_env_data = TRUE, subset_years = c(1960, 2010))
+                                   tidy_env_data = TRUE, subset_years = c(1960, 2010), 
+                                   aggregate_function = "sum")
 ```
 ```{r, fig.align='center', warning=FALSE, fig.width=7, fig.height=10, fig.cap=paste("Figure 15: The temporal pattern of correlatioins for temperatures (up) and precipitation (down)")}
 library(gridExtra)

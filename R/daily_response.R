@@ -61,8 +61,8 @@
 #' manually enter the number of components to be used as predictors.
 #' @param eigenvalues_threshold threshold for automatic selection of Principal Components
 #' @param N_components number of Principal Components used as predictors
-#' @param use_median if set to TRUE, median will be used instead of mean to calculate
-#' means of various ranges of env_data.
+#' @param aggregate_function character string specifying how the daily data should be
+#' aggregated. The default is 'mean', the two other options are 'median' and 'sum'
 #' @param temporal_stability_check character string, specifying, how temporal stability
 #' between the optimal selection and response variables will be analysed. Current
 #' possibilities are "sequential" and "progressive". Sequential check will split data into
@@ -120,7 +120,7 @@
 #' example_fixed_width <- daily_response(response = data_MVA, env_data = LJ_daily_temperatures,
 #'                                      method = "brnn", fixed_width = 60,
 #'                                      row_names_subset = TRUE, remove_insignificant = TRUE,
-#'                                      alpha = 0.05)
+#'                                      alpha = 0.05, aggregate_function = 'sum')
 #' example_fixed_width$plot_extreme
 #'
 #' # 2 Example for past and present
@@ -128,13 +128,14 @@
 #' method = "cor", lower_limit = 21, upper_limit = 180,
 #' row_names_subset = TRUE, previous_year = TRUE,
 #' remove_insignificant = TRUE, alpha = 0.05,
-#' plot_specific_window = 60, subset_years = c(1940, 1980))
+#' plot_specific_window = 60, subset_years = c(1940, 1980), aggregate_function = 'sum')
 #'
 #' example_MVA_present <- daily_response(response = data_MVA, env_data = LJ_daily_temperatures,
-#'                                       method = "cor", lower_limit = 21, upper_limit = 180,
+#'                                       method = "cor", lower_limit = 21, upper_limit = 60,
 #'                                       row_names_subset = TRUE, previous_year = TRUE,
 #'                                       remove_insignificant = TRUE, alpha = 0.05,
-#'                                       plot_specific_window = 60, subset_years = c(1981, 2010))
+#'                                       plot_specific_window = 60, subset_years = c(1981, 2010),
+#'                                       aggregate_function = 'sum')
 #'
 #' example_MVA_past$plot_heatmap
 #' example_MVA_present$plot_heatmap
@@ -185,7 +186,7 @@ daily_response <- function(response, env_data, method = "lm",
                            PCA_transformation = FALSE, log_preprocess = TRUE,
                            components_selection = 'automatic',
                            eigenvalues_threshold = 1,
-                           N_components = 2, use_median = FALSE,
+                           N_components = 2, aggregate_function = 'mean',
                            temporal_stability_check = "sequential", k = 2,
                            cross_validation_type = "blocked",
                            subset_years = NULL, plot_specific_window = NULL,
@@ -209,6 +210,8 @@ daily_response <- function(response, env_data, method = "lm",
  RMSE <- NULL
  RE <- NULL
  CE <- NULL
+ DE <- NULL
+ d <- NULL
 
  # If env_data is given in tidy version, transformation is needed
  if (tidy_env_data == TRUE){
@@ -445,12 +448,18 @@ daily_response <- function(response, env_data, method = "lm",
 
         b = b + 1
 
-        if (use_median == TRUE){
+        if (aggregate_function == 'median'){
           x <- apply(env_data[1:nrow(env_data),
                                  (1 + j): (j + fixed_width)],1 , median, na.rm = TRUE)
-        } else {
+        } else if (aggregate_function == 'sum'){
+          x <- apply(env_data[1:nrow(env_data),
+                              (1 + j): (j + fixed_width)],1 , sum, na.rm = TRUE)
+
+        } else if (aggregate_function == 'mean'){
           x <- rowMeans(env_data[1:nrow(env_data),
                                  (1 + j): (j + fixed_width)], na.rm = TRUE)
+        } else {
+          stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median or sum."))
         }
 
         # print(paste(j, fixed_width), sep = "")
@@ -496,12 +505,17 @@ daily_response <- function(response, env_data, method = "lm",
 
       b = b + 1
 
-      if (use_median == TRUE){
+      if (aggregate_function == 'median'){
         x <- apply(env_data[1:nrow(env_data),
                                (1 + j) : (j + fixed_width)],1 , median, na.rm = TRUE)
-      } else {
+      } else if (aggregate_function == 'sum'){
+        x <- apply(env_data[1:nrow(env_data),
+                            (1 + j) : (j + fixed_width)],1 , median, na.rm = TRUE)
+      } else if (aggregate_function == 'mean'){
         x <- rowMeans(env_data[1:nrow(env_data),
                                (1 + j) : (j + fixed_width)], na.rm = TRUE)
+      } else {
+        stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median or sum."))
       }
 
       x <- matrix(x, nrow = nrow(env_data), ncol = 1)
@@ -548,12 +562,18 @@ daily_response <- function(response, env_data, method = "lm",
 
        b = b + 1
 
-        if (use_median == TRUE){
+        if (aggregate_function == 'median'){
          x <- apply(env_data[1:nrow(env_data),
                                 (1 + j): (j + fixed_width)],1 , median, na.rm = TRUE)
-       } else {
+        } else if (aggregate_function == 'sum'){
+          x <- apply(env_data[1:nrow(env_data),
+                              (1 + j): (j + fixed_width)],1 , sum, na.rm = TRUE)
+
+       } else if (aggregate_function == 'mean') {
          x <- rowMeans(env_data[1:nrow(env_data),
                                 (1 + j): (j + fixed_width)], na.rm = TRUE)
+       } else {
+         stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median or sum."))
        }
 
       x <- matrix(x, nrow = nrow(env_data), ncol = 1)
@@ -632,10 +652,14 @@ daily_response <- function(response, env_data, method = "lm",
 
     for (j in 0: (ncol(env_data) - K)) {
 
-      if (use_median == TRUE){
+      if (aggregate_function == 'median'){
         x <- apply(env_data[1:nrow(env_data), (1 + j) : (j + K)],1 , median, na.rm = TRUE)
-      } else {
+      } else if (aggregate_function == 'sum'){
+        x <- apply(env_data[1:nrow(env_data), (1 + j) : (j + K)],1 , sum, na.rm = TRUE)}
+      else if (aggregate_function == 'mean'){
         x <- rowMeans(env_data[1:nrow(env_data), (1 + j) : (j + K)], na.rm = T)
+      } else {
+        stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median or sum."))
       }
 
       x <- matrix(x, nrow = nrow(env_data), ncol = 1)
@@ -678,10 +702,14 @@ daily_response <- function(response, env_data, method = "lm",
       b = b + 1
 
       for (j in 0: (ncol(env_data) - K)) {
-        if (use_median == TRUE){
+        if (aggregate_function == 'median'){
           x <- apply(env_data[1:nrow(env_data), (1 + j) : (j + K)],1 , median, na.rm = TRUE)
-        } else {
+        } else if(aggregate_function == 'sum'){
+          x <- apply(env_data[1:nrow(env_data), (1 + j) : (j + K)],1 , sum, na.rm = TRUE)
+        } else if (aggregate_function == 'mean'){
           x <- rowMeans(env_data[1:nrow(env_data), (1 + j) : (j + K)], na.rm = T)
+        } else {
+          stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median or sum."))
         }
 
         x <- matrix(x, nrow = nrow(env_data), ncol = 1)
@@ -735,10 +763,14 @@ daily_response <- function(response, env_data, method = "lm",
 
       for (j in 0: (ncol(env_data) - K)) {
 
-        if (use_median == TRUE){
+        if (aggregate_function == 'median'){
           x <- apply(env_data[1:nrow(env_data), (1 + j) : (j + K)],1 , median, na.rm = TRUE)
-        } else {
+        } else if (aggregate_function == 'sum'){
+          x <- apply(env_data[1:nrow(env_data), (1 + j) : (j + K)],1 , sum, na.rm = TRUE)
+        } else if (aggregate_function == 'mean'){
           x <- rowMeans(env_data[1:nrow(env_data), (1 + j) : (j + K)], na.rm = T)
+        } else {
+          stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median or sum."))
         }
 
         x <- matrix(x, nrow = nrow(env_data), ncol = 1)
@@ -868,15 +900,22 @@ daily_response <- function(response, env_data, method = "lm",
   }
 
   # The fourth return element is being created: rowMeans/ apply of optimal sequence:
-  if (use_median == TRUE){
+  if (aggregate_function == 'median'){
     dataf <- data.frame(apply(env_data[, as.numeric(plot_column):
                                             (as.numeric(plot_column) +
                                                as.numeric(row_index) - 1)],1 , median, na.rm = TRUE))
-  } else {
+  } else if (aggregate_function == 'sum'){
+    dataf <- data.frame(apply(env_data[, as.numeric(plot_column):
+                                         (as.numeric(plot_column) +
+                                            as.numeric(row_index) - 1)],1 , sum, na.rm = TRUE))
+
+  } else if (aggregate_function == 'mean'){
     dataf <- data.frame(rowMeans(env_data[, as.numeric(plot_column):
                                             (as.numeric(plot_column) +
                                                as.numeric(row_index) - 1)],
                                  na.rm = TRUE))
+  } else {
+    stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median or sum."))
   }
 
   dataf_full <- cbind(response, dataf)
@@ -886,15 +925,21 @@ daily_response <- function(response, env_data, method = "lm",
   ## Once again, the same procedure, to get the optimal sequence, but this time for whole data, not only
   # for the analysed period.
 
-  if (use_median == TRUE){
+  if (aggregate_function == 'median'){
     dataf_original <- data.frame(apply(env_data_original[, as.numeric(plot_column):
                                          (as.numeric(plot_column) +
                                             as.numeric(row_index) - 1)],1 , median, na.rm = TRUE))
-  } else {
+  } else if (aggregate_function == 'sum'){
+    dataf_original <- data.frame(apply(env_data_original[, as.numeric(plot_column):
+                                                           (as.numeric(plot_column) +
+                                                              as.numeric(row_index) - 1)],1 , sum, na.rm = TRUE))
+  } else if (aggregate_function == 'mean'){
     dataf_original <- data.frame(rowMeans(env_data_original[, as.numeric(plot_column):
                                             (as.numeric(plot_column) +
                                                as.numeric(row_index) - 1)],
                                  na.rm = TRUE))
+  } else {
+    stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median or sum."))
   }
 
   dataf_full_original <- dataf_original

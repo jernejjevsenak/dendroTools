@@ -107,8 +107,16 @@
 #' Default is 0.10.
 #' @param holdout_manual a vector of years (or row names) which will be used as a holdout.
 #' calculated as for the cross-validation.
+#' @param total_reproducibility logical, default is FALSE. This argument ensures total
+#' reproducibility despite the inclusion/exclusion of different methods. By default, the
+#' optimization is done only for the methods, that are included in the methods vector. If
+#' one method is absent or added, the optimization phase is different, and this affects
+#' all the final cross-validation results. By setting the total_reproducibility = TRUE,
+#' all methods will be optimized, even though they are not included in the methods vector
+#' and the final results will be subset based on the methods vector. Setting the
+#' total_reproducibility to TRUE will result in longer optimization phase as well.
 #'
-#' @return a list with ten elements:
+#' @return a list with twelve elements:
 #'\tabular{rll}{
 #'  1 \tab $mean_std   \tab data frame with calculated metrics for the selected regression methods. For each regression method and each calculated metric, mean and standard deviation are given\cr
 #'  2 \tab $ranks \tab data frame with ranks of calculated metrics: mean rank and  share of rank_1 are given \cr
@@ -158,7 +166,6 @@
 #'
 #' @examples
 #' \dontrun{
-#' data(example_dataset_1)
 #'
 #' # An example with default settings of machine learning algorithms
 #' experiment_1 <- compare_methods(formula = MVA~.,
@@ -243,7 +250,7 @@ compare_methods <- function(formula, dataset, k = 10, repeats = 2,
                             RF_I_vector = c(100),
                             RF_depth_vector  = c(0, 2),
                             holdout = NULL, holdout_share = 0.10,
-                            holdout_manual = NULL){
+                            holdout_manual = NULL, total_reproducibility = FALSE){
 
 if (k < 2 | k > 26){
   stop(paste0("Selected k is ", k,", but it should be between 2 and 26"))
@@ -367,7 +374,7 @@ if (optimize == TRUE & blocked_CV == FALSE){
 
   model = NULL
 
-  if ("BRNN" %in% methods){
+  if ("BRNN" %in% methods | total_reproducibility == TRUE){
 
     print("Tuning parameters for the BRNN method...")
     # 2 Optimization for BRNN
@@ -449,7 +456,7 @@ if (optimize == TRUE & blocked_CV == FALSE){
 
 
 
-  if ("MT" %in% methods){
+  if ("MT" %in% methods | total_reproducibility == TRUE){
 
   print("Tuning parameters for the MT method...")
 
@@ -541,7 +548,7 @@ if (optimize == TRUE & blocked_CV == FALSE){
 
 
 
-  if ("BMT" %in% methods){
+  if ("BMT" %in% methods | total_reproducibility == TRUE){
 
     print("Tuning parameters for the BMT method...")
 
@@ -641,7 +648,7 @@ if (optimize == TRUE & blocked_CV == FALSE){
 
 
 
-  if ("RF" %in% methods){
+  if ("RF" %in% methods | total_reproducibility == TRUE){
     # 2 Optimization for RF
 
     print("Tuning parameters for the RF method...")
@@ -737,7 +744,7 @@ if (optimize == TRUE & blocked_CV == TRUE){
 
   model = NULL
 
-  if ("BRNN" %in% methods){
+  if ("BRNN" %in% methods | total_reproducibility == TRUE){
 
     print("Tuning parameters for the BRNN method...")
     # 2 Optimization for BRNN
@@ -812,7 +819,7 @@ if (optimize == TRUE & blocked_CV == TRUE){
 
 
 
-  if ("MT" %in% methods){
+  if ("MT" %in% methods | total_reproducibility == TRUE){
 
     print("Tuning parameters for the MT method...")
 
@@ -904,7 +911,7 @@ if (optimize == TRUE & blocked_CV == TRUE){
 
 
 
-  if ("BMT" %in% methods){
+  if ("BMT" %in% methods | total_reproducibility == TRUE){
 
     print("Tuning parameters for the BMT method...")
 
@@ -1004,7 +1011,7 @@ if (optimize == TRUE & blocked_CV == TRUE){
 
 
 
-  if ("RF" %in% methods){
+  if ("RF" %in% methods | total_reproducibility == TRUE){
     # 2 Optimization for RF
 
     print("Tuning parameters for the RF method...")
@@ -2290,7 +2297,7 @@ dataset_central <- dplyr::arrange(dataset, desc(dataset[, -DepIndex]))[(edge_fac
   DE_data_BMT <- data.frame(value = DE_predicted, data_edge_central = "edge", type = "predicted", method = "BMT", DE = 1)
   DE_data_RF <- data.frame(value = DE_predicted, data_edge_central = "edge", type = "predicted", method = "RF", DE = 1)
 
-  DE_data <- rbind(DE_data_MLR,DE_data_BRNN,DE_data_MT,DE_data_BMT, DE_data_MT)
+  DE_data <- rbind(DE_data_MLR,DE_data_BRNN,DE_data_MT,DE_data_BMT, DE_data_RF)
 
   edge_central_data <- rbind(edge_central_data, DE_data)
 
@@ -2375,25 +2382,6 @@ dataset_central <- dplyr::arrange(dataset, desc(dataset[, -DepIndex]))[(edge_fac
 # RE, CE and DE for the calibration data
 Results_mean_std <- Results_mean_std[-c(9, 11, 13), ]
 Results_ranks <- Results_ranks[-c(9, 11, 13), ]
-if (numIND == 1){
-  edge_results_t <- edge_results_t[-c(9, 11, 13), ]
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -2473,7 +2461,7 @@ if (!is.null(holdout)) {
   DE_data_BMT <- data.frame(value = DE_predicted, data_holdout_calibration = "holdout", type = "predicted", method = "BMT", DE = 1)
   DE_data_RF <- data.frame(value = DE_predicted, data_holdout_calibration = "holdout", type = "predicted", method = "RF", DE = 1)
 
-  DE_data <- rbind(DE_data_MLR,DE_data_BRNN,DE_data_MT,DE_data_BMT, DE_data_MT)
+  DE_data <- rbind(DE_data_MLR,DE_data_BRNN,DE_data_MT,DE_data_BMT, DE_data_RF)
 
   holdout_calibration_data <- rbind(holdout_calibration_data, DE_data)
 

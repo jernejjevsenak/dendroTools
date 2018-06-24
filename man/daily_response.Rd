@@ -10,7 +10,7 @@ daily_response(response, env_data, method = "lm", metric = "r.squared",
   remove_insignificant = TRUE, alpha = 0.05, row_names_subset = FALSE,
   PCA_transformation = FALSE, log_preprocess = TRUE,
   components_selection = "automatic", eigenvalues_threshold = 1,
-  N_components = 2, use_median = FALSE,
+  N_components = 2, aggregate_function = "mean",
   temporal_stability_check = "sequential", k = 2,
   cross_validation_type = "blocked", subset_years = NULL,
   plot_specific_window = NULL, ylimits = NULL, seed = NULL,
@@ -85,8 +85,8 @@ manually enter the number of components to be used as predictors.}
 
 \item{N_components}{number of Principal Components used as predictors}
 
-\item{use_median}{if set to TRUE, median will be used instead of mean to calculate
-means of various ranges of env_data.}
+\item{aggregate_function}{character string specifying how the daily data should be
+aggregated. The default is 'mean', the two other options are 'median' and 'sum'}
 
 \item{temporal_stability_check}{character string, specifying, how temporal stability
 between the optimal selection and response variables will be analysed. Current
