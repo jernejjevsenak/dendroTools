@@ -83,6 +83,14 @@
 #' @param seed optional seed argument for reproducible results
 #' @param tidy_env_data if set to TRUE, env_data should be inserted as a data frame with three
 #' columns: "Year", "DOY", "Precipitation/Temperature/etc."
+#' @param reference_window character string describing how to relate doy and window of each
+#' calculation. There are two options: 'start' (default) and 'end'. If the reference window
+#' is set as 'start', then each calculation is related to the starting day of window,
+#' otherwise it is related to the ending day of window calculation.
+#' For example, if we consider correlations with window from doy 15 to doy 35. If reference
+#' window is set to ‘start’, then this calculation will be related to the doy 15. If the
+#' reference window is set to ‘end’, then this calculation will be related to the doy 35.
+#' The differences are visible from plots, i.e. plot_heatmap, plot_extreme and plot_specific.
 #'
 #' @return a list with 13 elements:
 #' \tabular{rll}{
@@ -190,7 +198,8 @@ daily_response <- function(response, env_data, method = "lm",
                            temporal_stability_check = "sequential", k = 2,
                            cross_validation_type = "blocked",
                            subset_years = NULL, plot_specific_window = NULL,
-                           ylimits = NULL, seed = NULL, tidy_env_data = FALSE) {
+                           ylimits = NULL, seed = NULL, tidy_env_data = FALSE,
+                           reference_window = 'start') {
 
 
   if (!is.null(seed)) {
@@ -256,7 +265,7 @@ daily_response <- function(response, env_data, method = "lm",
   env_data_original <- env_data
 
 
-    # For metric calculations, both objects need to have the same length,
+  # For metric calculations, both objects need to have the same length,
   # with the exception, when row_names_subset is set to TRUE
   # Stop message in case both data frames do not have the same length
   if (nrow(response) !=  nrow(env_data) & row_names_subset == FALSE)
@@ -665,8 +674,17 @@ daily_response <- function(response, env_data, method = "lm",
       x <- matrix(x, nrow = nrow(env_data), ncol = 1)
       temporal_correlation <- cor(response[, 1], x[, 1])
       # print(temporal_correlation)
-      temporal_matrix[(K - lower_limit) + 1, j + 1] <- temporal_correlation
-    }
+
+      if (reference_window == 'start'){
+        temporal_matrix[(K - lower_limit) + 1, j + 1] <- temporal_correlation
+      } else if (reference_window == 'end'){
+        temporal_matrix[(K - lower_limit) + 1, j + K] <- temporal_correlation
+      }
+
+
+
+
+      }
     setTxtProgressBar(pb, b)
   }
 

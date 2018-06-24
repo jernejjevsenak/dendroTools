@@ -38,6 +38,7 @@ plot_heatmap <- function(result_daily_response){
   # Extracting a matrix from a list and converting it into a data frame
   result_daily_element1 <- data.frame(result_daily_response [[1]])
 
+
   # Creating a nice string that will be used to generate ggplot Legend
   if  (result_daily_response[[3]] == "r.squared"){
     temp_string <- "R squared"

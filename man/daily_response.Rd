@@ -14,7 +14,7 @@ daily_response(response, env_data, method = "lm", metric = "r.squared",
   temporal_stability_check = "sequential", k = 2,
   cross_validation_type = "blocked", subset_years = NULL,
   plot_specific_window = NULL, ylimits = NULL, seed = NULL,
-  tidy_env_data = FALSE)
+  tidy_env_data = FALSE, reference_window = "start")
 }
 \arguments{
 \item{response}{a data frame with tree-ring proxy variables as columns and
@@ -115,6 +115,15 @@ given in the form of: ylimits = c(0,1)}
 
 \item{tidy_env_data}{if set to TRUE, env_data should be inserted as a data frame with three
 columns: "Year", "DOY", "Precipitation/Temperature/etc."}
+
+\item{reference_window}{character string describing how to relate doy and window of each
+calculation. There are two options: 'start' (default) and 'end'. If the reference window
+is set as 'start', then each calculation is related to the starting day of window,
+otherwise it is related to the ending day of window calculation.
+For example, if we consider correlations with window from doy 15 to doy 35. If reference
+window is set to ‘start’, then this calculation will be related to the doy 15. If the
+reference window is set to ‘end’, then this calculation will be related to the doy 35.
+The differences are visible from plots, i.e. plot_heatmap, plot_extreme and plot_specific.}
 }
 \value{
 a list with 13 elements:
@@ -163,7 +172,7 @@ data(LJ_daily_temperatures)
 example_fixed_width <- daily_response(response = data_MVA, env_data = LJ_daily_temperatures,
                                      method = "brnn", fixed_width = 60,
                                      row_names_subset = TRUE, remove_insignificant = TRUE,
-                                     alpha = 0.05)
+                                     alpha = 0.05, aggregate_function = 'sum')
 example_fixed_width$plot_extreme
 
 # 2 Example for past and present
@@ -171,13 +180,14 @@ example_MVA_past <- daily_response(response = data_MVA, env_data = LJ_daily_temp
 method = "cor", lower_limit = 21, upper_limit = 180,
 row_names_subset = TRUE, previous_year = TRUE,
 remove_insignificant = TRUE, alpha = 0.05,
-plot_specific_window = 60, subset_years = c(1940, 1980))
+plot_specific_window = 60, subset_years = c(1940, 1980), aggregate_function = 'sum')
 
 example_MVA_present <- daily_response(response = data_MVA, env_data = LJ_daily_temperatures,
-                                      method = "cor", lower_limit = 21, upper_limit = 180,
+                                      method = "cor", lower_limit = 21, upper_limit = 60,
                                       row_names_subset = TRUE, previous_year = TRUE,
                                       remove_insignificant = TRUE, alpha = 0.05,
-                                      plot_specific_window = 60, subset_years = c(1981, 2010))
+                                      plot_specific_window = 60, subset_years = c(1981, 2010),
+                                      aggregate_function = 'sum')
 
 example_MVA_past$plot_heatmap
 example_MVA_present$plot_heatmap
