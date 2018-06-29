@@ -5,6 +5,14 @@
 #'
 #' @param result_daily_response a list with three objects as produced by
 #' \code{\link{daily_response}} function
+#' @param reference_window character string describing how to relate doy and
+#' window of each calculation. There are two options: 'start' (default) and
+#' 'end'. If the reference window is set as 'start', then each calculation is
+#' related to the starting day of window, otherwise it is related to the ending
+#' day of window calculation. For example, if we consider correlations with window
+#' from doy 15 to doy 35. If reference window is set to ‘start’, then this calculation
+#' will be related to the doy 15. If the reference window is set to ‘end’, then this
+#' calculation will be related to the doy 35.
 #'
 #' @return A ggplot2 object containing the heatmap display
 #'
@@ -33,21 +41,19 @@
 #'
 #' @keywords internal
 
-plot_heatmap <- function(result_daily_response){
+plot_heatmap <- function(result_daily_response, reference_window = "start"){
 
   # Extracting a matrix from a list and converting it into a data frame
   result_daily_element1 <- data.frame(result_daily_response [[1]])
 
 
   # Creating a nice string that will be used to generate ggplot Legend
-  if  (result_daily_response[[3]] == "r.squared"){
-    temp_string <- "R squared"
+  if (result_daily_response[[2]] == "cor"){
+    temp_string <- "Correlation Coefficient"
+  } else if (result_daily_response[[3]] == "r.squared"){
+    temp_string <- "Explained Variance"
   } else if (result_daily_response[[3]] == "adj.r.squared"){
-    temp_string <- "Adjusted R squared"
-  } else if (result_daily_response[[2]] == "cor") {
-    temp_string <- "Correlation coefficient"
-  } else {
-    stop("Check your method and metrics")
+    temp_string <- "Adjusted Explained Variance"
   }
 
   # Data manipulation. The goal of this part is to prepare data for ggplot
@@ -120,7 +126,7 @@ plot_heatmap <- function(result_daily_response){
 
   # If previous_year == TRUE(function daily_response), different xlab
   # is needed
-  if (ncol(result_daily_element1) > 366) {
+  if (ncol(result_daily_element1) > 367) {
     final_plot <- suppressWarnings(final_plot +
       annotate(fontface = "bold", label = 'Previous Year', geom = 'label',
               x = 366 - ncol(result_daily_element1) / 12.8,
@@ -137,57 +143,31 @@ plot_heatmap <- function(result_daily_response){
   }
 
 
-
-
-  # Here we add titles, based on different methods
-  if (is.na(result_daily_response[[4]])) {
-
-
-    if (result_daily_response [[2]] == "cor") {
-      final_plot <- final_plot +
-        ggtitle(paste("Method: Correlation Coefficients"))
-    }
-
-    if (result_daily_response [[2]] == "lm") {
-      final_plot <- final_plot +
-        ggtitle(paste("Method: Linear Regression"))
-    }
-
-    if (result_daily_response [[2]] == "brnn") {
-      final_plot <- final_plot +
-        ggtitle(paste("Method: ANN With Bayesian Regularization"))
-    }
-
+  if (ncol(result_daily_element1) > 367){
+    x_lab <- "Day of Year  (Including Previous Year)"
+  } else if (ncol(result_daily_element1) <= 367){
+    x_lab <- "Day of Year"
   }
 
-
-
-  if (!is.na(result_daily_response[[4]])) {
-
-
-    if (result_daily_response [[2]] == "cor") {
-      final_plot <- final_plot +
-        ggtitle(paste("Analysed Period:", result_daily_response[[4]],
-                      "\nMethod: Correlation Coefficients"))
-    }
-
-    if (result_daily_response [[2]] == "lm") {
-      final_plot <- final_plot +
-        ggtitle(paste("Analysed Period:", result_daily_response[[4]],
-                      "\nMethod: Linear Regression"))
-    }
-
-    if (result_daily_response [[2]] == "brnn") {
-      final_plot <- final_plot +
-        ggtitle(paste("Analysed Period:", result_daily_response[[4]],
-                      "\nMethod: ANN With Bayesian Regularization"))
-    }
-
+  if (result_daily_response[[2]] == 'cor'){
+    method_string <- paste0("\nMethod: Pearson Correlation")
+  } else if (result_daily_response[[2]] == 'lm'){
+    method_string <- paste0("\nMethod: Linear Regression")
+  } else if (result_daily_response[[2]] == 'brnn'){
+    method_string <- paste0("\nMethod: ANN with Bayesian Regularization")
   }
 
+  period_string <- paste0("\nAnalysed Period: ", result_daily_response[[4]])
 
+  if (reference_window == 'start'){
+    reference_string <- "\nDOY Reference of Each Calculation is the Beginning of the Window"
+  } else if (reference_window == 'end'){
+    reference_string <- "\nDOY Reference of Each Calculation is the End of the Window"
+  }
 
-
+  final_plot <- final_plot +
+        xlab(x_lab) +
+        ggtitle(paste0(period_string, method_string, reference_string))
 
   final_plot
 }

@@ -5,7 +5,7 @@
 \title{plot_specific}
 \usage{
 plot_specific(result_daily_response, window_width, title = TRUE,
-  ylimits = NULL)
+  ylimits = NULL, reference_window = "start")
 }
 \arguments{
 \item{result_daily_response}{a list with three objects as produced by
@@ -16,6 +16,15 @@ daily_response function}
 \item{title}{logical, if set to FALSE, no plot title is displayed}
 
 \item{ylimits}{limit of the y axes. It should be given as ylimits = c(0,1)}
+
+\item{reference_window}{character string describing how to relate doy and
+window of each calculation. There are two options: 'start' (default) and
+'end'. If the reference window is set as 'start', then each calculation is
+related to the starting day of window, otherwise it is related to the ending
+day of window calculation. For example, if we consider correlations with window
+from doy 15 to doy 35. If reference window is set to ‘start’, then this calculation
+will be related to the doy 15. If the reference window is set to ‘end’, then this
+calculation will be related to the doy 35.}
 }
 \value{
 A ggplot2 object containing the plot display

@@ -126,9 +126,10 @@
 #'
 #' # 1 Example with fixed width
 #' example_fixed_width <- daily_response(response = data_MVA, env_data = LJ_daily_temperatures,
-#'                                      method = "brnn", fixed_width = 60,
+#'                                      method = "cor", fixed_width = 0,
 #'                                      row_names_subset = TRUE, remove_insignificant = TRUE,
-#'                                      alpha = 0.05, aggregate_function = 'sum')
+#'                                      alpha = 0.05, aggregate_function = 'mean',
+#'                                      reference_window = "end")
 #' example_fixed_width$plot_extreme
 #'
 #' # 2 Example for past and present
@@ -187,7 +188,7 @@
 
 daily_response <- function(response, env_data, method = "lm",
                            metric = "r.squared", lower_limit = 30,
-                           upper_limit = 270, fixed_width = 0,
+                           upper_limit = 90, fixed_width = 0,
                            previous_year = FALSE, neurons = 1,
                            brnn_smooth = TRUE, remove_insignificant = TRUE,
                            alpha = .05, row_names_subset = FALSE,
@@ -440,8 +441,14 @@ daily_response <- function(response, env_data, method = "lm",
 
       # This is an empty matrix, currently filled with NA's
       # Latter, calculations will be stored in this matrix
-      temporal_matrix <- matrix(NA, nrow = 1,
-        ncol = (ncol(env_data) - fixed_width) + 1)
+      if (reference_window == 'start'){
+        temporal_matrix <- matrix(NA, nrow = 1,
+                                  ncol = (ncol(env_data) - fixed_width) + 1)
+        }
+      else {
+        temporal_matrix <- matrix(NA, nrow = 1,
+                                  ncol = (ncol(env_data)))
+      }
 
       pb <- txtProgressBar(min = 0, max = (ncol(env_data) - fixed_width),
                            style = 3)
@@ -480,10 +487,11 @@ daily_response <- function(response, env_data, method = "lm",
         # to go through all loops and therefore, users might think that R is
         # not responding. But if each calculation is printed, user could be
         # confident, that R is responding.
-
-
-        #print (temporal_correlation)
-        temporal_matrix[1, j + 1] <- temporal_correlation
+        if (reference_window == 'start'){
+          temporal_matrix[1, j + 1] <- temporal_correlation
+        } else if (reference_window == 'end'){
+          temporal_matrix[1, j + fixed_width] <- temporal_correlation
+        }
 
         setTxtProgressBar(pb, b)
       }
@@ -502,8 +510,14 @@ daily_response <- function(response, env_data, method = "lm",
   # For a description see A.1
   if (fixed_width != 0 & method == "lm") {
 
-    temporal_matrix <- matrix(NA, nrow = 1,
-      ncol = (ncol(env_data) - fixed_width) + 1)
+    if (reference_window == 'start'){
+      temporal_matrix <- matrix(NA, nrow = 1,
+                                ncol = (ncol(env_data) - fixed_width) + 1)
+    }
+    else {
+      temporal_matrix <- matrix(NA, nrow = 1,
+                                ncol = (ncol(env_data)))
+    }
 
     pb <- txtProgressBar(min = 0, max = (ncol(env_data) - fixed_width),
                          style = 3)
@@ -535,16 +549,22 @@ daily_response <- function(response, env_data, method = "lm",
       temporal_adj_r_squared <- temporal_summary$adj.r.squared
 
       if (metric == "r.squared"){
-        temporal_matrix[1, j + 1] <- temporal_r_squared
-        # print(temporal_r_squared)
+
+        if (reference_window == 'start'){
+          temporal_matrix[1, j + 1]  <-
+            temporal_r_squared } else if (reference_window == 'end'){
+              temporal_matrix[1, j + fixed_width] <- temporal_r_squared
+            }
       }
 
       if (metric == "adj.r.squared"){
-        temporal_matrix[1, j + 1] <- temporal_adj_r_squared
-        # print(temporal_adj_r_squared)
+        if (reference_window == 'start'){
+          temporal_matrix[1, j + 1]  <-
+            temporal_adj_r_squared } else if (reference_window == 'end'){
+              temporal_matrix[1, j + fixed_width] <- temporal_adj_r_squared
+            }
+
       }
-
-
       setTxtProgressBar(pb, b)
     }
     close(pb)
@@ -559,8 +579,14 @@ daily_response <- function(response, env_data, method = "lm",
   # For a description see A.1
   if (fixed_width != 0 & method == "brnn") {
 
-    temporal_matrix <- matrix(NA, nrow = 1,
-      ncol = (ncol(env_data) - fixed_width) + 1)
+    if (reference_window == 'start'){
+      temporal_matrix <- matrix(NA, nrow = 1,
+                                ncol = (ncol(env_data) - fixed_width) + 1)
+    }
+    else {
+      temporal_matrix <- matrix(NA, nrow = 1,
+                                ncol = (ncol(env_data)))
+    }
 
     pb <- txtProgressBar(min = 0, max = (ncol(env_data) - fixed_width),
                          style = 3)
@@ -605,14 +631,21 @@ daily_response <- function(response, env_data, method = "lm",
                                           -  1))
 
         if (metric == "r.squared"){
-          temporal_matrix[1, j + 1] <- temporal_r_squared
-           # print(temporal_r_squared)
-        } else if (metric == "adj.r.squared"){
-          temporal_matrix[1, j + 1] <- temporal_adj_r_squared
-          # print(temporal_adj_r_squared)
-        } else {
 
-          temporal_matrix[1, j + 1] <- NA
+          if (reference_window == 'start'){
+            temporal_matrix[1, j + 1]  <-
+              temporal_r_squared } else if (reference_window == 'end'){
+                temporal_matrix[1, j + fixed_width] <- temporal_r_squared
+              }
+        }
+
+        if (metric == "adj.r.squared"){
+          if (reference_window == 'start'){
+            temporal_matrix[1, j + 1]  <-
+              temporal_adj_r_squared } else if (reference_window == 'end'){
+                temporal_matrix[1, j + fixed_width] <- temporal_adj_r_squared
+              }
+
         }
 
 
@@ -636,8 +669,14 @@ daily_response <- function(response, env_data, method = "lm",
 
     # This is an empty matrix, currently filled with NA's
     # Latter, calculations will be stored in this matrix
-  temporal_matrix <- matrix(NA, nrow = (upper_limit - lower_limit + 1),
-    ncol = (ncol(env_data) - lower_limit) + 1)
+
+    if (reference_window == 'start'){
+    temporal_matrix <- matrix(NA, nrow = (upper_limit - lower_limit + 1),
+    ncol = (ncol(env_data) - lower_limit) + 1)}
+    else {
+      temporal_matrix <- matrix(NA, nrow = (upper_limit - lower_limit + 1),
+                                ncol = (ncol(env_data)))
+    }
 
   # An iterating double loop: 1 outer loop) iterating from lower_limit :
   # upper_limit defines windo.width used for a moving window. 2) inner loop
@@ -682,8 +721,6 @@ daily_response <- function(response, env_data, method = "lm",
       }
 
 
-
-
       }
     setTxtProgressBar(pb, b)
   }
@@ -706,9 +743,13 @@ daily_response <- function(response, env_data, method = "lm",
   # For a description see B.1
   if (fixed_width == 0 & method == "lm") {
 
-    temporal_matrix <- matrix(NA, nrow = (upper_limit - lower_limit + 1),
-      ncol = (ncol(env_data) - lower_limit) + 1)
-
+    if (reference_window == 'start'){
+      temporal_matrix <- matrix(NA, nrow = (upper_limit - lower_limit + 1),
+                                ncol = (ncol(env_data) - lower_limit) + 1)}
+    else {
+      temporal_matrix <- matrix(NA, nrow = (upper_limit - lower_limit + 1),
+                                ncol = (ncol(env_data)))
+    }
 
     pb <- txtProgressBar(min = 0, max = (upper_limit - lower_limit),
                          style = 3)
@@ -738,15 +779,21 @@ daily_response <- function(response, env_data, method = "lm",
         temporal_adj_r_squared <- temporal_summary$adj.r.squared
 
         if (metric == "r.squared"){
+
+          if (reference_window == 'start'){
           temporal_matrix[(K - lower_limit) + 1, j + 1]  <-
-            temporal_r_squared
-          # print(temporal_r_squared)
+            temporal_r_squared } else if (reference_window == 'end'){
+              temporal_matrix[(K - lower_limit) + 1, j + K] <- temporal_r_squared
+            }
         }
 
         if (metric == "adj.r.squared"){
+          if (reference_window == 'start'){
           temporal_matrix[(K - lower_limit) + 1, j + 1]  <-
-            temporal_adj_r_squared
-          # print(temporal_adj_r_squared)
+            temporal_adj_r_squared } else if (reference_window == 'end'){
+              temporal_matrix[(K - lower_limit) + 1, j + K] <- temporal_adj_r_squared
+            }
+
         }
       }
       setTxtProgressBar(pb, b)
@@ -766,8 +813,13 @@ daily_response <- function(response, env_data, method = "lm",
   # For a description see B.1
   if (fixed_width == 0 & method == "brnn") {
 
-    temporal_matrix <- matrix(NA, nrow = (upper_limit - lower_limit + 1),
-      ncol = (ncol(env_data) - lower_limit) + 1)
+    if (reference_window == 'start'){
+      temporal_matrix <- matrix(NA, nrow = (upper_limit - lower_limit + 1),
+                                ncol = (ncol(env_data) - lower_limit) + 1)}
+    else {
+      temporal_matrix <- matrix(NA, nrow = (upper_limit - lower_limit + 1),
+                                ncol = (ncol(env_data)))
+    }
 
     pb <- txtProgressBar(min = 0, max = (upper_limit - lower_limit),
                          style = 3)
@@ -809,14 +861,22 @@ daily_response <- function(response, env_data, method = "lm",
                                             - 1))
 
           if (metric == "r.squared"){
-            temporal_matrix[(K - lower_limit) + 1, j + 1]  <- temporal_r_squared
-           # print(temporal_r_squared)
+
+                        if (reference_window == 'start'){
+              temporal_matrix[(K - lower_limit) + 1, j + 1]  <-
+                temporal_r_squared } else if (reference_window == 'end'){
+                  temporal_matrix[(K - lower_limit) + 1, j + K] <- temporal_r_squared
+                }
+
           }
 
           if (metric == "adj.r.squared"){
-            temporal_matrix[(K - lower_limit) + 1, j + 1]  <-
-              temporal_adj_r_squared
-          # print(temporal_adj_r_squared)
+            if (reference_window == 'start'){
+              temporal_matrix[(K - lower_limit) + 1, j + 1]  <-
+                temporal_adj_r_squared } else if (reference_window == 'end'){
+                  temporal_matrix[(K - lower_limit) + 1, j + K] <- temporal_adj_r_squared
+                }
+
           }
 
         } else {
@@ -918,6 +978,12 @@ daily_response <- function(response, env_data, method = "lm",
   }
 
   # The fourth return element is being created: rowMeans/ apply of optimal sequence:
+  # So, here we consider more options, based on the reference_winow
+  # 1. reference window = "start"
+  if (reference_window == 'start'){
+
+
+
   if (aggregate_function == 'median'){
     dataf <- data.frame(apply(env_data[, as.numeric(plot_column):
                                             (as.numeric(plot_column) +
@@ -1016,6 +1082,102 @@ daily_response <- function(response, env_data, method = "lm",
   # Just give a nicer colname
   colnames(dataf) <- "Optimized return"
 
+  }
+
+  # Option 2, reference window = "end"
+    if (reference_window == 'end'){
+
+    if (aggregate_function == 'median'){
+      dataf <- data.frame(apply(env_data[, (as.numeric(plot_column) - as.numeric(row_index) + 1):
+                                           (as.numeric(plot_column))],1 , median, na.rm = TRUE))
+    } else if (aggregate_function == 'sum'){
+      dataf <- data.frame(apply(env_data[, (as.numeric(plot_column) - as.numeric(row_index) + 1):
+                                           (as.numeric(plot_column))],1 , sum, na.rm = TRUE))
+
+    } else if (aggregate_function == 'mean'){
+      dataf <- data.frame(apply(env_data[, (as.numeric(plot_column) - as.numeric(row_index) + 1):
+                                           (as.numeric(plot_column))],1 , mean, na.rm = TRUE))
+    } else {
+      stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median or sum."))
+    }
+
+    dataf_full <- cbind(response, dataf)
+    colnames(dataf_full)[ncol(dataf_full)] <- "Optimized_return"
+    colnames(dataf) <- "Optimized.rowNames"
+
+    ## Once again, the same procedure, to get the optimal sequence, but this time for whole data, not only
+    # for the analysed period.
+
+    if (aggregate_function == 'median'){
+      dataf_original <- data.frame(apply(env_data_original[, (as.numeric(plot_column) - (as.numeric(row_index) + 1):
+                                                             as.numeric(plot_column))],1 , median, na.rm = TRUE))
+    } else if (aggregate_function == 'sum'){
+      dataf_original <- data.frame(apply(env_data_original[, (as.numeric(plot_column) - (as.numeric(row_index) + 1):
+                                                             as.numeric(plot_column))],1 , sum, na.rm = TRUE))
+    } else if (aggregate_function == 'mean'){
+      dataf_original <- data.frame(apply(env_data_original[, (as.numeric(plot_column) - (as.numeric(row_index) + 1):
+                                                             as.numeric(plot_column))],1 , mean, na.rm = TRUE))
+    } else {
+      stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median or sum."))
+    }
+
+    dataf_full_original <- dataf_original
+    colnames(dataf_full_original) <- "Optimized_return"
+    colnames(dataf) <- "Optimized.rowNames"
+
+    # Additional check: (we should get the same metric as before in the loop)
+    if (method == "lm" & metric == "r.squared"){
+      temporal_df <- data.frame(cbind(dataf, response))
+      temporal_model <- lm(Optimized.rowNames ~ ., data = temporal_df)
+      temporal_summary <- summary(temporal_model)
+      optimized_result <- temporal_summary$r.squared
+    }
+
+    if (method == "lm" & metric == "adj.r.squared"){
+      temporal_df <- data.frame(cbind(dataf, response))
+      temporal_model <- lm(Optimized.rowNames ~ ., data = temporal_df)
+      temporal_summary <- summary(temporal_model)
+      optimized_result <- temporal_summary$adj.r.squared
+    }
+
+    if (method == "brnn" & metric == "r.squared"){
+      temporal_df <- data.frame(cbind(dataf, response))
+      capture.output(temporal_model <- brnn(Optimized.rowNames ~ ., data = temporal_df,
+                                            neurons = neurons, tol = 1e-6))
+      temporal_predictions <- try(predict.brnn(temporal_model,
+                                               temporal_df), silent = TRUE)
+      optimized_result <- 1 - (sum((temporal_df[, 1] -
+                                      temporal_predictions) ^ 2) /
+                                 sum((temporal_df[, 1] -
+                                        mean(temporal_df[, 1])) ^ 2))
+    }
+
+    if (method == "brnn" & metric == "adj.r.squared"){
+      temporal_df <- data.frame(cbind(dataf, response))
+      capture.output(temporal_model <- brnn(Optimized.rowNames ~ .,
+                                            data = temporal_df, neurons = neurons, tol = 1e-6))
+      temporal_predictions <- try(predict.brnn(temporal_model, temporal_df),
+                                  silent = TRUE)
+      temporal_r_squared <- 1 - (sum((temporal_df[, 1] -
+                                        temporal_predictions) ^ 2) /
+                                   sum((temporal_df[, 1] -
+                                          mean(temporal_df[, 1])) ^ 2))
+      optimized_result <- 1 - ((1 - temporal_r_squared) *
+                                 ((nrow(temporal_df) - 1)) /
+                                 (nrow(temporal_df) -
+                                    ncol(as.data.frame(response[, 1])) - 1))
+    }
+
+    if (method == "cor"){
+      optimized_result <- cor(dataf, response)
+    }
+
+    # Just give a nicer colname
+    colnames(dataf) <- "Optimized return"
+
+  }
+
+  # Element 5
   # Here we create the fifth element of the final list: Analysed period in the
   # form of min(year) - max(year), e.g. 1950 - 2015
   min_env_data <- min(as.numeric(row.names(env_data)))
@@ -1335,24 +1497,27 @@ analysed_period
     final_list[[4]]
 
 
-    plot_heatmapA <- plot_heatmap(final_list)
-    plot_extremeA <- plot_extreme(final_list, ylimits = ylimits)
+    plot_heatmapA <- plot_heatmap(final_list, reference_window = reference_window)
+    plot_extremeA <- plot_extreme(final_list, ylimits = ylimits, reference_window = reference_window)
 
     width_sequence = seq(lower_limit, upper_limit)
 
     if (is.null(plot_specific_window)){
       (plot_specificA <- "plot_specific_window is not avaliable. No plot_specific is made!")
     } else if (fixed_width != 0){
+
+      if (fixed_width != plot_specific_window){
+        warning(paste0("plot_specific_window and fixed_width differ!",
+                       " fixed_wdith will be used to generate plot_specific!"))
+      }
+
       plot_specific_window = fixed_width
-      plot_specificA <- plot_specific(final_list, window_width = plot_specific_window, ylimits = ylimits)
+      plot_specificA <- plot_specific(final_list, window_width = plot_specific_window, ylimits = ylimits,
+                                      reference_window = reference_window)
     } else if (plot_specific_window %in% width_sequence){
-      plot_specificA <- plot_specific(final_list, window_width = plot_specific_window, ylimits = ylimits)
+      plot_specificA <- plot_specific(final_list, window_width = plot_specific_window, ylimits = ylimits,
+                                      reference_window = reference_window)
     } else (plot_specificA <- "Selected plot_specific_window is not avaliable. No plot_specific is made!")
-
-
-
-
-
 
     # Here, for the sake of simplicity, we create final list again
     if (method == "lm" | method == "brnn") {
@@ -1380,8 +1545,6 @@ analysed_period
                          plot_specific = plot_specificA,
                          PCA_output = PCA_result)
     }
-
-
 
   return(final_list)
 }

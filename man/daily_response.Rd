@@ -5,7 +5,7 @@
 \title{daily_response}
 \usage{
 daily_response(response, env_data, method = "lm", metric = "r.squared",
-  lower_limit = 30, upper_limit = 270, fixed_width = 0,
+  lower_limit = 30, upper_limit = 90, fixed_width = 0,
   previous_year = FALSE, neurons = 1, brnn_smooth = TRUE,
   remove_insignificant = TRUE, alpha = 0.05, row_names_subset = FALSE,
   PCA_transformation = FALSE, log_preprocess = TRUE,
@@ -170,9 +170,10 @@ data(LJ_daily_temperatures)
 
 # 1 Example with fixed width
 example_fixed_width <- daily_response(response = data_MVA, env_data = LJ_daily_temperatures,
-                                     method = "brnn", fixed_width = 60,
+                                     method = "cor", fixed_width = 0,
                                      row_names_subset = TRUE, remove_insignificant = TRUE,
-                                     alpha = 0.05, aggregate_function = 'sum')
+                                     alpha = 0.05, aggregate_function = 'mean',
+                                     reference_window = "end")
 example_fixed_width$plot_extreme
 
 # 2 Example for past and present
