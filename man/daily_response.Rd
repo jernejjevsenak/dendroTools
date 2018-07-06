@@ -163,6 +163,7 @@ in the matrix is indicating a window width (row names) and a location in a
 matrix of daily sequences of environmental data (column names).
 }
 \examples{
+\dontrun{
 # Load the dendroTools R package
 library(dendroTools)
 
@@ -234,4 +235,5 @@ example_multiproxy <- daily_response(response = example_proxies_1,
                                      remove_insignificant = TRUE, alpha = 0.05)
 
 example_multiproxy$plot_heatmap
+}
 }
