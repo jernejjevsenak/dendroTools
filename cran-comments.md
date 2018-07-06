@@ -9,7 +9,7 @@ Jernej
 ## Test environments
 * local OS X install, R 3.5.0
 * TRAVIS: Ubuntu 14.04.5 LTS, Platform: x86_64-pc-linux-gnu (64-bit), R version 3.5.0 (2017-01-27)
-* win-builder using R Under development (unstable) (2018-05-27 r74786)
+* win-builder using R Under development (unstable) (2018-05-27 r74786) 
 
 ## R CMD check results
 There were no ERRORs, WARNINGs or NOTEs
