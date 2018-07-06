@@ -15,14 +15,18 @@ daily_response function}
 
 \item{ylimits}{limit of the y axes. It should be given as ylimits = c(0,1)}
 
-\item{reference_window}{character string describing how to relate doy and
-window of each calculation. There are two options: 'start' (default) and
-'end'. If the reference window is set as 'start', then each calculation is
-related to the starting day of window, otherwise it is related to the ending
-day of window calculation. For example, if we consider correlations with window
-from doy 15 to doy 35. If reference window is set to ‘start’, then this calculation
-will be related to the doy 15. If the reference window is set to ‘end’, then this
-calculation will be related to the doy 35.}
+\item{reference_window}{character string, the reference_window argument describes,
+how each calculation is referred. There are three different options: 'start'
+(default), 'end' and 'middle'. If the reference_window argument is set to 'start',
+then each calculation is related to the starting day of window. If the
+reference_window argument is set to 'middle', each calculation is related to the
+middle day of window calculation. If the reference_window argument is set to
+'end', then each calculation is related to the ending day of window calculation.
+For example, if we consider correlations with window from DOY 15 to DOY 35. If
+reference window is set to ‘start’, then this calculation will be related to the
+DOY 15. If the reference window is set to ‘end’, then this calculation will be
+related to the DOY 35. If the reference_window is set to 'middle', then this
+calculation is related to DOY 25.}
 }
 \value{
 A ggplot2 object containing the plot display
@@ -32,7 +36,6 @@ Graphs a line plot of a row with the highest metric in a matrix, produced by
 \code{\link{daily_response}} function.
 }
 \examples{
-\dontrun{
 data(LJ_daily_temperatures)
 data(example_proxies_1)
 Example1 <- daily_response(response = example_proxies_1,
@@ -59,7 +62,6 @@ env_data = LJ_daily_temperatures, method = "lm",
 metric = "r.squared", lower_limit = 30, upper_limit = 120, neurons = 1,
 row_names_subset = TRUE, previous_year = TRUE)
 plot_extreme(Example4)
-}
 
 }
 \keyword{internal}

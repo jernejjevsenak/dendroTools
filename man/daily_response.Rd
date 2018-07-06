@@ -116,14 +116,21 @@ given in the form of: ylimits = c(0,1)}
 \item{tidy_env_data}{if set to TRUE, env_data should be inserted as a data frame with three
 columns: "Year", "DOY", "Precipitation/Temperature/etc."}
 
-\item{reference_window}{character string describing how to relate doy and window of each
-calculation. There are two options: 'start' (default) and 'end'. If the reference window
-is set as 'start', then each calculation is related to the starting day of window,
-otherwise it is related to the ending day of window calculation.
-For example, if we consider correlations with window from doy 15 to doy 35. If reference
-window is set to ‘start’, then this calculation will be related to the doy 15. If the
-reference window is set to ‘end’, then this calculation will be related to the doy 35.
-The differences are visible from plots, i.e. plot_heatmap, plot_extreme and plot_specific.}
+\item{reference_window}{character string, the reference_window argument describes,
+how each calculation is referred. There are three different options: 'start'
+(default), 'end' and 'middle'. If the reference_window argument is set to 'start',
+then each calculation is related to the starting day of window. If the
+reference_window argument is set to 'middle', each calculation is related to the
+middle day of window calculation. If the reference_window argument is set to
+'end', then each calculation is related to the ending day of window calculation.
+For example, if we consider correlations with window from DOY 15 to DOY 35. If
+reference window is set to ‘start’, then this calculation will be related to the
+DOY 15. If the reference window is set to ‘end’, then this calculation will be
+related to the DOY 35. If the reference_window is set to 'middle', then this
+calculation is related to DOY 25.
+The optimal selection, which describes the optimal consecutive days that returns
+the highest calculated metric and is obtained by the $plot_extreme output, is the
+same for all three reference windows.}
 }
 \value{
 a list with 13 elements:
@@ -156,7 +163,6 @@ in the matrix is indicating a window width (row names) and a location in a
 matrix of daily sequences of environmental data (column names).
 }
 \examples{
-\dontrun{
 # Load the dendroTools R package
 library(dendroTools)
 
@@ -228,5 +234,4 @@ example_multiproxy <- daily_response(response = example_proxies_1,
                                      remove_insignificant = TRUE, alpha = 0.05)
 
 example_multiproxy$plot_heatmap
-}
 }

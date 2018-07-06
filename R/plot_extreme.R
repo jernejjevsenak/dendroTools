@@ -7,14 +7,18 @@
 #' daily_response function
 #' @param title logical, if set to FALSE, no plot title is displayed
 #' @param ylimits limit of the y axes. It should be given as ylimits = c(0,1)
-#' @param reference_window character string describing how to relate doy and
-#' window of each calculation. There are two options: 'start' (default) and
-#' 'end'. If the reference window is set as 'start', then each calculation is
-#' related to the starting day of window, otherwise it is related to the ending
-#' day of window calculation. For example, if we consider correlations with window
-#' from doy 15 to doy 35. If reference window is set to ‘start’, then this calculation
-#' will be related to the doy 15. If the reference window is set to ‘end’, then this
-#' calculation will be related to the doy 35.
+#' @param reference_window character string, the reference_window argument describes,
+#' how each calculation is referred. There are three different options: 'start'
+#' (default), 'end' and 'middle'. If the reference_window argument is set to 'start',
+#' then each calculation is related to the starting day of window. If the
+#' reference_window argument is set to 'middle', each calculation is related to the
+#' middle day of window calculation. If the reference_window argument is set to
+#' 'end', then each calculation is related to the ending day of window calculation.
+#' For example, if we consider correlations with window from DOY 15 to DOY 35. If
+#' reference window is set to ‘start’, then this calculation will be related to the
+#' DOY 15. If the reference window is set to ‘end’, then this calculation will be
+#' related to the DOY 35. If the reference_window is set to 'middle', then this
+#' calculation is related to DOY 25.
 #'
 #' @return A ggplot2 object containing the plot display
 #'
@@ -172,6 +176,15 @@ plot_extreme <- function(result_daily_response, title = TRUE, ylimits = NULL, re
   date <- format(date, "%b %d")
   date_codes <- data.frame(doy = doy, date = date)
 
+  # Here, there is a special check if optimal window width is divisible by 2 or not.
+  if (as.numeric(row_index)%%2 == 0){
+    adjustment_1 = 0
+    adjustment_2 = 1
+  } else {
+    adjustment_1 = 1
+    adjustment_2 = 2
+  }
+
   if (reference_window == "start"){
     Optimal_string <- paste("\nOptimal Selection:",
     as.character(date_codes[plot_column_extra, 2]),"-",
@@ -180,8 +193,11 @@ plot_extreme <- function(result_daily_response, title = TRUE, ylimits = NULL, re
     Optimal_string <- paste("\nOptimal Selection:",
     as.character(date_codes[plot_column_extra - as.numeric(row_index) + 1, 2]),"-",
     as.character(date_codes[plot_column_extra, 2]))
+  } else if (reference_window == "middle") {
+    Optimal_string <- paste("\nOptimal Selection:",
+    as.character(date_codes[(round2((plot_column_extra - as.numeric(row_index)/2)) - adjustment_1), 2]),"-",
+    as.character(date_codes[(round2((plot_column_extra + as.numeric(row_index)/2)) - adjustment_2), 2]))
   }
-
 
   # in the next chunk, warnings are supressed. At the end of the vector,
   # there are always missing values, which are a result of changing window
@@ -241,6 +257,7 @@ plot_extreme <- function(result_daily_response, title = TRUE, ylimits = NULL, re
     reference_string <- paste0("\nStarting Day of Optimal Window Width: Day ",
                                plot_column_extra)}
 
+
   if (reference_window == 'end' &&  plot_column > 366 && nrow(temporal_vector) > 366){
     reference_string <- paste0("\nEnding Day of Optimal Window Width: Day ",
                                plot_column_extra, " of Current Year")}
@@ -251,6 +268,19 @@ plot_extreme <- function(result_daily_response, title = TRUE, ylimits = NULL, re
 
   if (reference_window == 'end' &&  plot_column  <=  366 && nrow(temporal_vector) <=  366){
     reference_string <- paste0("\nEnding Day of Optimal Window Width: Day ",
+                               plot_column_extra)}
+
+
+  if (reference_window == 'middle' &&  plot_column > 366 && nrow(temporal_vector) > 366){
+    reference_string <- paste0("\nMiddle Day of Optimal Window Width: Day ",
+                               plot_column_extra, " of Current Year")}
+
+  if (reference_window == 'middle' &&  plot_column  <= 366 && nrow(temporal_vector) > 366){
+    reference_string <- paste0("\nMiddle Day of Optimal Window Width: Day ",
+                               plot_column_extra, " of Previous Year")}
+
+  if (reference_window == 'middle' &&  plot_column  <=  366 && nrow(temporal_vector) <=  366){
+    reference_string <- paste0("\nMiddle Day of Optimal Window Width: Day ",
                                plot_column_extra)}
 
   optimal_window_string <- paste0("\nOptimal Window Width: ", as.numeric(row_index),
@@ -267,8 +297,6 @@ plot_extreme <- function(result_daily_response, title = TRUE, ylimits = NULL, re
   } else if (result_daily_response[[2]] == 'brnn'){
     method_string <- paste0("\nMethod: ANN with Bayesian Regularization")
   }
-
-
 
   final_plot <- final_plot +
     ggtitle(paste0(period_string, method_string, optimal_calculation,

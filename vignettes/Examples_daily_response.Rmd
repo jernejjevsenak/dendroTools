@@ -30,7 +30,7 @@ In general, user can use a fixed or progressive window for calculations of movin
 
 ## 2.1 Example of analysing the relationship between mean vessel area (MVA) parameter and daily temperature data with fixed window width
 
-In this example, we analyse the relationship between MVA and daily temperature data for wind width of 60 days (argument *window_width = 60*). Importantly, the *row_names_subset* argument is set to TRUE. This argument automatically subsets both data frames (i.e., environmental and tree-ring data) and keep only matching years, which are used for calculations. To use this feature, years must be included as row names. All insignificant correlations are removed by setting the argument *remove_insignificant* to TRUE. The threshold for significance is set with the *alpha* argument.
+In this example, we analyse the relationship between MVA and daily temperature data for wind width of 60 days (argument *fixed_width = 60*). Importantly, the *row_names_subset* argument is set to TRUE. This argument automatically subsets both data frames (i.e., environmental and tree-ring data) and keeps only matching years, which are used for calculations. To use this feature, years must be included as row names. All insignificant correlations are removed by setting the argument *remove_insignificant* to TRUE. The threshold for significance is set with the *alpha* argument.
 
 ```{r, results = 'hide'}
 # Load the dendroTools R package
@@ -47,15 +47,16 @@ example_fixed_width <- daily_response(response = data_MVA, env_data = LJ_daily_t
                                    alpha = 0.05)
 
 ```
-```{r, fig.align='center', fig.width=7, fig.height=5, fig.cap=paste("Figure 1: The MVA parameter contains the optimal temperature signal from March 14 (DOY 73) to May 12 (DOY 132).")}
+```{r, fig.align='center', fig.width=8, fig.height=5, fig.cap=paste("Figure 1: The MVA parameter contains the optimal temperature signal from March 14 (DOY 73) to May 12 (DOY 132).")}
 example_fixed_width$plot_extreme
 ```
 
 ## 2.2 Example of analysing the statistical relationship between mean vessel area (MVA) parameter and daily temperature data for past and present
 
 In the exploration of tree-climate relationships, researchers might be interested in how this relationship is different between past and present. The key argument for such analysis is *subset_years*, which defines the subset of years to be analysed. In the following example, we will analyse the relationship between MVA and daily temperature data for two periods, 1940 – 1980 and 1981 – 2010.
-All possible window widths between 30 and 70 days, including the previous year, will be considered. The latter is achieved by setting the *previous_year* argument to TRUE. Importantly, the *row_names_subset* argument is set to TRUE. This argument automatically subsets both data frames (i.e., environmental and tree-ring data) and keep only matching years, which are used for calculations. To use this feature, years must be included as row names. All insignificant correlations are removed by setting the argument *remove_insignificant* to TRUE. The threshold for significance is set with the *alpha* argument.
-After the function converges, we will plot the temporal patterns for past and present. In addition, we are interested in specific window width with span of 60 days (use *plot_specific_window* argument). 
+All possible window widths between 50 and 70 days, including the previous year, will be considered. The latter is achieved by setting the *previous_year* argument to TRUE. Importantly, the *row_names_subset* argument is set to TRUE. This argument automatically subsets both data frames (i.e., environmental and tree-ring data) and keeps only matching years, which are used for calculations. To use this feature, years must be included as row names. All insignificant correlations are removed by setting the argument *remove_insignificant* to TRUE. The threshold for significance is set with the *alpha* argument.
+
+After the function finish with all calculations, we plot the temporal patterns for past and present. In addition, we are interested in specific window width with span of 60 days (use *plot_specific_window* argument). 
 
 ```{r, results = 'hide'}
 # Load the dendroTools R package
@@ -67,34 +68,34 @@ data(LJ_daily_temperatures)
 
 # Example for past and present
 example_MVA_past <- daily_response(response = data_MVA, env_data = LJ_daily_temperatures,
-                              method = "cor", lower_limit = 30, upper_limit = 70,
+                              method = "cor", lower_limit = 50, upper_limit = 70,
                               row_names_subset = TRUE, previous_year = TRUE,
                               remove_insignificant = TRUE, alpha = 0.05, 
                               plot_specific_window = 60, subset_years = c(1940, 1980))
 
 example_MVA_present <- daily_response(response = data_MVA, env_data = LJ_daily_temperatures,
-                                   method = "cor", lower_limit = 30, upper_limit = 70,
+                                   method = "cor", lower_limit = 50, upper_limit = 70,
                                    row_names_subset = TRUE, previous_year = TRUE,
                                    remove_insignificant = TRUE, alpha = 0.05, 
                                    plot_specific_window = 60, subset_years = c(1981, 2010))
 ```
-```{r, fig.align='center', warning=FALSE, fig.width=7, fig.height=5, fig.cap=paste("Figure 2: The temporal correlations pattern for the past")}
+```{r, fig.align='center', warning=FALSE, fig.width=8, fig.height=5, fig.cap=paste("Figure 2: The temporal correlations pattern for the past")}
 example_MVA_past$plot_heatmap
 ```
 
-```{r, fig.align='center', warning=FALSE, fig.width=7, fig.height=5, fig.cap=paste("Figure 3: The temporal correlations pattern for the present")}
+```{r, fig.align='center', warning=FALSE, fig.width=8, fig.height=5, fig.cap=paste("Figure 3: The temporal correlations pattern for the present")}
 example_MVA_present$plot_heatmap
 ```
 
-```{r, fig.align='center', warning=FALSE, fig.width=7, fig.height=5, fig.cap=paste("Figure 4: The temporal correlations for pre-defined window of 60 days for past years")}
+```{r, fig.align='center', warning=FALSE, fig.width=8, fig.height=5, fig.cap=paste("Figure 4: The temporal correlations for pre-defined window of 60 days for past years")}
 example_MVA_past$plot_specific
 ```
 
-```{r, fig.align='center', warning=FALSE, fig.width=7, fig.height=5, fig.cap=paste("Figure 5: The temporal correlations for pre-defined window of 60 days for present years")}
+```{r, fig.align='center', warning=FALSE, fig.width=8, fig.height=5, fig.cap=paste("Figure 5: The temporal correlations for pre-defined window of 60 days for present years")}
 example_MVA_present$plot_specific
 ```
 
-The climate-tree relationships between past and present are similar. However, there are higher correlations with previous year temperatures for the present.
+The climate-tree relationships between past and present are similar. However, there is a three days of shift in optimal window between past and present. 
 
 ## 2.3 Principal component analysis in combination with the daily_response()
 
@@ -102,7 +103,7 @@ Principal Component Analysis (PCA) is commonly used with tree-ring data to reduc
 
 To use PCA regression within the *daily_response()*, set the argument *PCA_transformation* to TRUE. All variables in the *response* data frame will be transformed using PCA transformation. If the parameter *log_preprocess* is set to TRUE, variables will be transformed with logarithmic transformation before used in PCA. With the argument *components_selection*, we specify how to select PC scores that will be used as predictors. There are three options: "automatic", "manual" and "plot_selection". If argument is set to "automatic", all PC scores with eigenvalues above 1 will be selected. This threshold could be changed by changing the *eigenvalues_threshold* argument. If argument is set to "manual", user should set the number of components with *N_components* argument. If *components_selection* is set to "plot_selection", A scree plot will be shown, and a user must manually enter the number of components to be used as predictors. The latter seems to be the most reasonable choice. 
 
-In our example, we use PCA on 10 individual Mean Vessel Area (MVA) chronologies (example_proxies_individual). For climate data, LJ_daily_temperatures data is used. The selection of components is set to "manual", *N_components* of components to be used in the later analysis is set to 2. All window widths between 30 and 70 days, will be considered. Importantly, the *row_names_subset* argument is set to TRUE. This argument automatically subsets both data frames (i.e., *env_data* and *response*) and keep only matching years, which are used for calculations. To use this feature, years must be included as row names. All insignificant correlations are removed by setting the argument *remove_insignificant* to TRUE. The threshold for significance is controlled by the *alpha* argument.
+In our example, we use PCA on 10 individual Mean Vessel Area (MVA) chronologies (example_proxies_individual). For climate data, LJ_daily_temperatures data is used. The selection of components is set to "manual", *N_components* of components to be used in the later analysis is set to 2. All window widths between 60 and 70 days, will be considered. Importantly, the *row_names_subset* argument is set to TRUE. This argument automatically subsets both data frames (i.e., *env_data* and *response*) and keeps only matching years, which are used for calculations. To use this feature, years must be included as row names. All insignificant correlations are removed by setting the argument *remove_insignificant* to TRUE. The threshold for significance is controlled by the *alpha* argument.
 
 ```{r, results = 'hide'}
 # Load the dendroTools R package
@@ -115,7 +116,7 @@ data(LJ_daily_temperatures)
 # Example PCA
 example_PCA <- daily_response(response = example_proxies_individual, 
                               env_data = LJ_daily_temperatures, method = "lm", 
-                              lower_limit = 30, upper_limit = 70,
+                              lower_limit = 60, upper_limit = 70,
                               row_names_subset = TRUE, remove_insignificant = TRUE,
                               alpha = 0.01, PCA_transformation = TRUE,
                               components_selection = "manual", N_components = 2)
@@ -124,7 +125,7 @@ example_PCA <- daily_response(response = example_proxies_individual,
 # Get the summary statistics for the PCA
 summary(example_PCA$PCA_output)
 ```
-```{r, fig.align='center', warning=FALSE, fig.width=7, fig.height=5, fig.cap=paste("Figure 6: The temporal pattern for the r.squared. The highest coefficients of determination were calculated for DOY around 90 with span of 2 months.")}
+```{r, fig.align='center', warning=FALSE, fig.width=8, fig.height=5, fig.cap=paste("Figure 6: The temporal pattern for the r.squared. The highest coefficients of determination were calculated for DOY around 90 with span of 2 months.")}
 example_PCA$plot_heatmap
 ```
 ## 2.4 Example with negative correlations
@@ -142,15 +143,15 @@ data(LJ_daily_temperatures)
 # Example negative correlations
 data(data_TRW_1)
 example_neg_cor <- daily_response(response = data_TRW_1, env_data = LJ_daily_temperatures,
-                              method = "cor", lower_limit = 30, upper_limit = 70,
+                              method = "cor", lower_limit = 50, upper_limit = 70,
                               row_names_subset = TRUE, remove_insignificant = TRUE,
                               alpha = 0.05)
 ```
 
-```{r, fig.align='center', warning=FALSE, fig.width=7, fig.height=5, fig.cap=paste("Figure 7: The temporal pattern of correlation coefficients.")}
+```{r, fig.align='center', warning=FALSE, fig.width=8, fig.height=5, fig.cap=paste("Figure 7: The temporal pattern of correlation coefficients.")}
 example_neg_cor$plot_heatmap
 ```
-```{r, fig.align='center', warning=FALSE, fig.width=7, fig.height=5, fig.cap=paste("Figure 8: The highest calculated correlation coefficient.")}
+```{r, fig.align='center', warning=FALSE, fig.width=8, fig.height=5, fig.cap=paste("Figure 8: The highest calculated correlation coefficient.")}
 example_neg_cor$plot_extreme
 ```
 ```{r}
@@ -173,12 +174,12 @@ data(KRE_daily_temperatures)
 example_reconstruction_lin <- daily_response(response = data_TRW, 
                                              env_data = KRE_daily_temperatures, 
                                              method = "lm", metric = "r.squared", 
-                                             lower_limit = 30, upper_limit = 70,
+                                             lower_limit = 30, upper_limit = 40,
                                              row_names_subset = TRUE, 
                                              temporal_stability_check = "progressive",
                                              cross_validation_type = "randomized", k = 3)
 ```
-```{r, fig.align='center', warning=FALSE, fig.width=7, fig.height=5, fig.cap=paste("Figure 9: The highest calculated coefficient of determination.")}
+```{r, fig.align='center', warning=FALSE, fig.width=8, fig.height=5, fig.cap=paste("Figure 9: The highest calculated coefficient of determination.")}
 example_reconstruction_lin$plot_extreme
 ```
 
@@ -189,7 +190,7 @@ example_reconstruction_lin$temporal_stability
 example_reconstruction_lin$cross_validation
 ```
 
-```{r, fig.align='center', warning=FALSE, fig.width=7, fig.height=5, fig.cap=paste("Figure 10: Linear transfer function")}
+```{r, fig.align='center', warning=FALSE, fig.width=8, fig.height=5, fig.cap=paste("Figure 10: Linear transfer function")}
 example_reconstruction_lin$transfer_function
 ```
 
@@ -200,7 +201,7 @@ linear_model <- lm(Optimized_return ~ TRW, data = example_reconstruction_lin$opt
 reconstruction <- data.frame(predictions = predict(linear_model, newdata = data_TRW))
 ```
 
-```{r, fig.align='center', warning=FALSE, fig.width=7, fig.height=5, fig.cap=paste("Figure 11: The reconstructed average temperature May 15 - June 27 with linear model")}
+```{r, fig.align='center', warning=FALSE, fig.width=8, fig.height=5, fig.cap=paste("Figure 11: The reconstructed average temperature May 15 - June 27 with linear model")}
 plot(row.names(data_TRW), reconstruction$predictions, type = "l", xlab = "Year", ylab = "Mean temperature May 15 - Jun 27 [ºC]")
 ```
 
@@ -220,14 +221,14 @@ data(KRE_daily_temperatures)
 example_reconstruction_brnn <- daily_response(response = data_TRW, 
                                               env_data = KRE_daily_temperatures, 
                                               method = "brnn", metric = "r.squared", 
-                                              lower_limit = 40, upper_limit = 45,
+                                              lower_limit = 43, upper_limit = 44,
                                               row_names_subset = TRUE, 
                                               temporal_stability_check = "progressive",
                                               cross_validation_type = "randomized", k = 3)
 
 ```
 
-```{r, fig.align='center', warning=FALSE, fig.width=7, fig.height=5, fig.cap=paste("Figure 12: The highest calculated coefficient of determination for the brnn model.")}
+```{r, fig.align='center', warning=FALSE, fig.width=8, fig.height=5, fig.cap=paste("Figure 12: The highest calculated coefficient of determination for the brnn model.")}
 example_reconstruction_brnn$plot_extreme
 ```
 
@@ -238,7 +239,7 @@ example_reconstruction_brnn$temporal_stability
 example_reconstruction_brnn$cross_validation
 ```
 
-```{r, fig.align='center', warning=FALSE, fig.width=7, fig.height=5, fig.cap=paste("Figure 13: Nonlinear brnn transfer function")}
+```{r, fig.align='center', warning=FALSE, fig.width=8, fig.height=5, fig.cap=paste("Figure 13: Nonlinear brnn transfer function")}
 example_reconstruction_brnn$transfer_function
 ```
 A sample code for climate reconstruction with the brnn method:
@@ -247,12 +248,12 @@ brnn_model <- brnn(Optimized_return ~ TRW, data = example_reconstruction_brnn$op
 reconstruction <- data.frame(predictions = predict(brnn_model, newdata = data_TRW))
 ```
 
-```{r, fig.align='center', warning=FALSE, fig.width=7, fig.height=5, fig.cap=paste("Figure 14: The reconstructed average temperature May 15 - June 27 with the nonlinear brnn model")}
+```{r, fig.align='center', warning=FALSE, fig.width=8, fig.height=5, fig.cap=paste("Figure 14: The reconstructed average temperature May 15 - June 27 with the nonlinear brnn model")}
 plot(row.names(data_TRW),reconstruction$predictions, type = "l", xlab = "Year",
      ylab = "Mean temperature May 15 - Jun 27 [ºC]")
 ```
 
-## 2.7 Example of using a daily_reponse() with daily precipitation and daily temperature data
+## 2.7 Example of using daily_reponse() with daily precipitation and daily temperature data
 
 The current version of the *daily_response()* does not allow for using more than 1 daily environmental data, but the analysis with, e.g., daily temperature and precipitation data could be done separately and visualised together. In the following example, we analyse the relationship between Mean Vessel Area (MVA) chronology and daily temperature and precipitation data for the period 1960 – 2010. The period is defined with the *subset_ years* argument.
 
@@ -269,29 +270,29 @@ data(LJ_daily_precipitation)
 
 # Example with precipitation and temperatures
 example_MVA_TEMP <- daily_response(response = data_MVA, env_data = LJ_daily_temperatures,
-                                   method = "cor", lower_limit = 30, upper_limit = 70,
+                                   method = "cor", lower_limit = 50, upper_limit = 70,
                                    row_names_subset = TRUE, previous_year = FALSE,
                                    remove_insignificant = TRUE, alpha = 0.05, 
                                    tidy_env_data = FALSE, subset_years = c(1960, 2010))
 
 example_MVA_PREC <- daily_response(response = data_MVA, env_data = LJ_daily_precipitation,
-                                   method = "cor", lower_limit = 30, upper_limit = 70,
+                                   method = "cor", lower_limit = 50, upper_limit = 70,
                                    row_names_subset = TRUE, previous_year = FALSE,
                                    remove_insignificant = TRUE, alpha = 0.05, 
                                    tidy_env_data = TRUE, subset_years = c(1960, 2010), 
                                    aggregate_function = "sum")
 ```
-```{r, fig.align='center', warning=FALSE, fig.width=7, fig.height=10, fig.cap=paste("Figure 15: The temporal pattern of correlatioins for temperatures (up) and precipitation (down)")}
+```{r, fig.align='center', warning=FALSE, fig.width=8, fig.height=10, fig.cap=paste("Figure 15: The temporal pattern of correlatioins for temperatures (upper plot) and precipitation (lower plot)")}
 library(gridExtra)
 grid.arrange(example_MVA_TEMP$plot_heatmap, example_MVA_PREC$plot_heatmap)
 ```
-```{r, fig.align='center', warning=FALSE, fig.width=7, fig.height=10, fig.cap=paste("Figure 16: The highest calculated correlations for temperatures (up) and precipitation (down)")}
+```{r, fig.align='center', warning=FALSE, fig.width=8, fig.height=10, fig.cap=paste("Figure 16: The highest calculated correlations for temperatures (upper plot) and precipitation (lower plot)")}
 grid.arrange(example_MVA_TEMP$plot_extreme, example_MVA_PREC$plot_extreme)
 ```
 
 ## 2.8 Example of multiproxy analysis
 
-The *daily_response()* enables the analysis of the relationship between daily environmental data and more than one *response* (proxy) variable, simultaneously. However, users should select multiple proxies reasonably and with caution, since there is nothing to prevent from including colinear variables. Using several proxies will result in higher explained variance but at the cost of degrees of freedom. In those cases, users should check the temporal stability of relationship and the cross-validation result. If metrics on validation data are much lower than on calibration data, there is a problem of overfitting and users should exclude some proxies and repeat the analysis. 
+The *daily_response()* enables the analysis of the relationship between daily environmental data and more than one *response* (proxy) variable, simultaneously. However, users should select multiple proxies reasonably and with caution, since there is nothing to prevent from including colinear variables. Using several proxies will result in higher explained variance but at the cost of degrees of freedom. In those cases, users should check the temporal stability of relationship and the cross-validation result. If metrics on validation data are much lower than on calibration data, there is a problem of overfitting and users should exclude some proxies and repeat the analysis. Importantly, when using the multiproxy approach, use the adjusted r squared metric!
 
 ```{r }
 # Load the dendroTools and brnn R package
@@ -317,12 +318,12 @@ The correlation matrix shows only low correlations among the three proxies.
 example_multiproxy <- daily_response(response = example_proxies_1, 
                                      env_data = LJ_daily_temperatures, 
                                      method = "lm", metric = "adj.r.squared", 
-                                     lower_limit = 30, upper_limit = 70, 
+                                     lower_limit = 60, upper_limit = 70, 
                                      row_names_subset = TRUE, previous_year = FALSE, 
                                      remove_insignificant = TRUE, alpha = 0.05)
 ```
 
-```{r, fig.align='center', warning=FALSE, fig.width=7, fig.height=5, fig.cap=paste("Figure 17: The temporal pattern of r squared for the multiproxy example)")}
+```{r, fig.align='center', warning=FALSE, fig.width=8, fig.height=5, fig.cap=paste("Figure 17: The temporal pattern of r squared for the multiproxy example)")}
 example_multiproxy$plot_heatmap
 ```
 

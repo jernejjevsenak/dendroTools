@@ -1,8 +1,4 @@
-## Special Request
-
-Dear CRAN, I kindly ask for an exception to update our package only one week after our previous update. We added a new metric to the compare_methods(), this metric was suggested (requested) by the reviewer of our article submitted to Geochronometria journal. The deadline to resubmit the article is June 4th, so we are under time pressure. We apologize that we did not include this update in our previously submitted update of the dendroTools, but we somehow overlooked the suggestion by the reviewer. 
-
-Thank you for your understanding. 
+Dear CRAN, we reduced the intensity of our vignettes by 25 %. So, we made our examples as small as possible, but it is possible we will still exceed the limit of vignette building on CRAN. In this case, we kindly ask CRAN to turn off vignette checks on some platforms, as we did for the previous version. Thank you very much.
 
 Best Regards,
 Jernej 

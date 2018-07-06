@@ -83,14 +83,21 @@
 #' @param seed optional seed argument for reproducible results
 #' @param tidy_env_data if set to TRUE, env_data should be inserted as a data frame with three
 #' columns: "Year", "DOY", "Precipitation/Temperature/etc."
-#' @param reference_window character string describing how to relate doy and window of each
-#' calculation. There are two options: 'start' (default) and 'end'. If the reference window
-#' is set as 'start', then each calculation is related to the starting day of window,
-#' otherwise it is related to the ending day of window calculation.
-#' For example, if we consider correlations with window from doy 15 to doy 35. If reference
-#' window is set to ‘start’, then this calculation will be related to the doy 15. If the
-#' reference window is set to ‘end’, then this calculation will be related to the doy 35.
-#' The differences are visible from plots, i.e. plot_heatmap, plot_extreme and plot_specific.
+#' @param reference_window character string, the reference_window argument describes,
+#' how each calculation is referred. There are three different options: 'start'
+#' (default), 'end' and 'middle'. If the reference_window argument is set to 'start',
+#' then each calculation is related to the starting day of window. If the
+#' reference_window argument is set to 'middle', each calculation is related to the
+#' middle day of window calculation. If the reference_window argument is set to
+#' 'end', then each calculation is related to the ending day of window calculation.
+#' For example, if we consider correlations with window from DOY 15 to DOY 35. If
+#' reference window is set to ‘start’, then this calculation will be related to the
+#' DOY 15. If the reference window is set to ‘end’, then this calculation will be
+#' related to the DOY 35. If the reference_window is set to 'middle', then this
+#' calculation is related to DOY 25.
+#' The optimal selection, which describes the optimal consecutive days that returns
+#' the highest calculated metric and is obtained by the $plot_extreme output, is the
+#' same for all three reference windows.
 #'
 #' @return a list with 13 elements:
 #' \tabular{rll}{
@@ -423,7 +430,6 @@ daily_response <- function(response, env_data, method = "lm",
     env_data <- subset(env_data, row.names(env_data) %in% subset_seq)
     }
 
-
   # PART 2 - Based on the selected function arguments, different chunks of code
   # will be used. For demonstration:
   # A) Chunks are used if fixed.withd != 0
@@ -444,10 +450,12 @@ daily_response <- function(response, env_data, method = "lm",
       if (reference_window == 'start'){
         temporal_matrix <- matrix(NA, nrow = 1,
                                   ncol = (ncol(env_data) - fixed_width) + 1)
-        }
-      else {
+      } else if (reference_window == 'end') {
+        temporal_matrix <- matrix(NA, nrow = 1, ncol = (ncol(env_data)))
+      } else if (reference_window == 'middle') {
         temporal_matrix <- matrix(NA, nrow = 1,
-                                  ncol = (ncol(env_data)))
+                                  ncol = round2((ncol(env_data) - fixed_width +
+                                                   1 + fixed_width/2 ),0))
       }
 
       pb <- txtProgressBar(min = 0, max = (ncol(env_data) - fixed_width),
@@ -478,8 +486,6 @@ daily_response <- function(response, env_data, method = "lm",
           stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median or sum."))
         }
 
-        # print(paste(j, fixed_width), sep = "")
-
         x <- matrix(x, nrow = nrow(env_data), ncol = 1)
         temporal_correlation <- cor(response[, 1], x[, 1])
 
@@ -491,6 +497,8 @@ daily_response <- function(response, env_data, method = "lm",
           temporal_matrix[1, j + 1] <- temporal_correlation
         } else if (reference_window == 'end'){
           temporal_matrix[1, j + fixed_width] <- temporal_correlation
+        } else if (reference_window == 'middle'){
+          temporal_matrix[1, round2(j + 1 + fixed_width/2, 0)] <- temporal_correlation
         }
 
         setTxtProgressBar(pb, b)
@@ -513,10 +521,12 @@ daily_response <- function(response, env_data, method = "lm",
     if (reference_window == 'start'){
       temporal_matrix <- matrix(NA, nrow = 1,
                                 ncol = (ncol(env_data) - fixed_width) + 1)
-    }
-    else {
+    } else if (reference_window == 'end') {
+      temporal_matrix <- matrix(NA, nrow = 1, ncol = (ncol(env_data)))
+    } else if (reference_window == 'middle') {
       temporal_matrix <- matrix(NA, nrow = 1,
-                                ncol = (ncol(env_data)))
+                                ncol = round2((ncol(env_data) - fixed_width +
+                                                 1 + fixed_width/2 ),0))
     }
 
     pb <- txtProgressBar(min = 0, max = (ncol(env_data) - fixed_width),
@@ -551,19 +561,22 @@ daily_response <- function(response, env_data, method = "lm",
       if (metric == "r.squared"){
 
         if (reference_window == 'start'){
-          temporal_matrix[1, j + 1]  <-
-            temporal_r_squared } else if (reference_window == 'end'){
+          temporal_matrix[1, j + 1]  <- temporal_r_squared
+          } else if (reference_window == 'end') {
               temporal_matrix[1, j + fixed_width] <- temporal_r_squared
-            }
+          } else if (reference_window == 'middle'){
+            temporal_matrix[1, round2(j + 1 + fixed_width/2, 0)] <- temporal_r_squared
+          }
       }
 
       if (metric == "adj.r.squared"){
         if (reference_window == 'start'){
-          temporal_matrix[1, j + 1]  <-
-            temporal_adj_r_squared } else if (reference_window == 'end'){
-              temporal_matrix[1, j + fixed_width] <- temporal_adj_r_squared
-            }
-
+          temporal_matrix[1, j + 1]  <- temporal_adj_r_squared
+        } else if (reference_window == 'end'){
+          temporal_matrix[1, j + fixed_width] <- temporal_adj_r_squared
+        } else if (reference_window == 'middle'){
+          temporal_matrix[1, round2(j + 1 + fixed_width/2, 0)] <- temporal_adj_r_squared
+        }
       }
       setTxtProgressBar(pb, b)
     }
@@ -582,10 +595,12 @@ daily_response <- function(response, env_data, method = "lm",
     if (reference_window == 'start'){
       temporal_matrix <- matrix(NA, nrow = 1,
                                 ncol = (ncol(env_data) - fixed_width) + 1)
-    }
-    else {
+    } else if (reference_window == 'end') {
+      temporal_matrix <- matrix(NA, nrow = 1, ncol = (ncol(env_data)))
+    } else if (reference_window == 'middle') {
       temporal_matrix <- matrix(NA, nrow = 1,
-                                ncol = (ncol(env_data)))
+                                ncol = round2((ncol(env_data) - fixed_width +
+                                                 1 + fixed_width/2 ),0))
     }
 
     pb <- txtProgressBar(min = 0, max = (ncol(env_data) - fixed_width),
@@ -633,26 +648,33 @@ daily_response <- function(response, env_data, method = "lm",
         if (metric == "r.squared"){
 
           if (reference_window == 'start'){
-            temporal_matrix[1, j + 1]  <-
-              temporal_r_squared } else if (reference_window == 'end'){
-                temporal_matrix[1, j + fixed_width] <- temporal_r_squared
-              }
+            temporal_matrix[1, j + 1]  <- temporal_r_squared
+          } else if (reference_window == 'end') {
+           temporal_matrix[1, j + fixed_width] <- temporal_r_squared
+          } else if (reference_window == 'middle'){
+            temporal_matrix[1, round2(j + 1 + fixed_width/2, 0)] <- temporal_r_squared
+          }
         }
 
         if (metric == "adj.r.squared"){
           if (reference_window == 'start'){
-            temporal_matrix[1, j + 1]  <-
-              temporal_adj_r_squared } else if (reference_window == 'end'){
-                temporal_matrix[1, j + fixed_width] <- temporal_adj_r_squared
-              }
-
+            temporal_matrix[1, j + 1]  <- temporal_adj_r_squared
+          } else if (reference_window == 'end'){
+            temporal_matrix[1, j + fixed_width] <- temporal_adj_r_squared
+          } else if (reference_window == 'middle'){
+            temporal_matrix[1, round2(j + 1 + fixed_width/2, 0)] <- temporal_adj_r_squared
         }
-
-
       }
-
+      } else if (reference_window == 'start'){
+        temporal_matrix[(K - lower_limit) + 1, j + 1] <- NA
+      } else if (reference_window == 'end') {
+        temporal_matrix[(K - lower_limit) + 1, j + K] <- NA
+      } else if (reference_window == 'middle'){
+        temporal_matrix[(K - lower_limit) + 1, round2(j + 1 + K/2, 0)] <- NA
+      }
       setTxtProgressBar(pb, b)
      }
+
     close(pb)
 
     row.names(temporal_matrix) <- fixed_width
@@ -672,10 +694,14 @@ daily_response <- function(response, env_data, method = "lm",
 
     if (reference_window == 'start'){
     temporal_matrix <- matrix(NA, nrow = (upper_limit - lower_limit + 1),
-    ncol = (ncol(env_data) - lower_limit) + 1)}
-    else {
+    ncol = (ncol(env_data) - lower_limit) + 1)
+    } else if (reference_window == 'end'){
       temporal_matrix <- matrix(NA, nrow = (upper_limit - lower_limit + 1),
                                 ncol = (ncol(env_data)))
+    } else if (reference_window == 'middle'){
+      temporal_matrix <- matrix(NA, nrow = (upper_limit - lower_limit + 1),
+                                ncol = round2((ncol(env_data) - lower_limit +
+                                                 1 + lower_limit/2 ),0))
     }
 
   # An iterating double loop: 1 outer loop) iterating from lower_limit :
@@ -712,12 +738,13 @@ daily_response <- function(response, env_data, method = "lm",
 
       x <- matrix(x, nrow = nrow(env_data), ncol = 1)
       temporal_correlation <- cor(response[, 1], x[, 1])
-      # print(temporal_correlation)
 
       if (reference_window == 'start'){
         temporal_matrix[(K - lower_limit) + 1, j + 1] <- temporal_correlation
       } else if (reference_window == 'end'){
         temporal_matrix[(K - lower_limit) + 1, j + K] <- temporal_correlation
+      } else if (reference_window == 'middle'){
+        temporal_matrix[(K - lower_limit) + 1, round2(j + 1 + K/2, 0)] <- temporal_correlation
       }
 
 
@@ -745,11 +772,16 @@ daily_response <- function(response, env_data, method = "lm",
 
     if (reference_window == 'start'){
       temporal_matrix <- matrix(NA, nrow = (upper_limit - lower_limit + 1),
-                                ncol = (ncol(env_data) - lower_limit) + 1)}
-    else {
+                                ncol = (ncol(env_data) - lower_limit) + 1)
+    } else if (reference_window == 'end'){
       temporal_matrix <- matrix(NA, nrow = (upper_limit - lower_limit + 1),
                                 ncol = (ncol(env_data)))
+    } else if (reference_window == 'middle'){
+      temporal_matrix <- matrix(NA, nrow = (upper_limit - lower_limit + 1),
+                                ncol = round2((ncol(env_data) - lower_limit +
+                                                 1 + lower_limit/2 ),0))
     }
+
 
     pb <- txtProgressBar(min = 0, max = (upper_limit - lower_limit),
                          style = 3)
@@ -782,18 +814,24 @@ daily_response <- function(response, env_data, method = "lm",
 
           if (reference_window == 'start'){
           temporal_matrix[(K - lower_limit) + 1, j + 1]  <-
-            temporal_r_squared } else if (reference_window == 'end'){
+            temporal_r_squared
+          } else if (reference_window == 'end') {
               temporal_matrix[(K - lower_limit) + 1, j + K] <- temporal_r_squared
-            }
+          } else if (reference_window == 'middle'){
+            temporal_matrix[(K - lower_limit) + 1, round2(j + 1 + K/2, 0)] <- temporal_r_squared
+          }
+
         }
 
         if (metric == "adj.r.squared"){
           if (reference_window == 'start'){
           temporal_matrix[(K - lower_limit) + 1, j + 1]  <-
-            temporal_adj_r_squared } else if (reference_window == 'end'){
+            temporal_adj_r_squared
+          } else if (reference_window == 'end'){
               temporal_matrix[(K - lower_limit) + 1, j + K] <- temporal_adj_r_squared
-            }
-
+          } else if (reference_window == 'middle'){
+              temporal_matrix[(K - lower_limit) + 1, round2(j + 1 + K/2, 0)] <- temporal_adj_r_squared
+          }
         }
       }
       setTxtProgressBar(pb, b)
@@ -815,10 +853,14 @@ daily_response <- function(response, env_data, method = "lm",
 
     if (reference_window == 'start'){
       temporal_matrix <- matrix(NA, nrow = (upper_limit - lower_limit + 1),
-                                ncol = (ncol(env_data) - lower_limit) + 1)}
-    else {
+                                ncol = (ncol(env_data) - lower_limit) + 1)
+    } else if (reference_window == 'end'){
       temporal_matrix <- matrix(NA, nrow = (upper_limit - lower_limit + 1),
                                 ncol = (ncol(env_data)))
+    } else if (reference_window == 'middle'){
+      temporal_matrix <- matrix(NA, nrow = (upper_limit - lower_limit + 1),
+                                ncol = round2((ncol(env_data) - lower_limit +
+                                                 1 + lower_limit/2 ),0))
     }
 
     pb <- txtProgressBar(min = 0, max = (upper_limit - lower_limit),
@@ -862,28 +904,36 @@ daily_response <- function(response, env_data, method = "lm",
 
           if (metric == "r.squared"){
 
-                        if (reference_window == 'start'){
+            if (reference_window == 'start'){
               temporal_matrix[(K - lower_limit) + 1, j + 1]  <-
-                temporal_r_squared } else if (reference_window == 'end'){
-                  temporal_matrix[(K - lower_limit) + 1, j + K] <- temporal_r_squared
-                }
+                temporal_r_squared
+            } else if (reference_window == 'end') {
+              temporal_matrix[(K - lower_limit) + 1, j + K] <- temporal_r_squared
+            } else if (reference_window == 'middle'){
+              temporal_matrix[(K - lower_limit) + 1, round2(j + 1 + K/2, 0)] <- temporal_r_squared
+            }
 
           }
 
           if (metric == "adj.r.squared"){
             if (reference_window == 'start'){
               temporal_matrix[(K - lower_limit) + 1, j + 1]  <-
-                temporal_adj_r_squared } else if (reference_window == 'end'){
-                  temporal_matrix[(K - lower_limit) + 1, j + K] <- temporal_adj_r_squared
-                }
-
+                temporal_adj_r_squared
+            } else if (reference_window == 'end'){
+              temporal_matrix[(K - lower_limit) + 1, j + K] <- temporal_adj_r_squared
+            } else if (reference_window == 'middle'){
+              temporal_matrix[(K - lower_limit) + 1, round2(j + 1 + K/2, 0)] <- temporal_adj_r_squared
+            }
           }
 
-        } else {
+        } else if (reference_window == 'start'){
           temporal_matrix[(K - lower_limit) + 1, j + 1] <- NA
-
+        } else if (reference_window == 'end') {
+          temporal_matrix[(K - lower_limit) + 1, j + K] <- NA
+        } else if (reference_window == 'middle'){
+          temporal_matrix[(K - lower_limit) + 1, round2(j + 1 + K/2, 0)] <- NA
         }
-      }
+        }
       setTxtProgressBar(pb, b)
     }
 
@@ -988,6 +1038,7 @@ daily_response <- function(response, env_data, method = "lm",
     dataf <- data.frame(apply(env_data[, as.numeric(plot_column):
                                             (as.numeric(plot_column) +
                                                as.numeric(row_index) - 1)],1 , median, na.rm = TRUE))
+
   } else if (aggregate_function == 'sum'){
     dataf <- data.frame(apply(env_data[, as.numeric(plot_column):
                                          (as.numeric(plot_column) +
@@ -1176,6 +1227,131 @@ daily_response <- function(response, env_data, method = "lm",
     colnames(dataf) <- "Optimized return"
 
   }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  # 1. reference window = "middle"
+  if (reference_window == 'middle'){
+
+    if (as.numeric(row_index)%%2 == 0){
+      adjustment_1 = 0
+      adjustment_2 = 1
+    } else {
+      adjustment_1 = 1
+      adjustment_2 = 2
+    }
+
+    if (aggregate_function == 'median'){
+      dataf <- data.frame(apply(env_data[, (round2((as.numeric(plot_column) - (as.numeric(row_index))/2)) - adjustment_1):
+                                           (round2((as.numeric(plot_column) + as.numeric(row_index)/2)) - adjustment_2)],
+                                          1 , median, na.rm = TRUE))
+
+    } else if (aggregate_function == 'sum'){
+      dataf <- data.frame(apply(env_data[, (round2((as.numeric(plot_column) - (as.numeric(row_index))/2)) - adjustment_1):
+                                           (round2((as.numeric(plot_column) + as.numeric(row_index)/2)) - adjustment_2)],
+                                1 , sum, na.rm = TRUE))
+
+    } else if (aggregate_function == 'mean'){
+      dataf <- data.frame(apply(env_data[, (round2((as.numeric(plot_column) - (as.numeric(row_index))/2)) - adjustment_1):
+                                           (round2((as.numeric(plot_column) + as.numeric(row_index)/2)) - adjustment_2)],
+                                1 , mean, na.rm = TRUE))
+    } else {
+      stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median or sum."))
+    }
+
+    dataf_full <- cbind(response, dataf)
+    colnames(dataf_full)[ncol(dataf_full)] <- "Optimized_return"
+    colnames(dataf) <- "Optimized.rowNames"
+
+    ## Once again, the same procedure, to get the optimal sequence, but this time for whole data, not only
+    # for the analysed period.
+
+    if (aggregate_function == 'median'){
+      dataf_original <- data.frame(apply(env_data_original[, (round2((as.numeric(plot_column) - (as.numeric(row_index))/2)) - adjustment_1):
+                                           (round2((as.numeric(plot_column) + as.numeric(row_index)/2)) - adjustment_2)],
+                                1 , median, na.rm = TRUE))
+    } else if (aggregate_function == 'sum'){
+      dataf_original <- data.frame(apply(env_data_original[, (round2((as.numeric(plot_column) - (as.numeric(row_index))/2)) - adjustment_1):
+                                                             (round2((as.numeric(plot_column) + as.numeric(row_index)/2)) - adjustment_2)],
+                                         1 , sum, na.rm = TRUE))
+    } else if (aggregate_function == 'mean'){
+      dataf_original <- data.frame(apply(env_data_original[, (round2((as.numeric(plot_column) - (as.numeric(row_index))/2)) - adjustment_1):
+                                                             (round2((as.numeric(plot_column) + as.numeric(row_index)/2)) - adjustment_2)],
+                                         1 , mean, na.rm = TRUE))
+    } else {
+      stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median or sum."))
+    }
+
+    dataf_full_original <- dataf_original
+    colnames(dataf_full_original) <- "Optimized_return"
+    colnames(dataf) <- "Optimized.rowNames"
+
+
+
+    # Additional check: (we should get the same metric as before in the loop)
+    if (method == "lm" & metric == "r.squared"){
+      temporal_df <- data.frame(cbind(dataf, response))
+      temporal_model <- lm(Optimized.rowNames ~ ., data = temporal_df)
+      temporal_summary <- summary(temporal_model)
+      optimized_result <- temporal_summary$r.squared
+    }
+
+    if (method == "lm" & metric == "adj.r.squared"){
+      temporal_df <- data.frame(cbind(dataf, response))
+      temporal_model <- lm(Optimized.rowNames ~ ., data = temporal_df)
+      temporal_summary <- summary(temporal_model)
+      optimized_result <- temporal_summary$adj.r.squared
+    }
+
+    if (method == "brnn" & metric == "r.squared"){
+      temporal_df <- data.frame(cbind(dataf, response))
+      capture.output(temporal_model <- brnn(Optimized.rowNames ~ ., data = temporal_df,
+                                            neurons = neurons, tol = 1e-6))
+      temporal_predictions <- try(predict.brnn(temporal_model,
+                                               temporal_df), silent = TRUE)
+      optimized_result <- 1 - (sum((temporal_df[, 1] -
+                                      temporal_predictions) ^ 2) /
+                                 sum((temporal_df[, 1] -
+                                        mean(temporal_df[, 1])) ^ 2))
+    }
+
+    if (method == "brnn" & metric == "adj.r.squared"){
+      temporal_df <- data.frame(cbind(dataf, response))
+      capture.output(temporal_model <- brnn(Optimized.rowNames ~ .,
+                                            data = temporal_df, neurons = neurons, tol = 1e-6))
+      temporal_predictions <- try(predict.brnn(temporal_model, temporal_df),
+                                  silent = TRUE)
+      temporal_r_squared <- 1 - (sum((temporal_df[, 1] -
+                                        temporal_predictions) ^ 2) /
+                                   sum((temporal_df[, 1] -
+                                          mean(temporal_df[, 1])) ^ 2))
+      optimized_result <- 1 - ((1 - temporal_r_squared) *
+                                 ((nrow(temporal_df) - 1)) /
+                                 (nrow(temporal_df) -
+                                    ncol(as.data.frame(response[, 1])) - 1))
+    }
+
+    if (method == "cor"){
+      optimized_result <- cor(dataf, response)
+    }
+
+    # Just give a nicer colname
+    colnames(dataf) <- "Optimized return"
+
+  }
+
 
   # Element 5
   # Here we create the fifth element of the final list: Analysed period in the
