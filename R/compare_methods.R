@@ -2221,7 +2221,7 @@ plot_4 <- ggplot(reconstructions, aes(x = Year, y = reconstruction, group = meth
 # Here, I extract the "edge data", I calibrate models using the central part of the data and
 # afterwards use it on the edge data to see, how methods perform in modeling
 if (numIND == 1) {
-edge_factor <- round(nrow(dataset)*(edge_share/2),1)
+edge_factor <- round2(nrow(dataset)*(edge_share/2),0)
 
 dataset_max <- dplyr::arrange(dataset, desc(dataset[, -DepIndex]))[1:edge_factor,]
 dataset_min <- dplyr::arrange(dataset, desc(dataset[, -DepIndex]))[(nrow(dataset)-edge_factor+1):nrow(dataset),]
