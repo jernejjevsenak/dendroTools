@@ -346,13 +346,13 @@ dataset <- dataset[ names(dataset)[names(dataset) %in% allnames] ]
 if (!is.null(holdout)){
   if (holdout == "early"){
   dataset <- dataset[ order(as.numeric(row.names(dataset)), decreasing = TRUE),]
-  dataset_holdout = dataset[1:(nrow(dataset)*holdout_share),]
-  dataset = dataset[((nrow(dataset)*holdout_share)+1):nrow(dataset),]
+  dataset_holdout = dataset[1:round((nrow(dataset)*holdout_share),0),]
+  dataset = dataset[round(((nrow(dataset)*holdout_share)+1),0):nrow(dataset),]
 
   } else if (holdout == "late"){
     dataset <- dataset[ order(as.numeric(row.names(dataset)), decreasing = TRUE),]
-    dataset_holdout = dataset[(nrow(dataset) - (round(nrow(dataset)*holdout_share, 0))):nrow(dataset), ]
-    dataset = dataset[1:((nrow(dataset) - (round(nrow(dataset)*holdout_share, 0))) -1), ]
+    dataset_holdout = dataset[(nrow(dataset) - (round2(nrow(dataset)*holdout_share, 0)) + 1):nrow(dataset), ]
+    dataset = dataset[1:((nrow(dataset) - (round2(nrow(dataset)*holdout_share, 0)))), ]
 
   } else if (holdout == "manual"){
     dataset_holdout = dataset[row.names(dataset) %in% holdout_manual, ]
