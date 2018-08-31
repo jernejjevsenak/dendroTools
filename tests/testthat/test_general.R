@@ -10,11 +10,11 @@ TRW_parameter <- select(example_proxies_1, TRW)
 # If test is repeated, equal result should be obtained
 test1 <- daily_response(response = MVA_parameter,
                         env_data = LJ_daily_temperatures, method = "lm",
-                        lower = 80, upper = 120, row_names_subset = TRUE, seed = 1234)
+                        lower = 270, upper = 272, row_names_subset = TRUE, seed = 1234)
 
 test2 <- daily_response(response = MVA_parameter,
                         env_data = LJ_daily_temperatures, method = "lm",
-                        lower = 80, upper = 120, row_names_subset = TRUE, seed = 1234)
+                        lower = 270, upper = 272, row_names_subset = TRUE, seed = 1234)
 
 expect_equal(test1, test2)
 
@@ -22,7 +22,7 @@ expect_equal(test1, test2)
 # daily_response function should return a list with matrix and two characters
 test3 <- daily_response(response = example_proxies_1,
   env_data = LJ_daily_temperatures, method = "lm",
-  metric = "adj.r.squared", lower = 250, upper = 253, previous_year = TRUE,
+  metric = "adj.r.squared", lower = 250, upper = 251, previous_year = FALSE,
   row_names_subset = TRUE)
 expect_is(test3, "list")
 expect_is(test3[[1]], "matrix")
@@ -47,12 +47,12 @@ expect_error(daily_response(response = example_proxies_1,
 # r.squared is squared correlation. Results should be equal
 test4 <- daily_response(response = MVA_parameter,
                         env_data = LJ_daily_temperatures, method = "cor",
-                        lower = 150, upper = 170, previous_year = FALSE,
+                        lower = 150, upper = 152, previous_year = FALSE,
                         row_names_subset = TRUE)
 
 test5 <- daily_response(response = MVA_parameter,
                         env_data = LJ_daily_temperatures, method = "lm",
-                        lower = 150, upper = 170, previous_year = FALSE,
+                        lower = 150, upper = 152, previous_year = FALSE,
                         row_names_subset = TRUE)
 expect_equal(max(test4[[1]], na.rm = TRUE) ^ 2, max(test5[[1]], na.rm = TRUE))
 
@@ -89,7 +89,7 @@ MVA_parameter <- dplyr::select(example_proxies_1, MVA)
 # Test 8: Usual way of analysing data
 test8 <- daily_response(response = MVA_parameter,
                            env_data = LJ_daily_temperatures, method = "lm",
-                        metric = "r.squared", lower_limit = 50,
+                        metric = "r.squared", lower_limit = 78,
                         upper_limit = 80, row_names_subset = TRUE)
 
 # Test 9: MVA_parameter data.frame is ordered by values of MVA
@@ -97,10 +97,10 @@ MVA_parameter_ordered <- MVA_parameter[order(MVA_parameter$MVA), ,
                                          drop = FALSE]
 test9 <- daily_response(response = MVA_parameter_ordered,
                            env_data = LJ_daily_temperatures, method = "lm",
-                        metric = "r.squared", lower_limit = 50,
+                        metric = "r.squared", lower_limit = 78,
                         upper_limit = 80, row_names_subset = TRUE)
 expect_equal(test8[[1]], test9[[1]])
 
 
-# There should be 12 elements in a list returned by daily_response()
+# There should be 13 elements in a list returned by daily_response()
 expect_equal(length(test8), 13)

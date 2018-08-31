@@ -1,4 +1,4 @@
-Dear CRAN, we reduced the intensity of our vignettes by 25 %. So, we made our examples as small as possible, but it is possible we will still exceed the limit of vignette building on CRAN. In this case, we kindly ask CRAN to turn off vignette checks on some platforms, as we did for the previous version. Thank you very much.
+Dear CRAN, as you suggested in our previous conversation, we additionally reduced the intensity of our tests and examples. Previously, we reduced the intensity of our vignettes by 25 %. So, we made vignette examples much smaller, but it is still possible we exceed the limit of vignette building on CRAN. In this case, we kindly ask CRAN to turn off vignette checks on some platforms, as we did for the previous version. Thank you very much.
 
 Best Regards,
 Jernej 

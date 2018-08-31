@@ -169,9 +169,9 @@
 #'
 #' # An example with default settings of machine learning algorithms
 #' experiment_1 <- compare_methods(formula = MVA~.,
-#' dataset = example_dataset_1, k = 10, repeats = 10, blocked_CV = TRUE,
+#' dataset = example_dataset_1, k = 10, repeats = 10, blocked_CV = FALSE,
 #' PCA_transformation = FALSE, components_selection = "automatic",
-#' optimize = TRUE, methods = c("MLR", "BRNN"), tuning_metric = "RSquared")
+#' optimize = TRUE, tuning_metric = "RSquared", methods = c("MLR", "BRNN", "MT", "BMT"))
 #' experiment_1$mean_std
 #' experiment_1$ranks
 #' experiment_1$bias_cal
@@ -2128,6 +2128,22 @@ parameters <- data.frame(
              "RF", "RF", "RF"),
   Parameter = c("BRNN_neurons", "MT_M", "MT_N", "MT_U", "MT_R", "BMT_P", "BMT_I", "BMT_M",
                 "BMT_N", "BMT_U", "BMT_R", "RF_P", "RF_I", "RF_depth"),
+  Considered_values = c(
+    as.character(paste0(BRNN_neurons_vector, collapse=", ")),
+    as.character(paste0(MT_M_vector, collapse=", ")),
+    as.character(paste0(MT_N_vector, collapse=", ")),
+    as.character(paste0(MT_U_vector, collapse=", ")),
+    as.character(paste0(MT_R_vector, collapse=", ")),
+    as.character(paste0(BMT_P_vector, collapse=", ")),
+    as.character(paste0(BMT_I_vector, collapse=", ")),
+    as.character(paste0(BMT_M_vector, collapse=", ")),
+    as.character(paste0(BMT_N_vector, collapse=", ")),
+    as.character(paste0(BMT_U_vector, collapse=", ")),
+    as.character(paste0(BMT_R_vector, collapse=", ")),
+    as.character(paste0(RF_P_vector, collapse=", ")),
+    as.character(paste0(RF_I_vector, collapse=", ")),
+    as.character(paste0(RF_depth_vector, collapse=" "))
+    ),
   Value = c(BRNN_neurons, MT_M,
             ifelse(MT_N == 1, as.character("TRUE"), as.character("FALSE")),
             ifelse(MT_U == 1, as.character("TRUE"), as.character("FALSE")),
@@ -2136,6 +2152,8 @@ parameters <- data.frame(
             ifelse(BMT_U == 1, as.character("TRUE"), as.character("FALSE")),
             ifelse(BMT_R == 1, as.character("TRUE"), as.character("FALSE")),
             RF_P, RF_I, RF_depth))
+
+colnames(parameters) = c("Method", "Parameter", "Considered values", "Selected value")
 
 parameters <- parameters[parameters$Method %in% methods,]
 

@@ -216,9 +216,9 @@ efficiency (DE) and mean bias.
 
 # An example with default settings of machine learning algorithms
 experiment_1 <- compare_methods(formula = MVA~.,
-dataset = example_dataset_1, k = 10, repeats = 10, blocked_CV = TRUE,
+dataset = example_dataset_1, k = 10, repeats = 10, blocked_CV = FALSE,
 PCA_transformation = FALSE, components_selection = "automatic",
-optimize = TRUE, methods = c("MLR", "BRNN"), tuning_metric = "RSquared")
+optimize = TRUE, tuning_metric = "RSquared", methods = c("MLR", "BRNN", "MT", "BMT"))
 experiment_1$mean_std
 experiment_1$ranks
 experiment_1$bias_cal
