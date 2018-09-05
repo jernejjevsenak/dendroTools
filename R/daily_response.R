@@ -230,6 +230,20 @@ daily_response <- function(response, env_data, method = "lm",
  DE <- NULL
  d <- NULL
 
+ # If there is a column name samp.depth in response data frame, we error msg is displayed
+ if ("samp.depth" %in% colnames(response)){
+   stop(paste0("response data frame includes samp.depth colname!",
+    " All variables in response data frame will be used as predictors of daily data.",
+    " Sample depth is not a predictor! Please remove samp.deth column from the response data frame."))
+ }
+
+ # If there is more than 2 columns in response data frame, give a warning
+ if (ncol(response) > 1){
+   warning(paste0("Your response data frame has more than 1 column! Are you doing a multiproxy research?",
+   " If so, OK. If not, check your response data frame!"))
+ }
+
+
  # If env_data is given in tidy version, transformation is needed
  if (tidy_env_data == TRUE){
 
@@ -1424,6 +1438,7 @@ analysed_period
 
   empty_list = list()
   empty_list_period = list()
+  empty_list_significance = list()
 
   temporal_stability <- data.frame()
 
@@ -1443,15 +1458,19 @@ analysed_period
 
       if (method == "cor"){
         calculation <- cor(dataset_temp[,1], dataset_temp[,2])
+        sig <- cor.test(dataset_temp[,1], dataset_temp[,2])$p.value
+        empty_list_significance[[m]] <- sig
         empty_list[[m]] <- calculation
         colname = "correlation"
       } else if (method == "lm" & metric == "r.squared"){
         MLR <- lm(optimized_return ~ ., data = dataset_temp)
         colname = "r.squared"
         empty_list[[m]] <- summary(MLR)$r.squared
+        empty_list_significance[[m]] <- NA
       } else if (method == "lm" & metric == "adj.r.squared"){
         MLR <- lm(optimized_return ~ ., data = dataset_temp)
         empty_list[[m]] <- summary(MLR)$adj.r.squared
+        empty_list_significance[[m]] <- NA
         colname = "adj.r.squared"
       } else if (method == "brnn" & metric == "r.squared"){
         capture.output(BRNN <- try(brnn(optimized_return ~ ., data = dataset_temp, neurons = neurons), silent = TRUE))
@@ -1460,10 +1479,12 @@ analysed_period
           r_squared <- 1 - (sum((dataset_temp[, 1] - predictions) ^ 2) /
                               sum((dataset_temp[, 1] - mean(dataset_temp[, 1])) ^ 2))
           empty_list[[m]] <- r_squared
+          empty_list_significance[[m]] <- NA
           colname = "r.squared"
         } else {
           empty_list[[m]] <- NA
           colname = "r.squared"
+          empty_list_significance[[m]] <- NA
         }
       } else if (method == "brnn" & metric == "adj.r.squared"){
         capture.output(BRNN <- try(brnn(optimized_return ~ ., data = dataset_temp, neurons = neurons), silent = TRUE))
@@ -1475,6 +1496,7 @@ analysed_period
           adj_r_squared <- 1 - ((1 - r_squared) * ((nrow(dataset_temp) - 1)) /
                                   (nrow(dataset_temp) - ncol(as.data.frame(response[, 1])) -  1))
           empty_list[[m]] <- adj_r_squared
+          empty_list_significance[[m]] <- NA
           colname = "adj.r.squared"
         } else {
           empty_list[[m]] <- NA
@@ -1484,9 +1506,10 @@ analysed_period
       }
     m1 <- do.call(rbind, empty_list)
     m2 <- do.call(rbind, empty_list_period)
+    m3 <- do.call(rbind, empty_list_significance)
 
-    temporal_stability <- data.frame(cbind(m2, round(m1, 3)))
-    colnames(temporal_stability) <-c("Period", colname)
+    temporal_stability <- data.frame(cbind(m2, format(round(m1, 3), nsmall = 3), format(round(m3, 4), nsmall = 3)))
+    colnames(temporal_stability) <-c("Period", colname, "p value")
     temporal_stability
   }
 
@@ -1507,15 +1530,20 @@ analysed_period
 
         if (method == "cor"){
           calculation <- cor(dataset_temp[,1], dataset_temp[,2])
+          sig <- cor.test(dataset_temp[,1], dataset_temp[,2])$p.value
           empty_list[[m]] <- calculation
-          colname = "correaltion"
+          empty_list_significance[[m]] <- sig
+          colname = "correlation"
+
         } else if (method == "lm" & metric == "r.squared"){
           MLR <- lm(optimized_return ~ ., data = dataset_temp)
           colname = "r.squared"
           empty_list[[m]] <- summary(MLR)$r.squared
+          empty_list_significance[[m]] <- NA
         } else if (method == "lm" & metric == "adj.r.squared"){
           MLR <- lm(optimized_return ~ ., data = dataset_temp)
           empty_list[[m]] <- summary(MLR)$adj.r.squared
+          empty_list_significance[[m]] <- NA
           colname = "adj.r.squared"
         } else if (method == "brnn" & metric == "r.squared"){
           capture.output(BRNN <- try(brnn(optimized_return ~ ., data = dataset_temp, neurons = neurons), silent = TRUE))
@@ -1524,10 +1552,12 @@ analysed_period
           r_squared <- 1 - (sum((dataset_temp[, 1] - predictions) ^ 2) /
                               sum((dataset_temp[, 1] - mean(dataset_temp[, 1])) ^ 2))
           empty_list[[m]] <- r_squared
+          empty_list_significance[[m]] <- NA
           colname = "r.squared"
           } else {
             empty_list[[m]] <- NA
             colname = "r.squared"
+            empty_list_significance[[m]] <- NA
           }
         } else if (method == "brnn" & metric == "adj.r.squared"){
           capture.output(BRNN <- try(brnn(optimized_return ~ ., data = dataset_temp, neurons = neurons), silent = TRUE))
@@ -1539,19 +1569,23 @@ analysed_period
           adj_r_squared <- 1 - ((1 - r_squared) * ((nrow(dataset_temp) - 1)) /
                                   (nrow(dataset_temp) - ncol(as.data.frame(response[, 1])) -  1))
           empty_list[[m]] <- adj_r_squared
+          empty_list_significance[[m]] <- NA
           colname = "adj.r.squared"
           } else {
             empty_list[[m]] <- NA
             colname = "adj.r.squared"
+            empty_list_significance[[m]] <- NA
           }
         }
       }
       m1 <- do.call(rbind, empty_list)
       m2 <- do.call(rbind, empty_list_period)
+      m3 <- do.call(rbind, empty_list_significance)
 
-      temporal_stability <- data.frame(cbind(m2, round(m1, 3)))
-      colnames(temporal_stability) <-c("Period", colname)
+      temporal_stability <- data.frame(cbind(m2, format(round(m1, 3), nsmall = 3), format(round(m3, 4), nsmall = 3)))
+      colnames(temporal_stability) <-c("Period", colname, "p value")
       temporal_stability
+
   }
 
 
