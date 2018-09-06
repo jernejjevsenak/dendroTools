@@ -64,11 +64,14 @@
 #' @param aggregate_function character string specifying how the daily data should be
 #' aggregated. The default is 'mean', the two other options are 'median' and 'sum'
 #' @param temporal_stability_check character string, specifying, how temporal stability
-#' between the optimal selection and response variables will be analysed. Current
-#' possibilities are "sequential" and "progressive". Sequential check will split data into
-#' k splits and calculate selected metric for each split. Progressive check will split data
-#' into k splits, calculate metric for the first split and then progressively add 1 split at
-#' a time and calculate selected metric.
+#' between the optimal selection and response variable(s) will be analysed. Current
+#' possibilities are "sequential", "progressive" and "running_window". Sequential check
+#' will split data into k splits and calculate selected metric for each split. Progressive
+#' check will split data into k splits, calculate metric for the first split and then
+#' progressively add 1 split at a time and calculate selected metric. For running window,
+#' select the length of running window with the k_running_window argument.
+#' @param k_running_window the length of running window for temporal stability check.
+#' Applicalbe only if temporal_stability argument is set to running window.
 #' @param k integer, number of breaks (splits) for temporal stability and cross validation
 #' analysis.
 #' @param cross_validation_type character string, specifying, how to perform cross validation
@@ -191,6 +194,15 @@
 #'                                      remove_insignificant = TRUE, alpha = 0.05)
 #'
 #' example_multiproxy$plot_heatmap
+#'
+#' # 6 Example to test the temporal stability
+#' example_MVA_ts <- daily_response(response = data_MVA, env_data = LJ_daily_temperatures,
+#' method = "brnn", lower_limit = 100, metric = "adj.r.squared", upper_limit = 180,
+#' row_names_subset = TRUE, remove_insignificant = TRUE, alpha = 0.05,
+#' temporal_stability_check = "running_window", k_running_window = 10)
+#'
+#' example_MVA_ts$temporal_stability
+#'
 #' }
 
 daily_response <- function(response, env_data, method = "lm",
@@ -204,7 +216,7 @@ daily_response <- function(response, env_data, method = "lm",
                            eigenvalues_threshold = 1,
                            N_components = 2, aggregate_function = 'mean',
                            temporal_stability_check = "sequential", k = 2,
-                           cross_validation_type = "blocked",
+                           k_running_window = 30, cross_validation_type = "blocked",
                            subset_years = NULL, plot_specific_window = NULL,
                            ylimits = NULL, seed = NULL, tidy_env_data = FALSE,
                            reference_window = 'start') {
@@ -1587,6 +1599,99 @@ analysed_period
       temporal_stability
 
   }
+
+
+  # 3. running_window
+  if (temporal_stability_check == "running_window"){
+
+    k_end <- nrow(dataset)
+    place_list <- 1
+    empty_list_datasets <- list()
+    empty_list_period <- list()
+
+    empty_list <- list()
+    empty_list_significance <- list()
+
+    place_list = 1
+
+    for (w in 0:(k_end - k_running_window)){
+
+      dataset_temp <- dataset[(1+w):(k_running_window + w),]
+      empty_list_datasets[[place_list]] <- dataset_temp
+
+      MAKS <- max(as.numeric(row.names(dataset_temp)))
+      MIN <- min(as.numeric(row.names(dataset_temp)))
+      empty_list_period[[place_list]] <- paste(MIN, "-", MAKS)
+
+      place_list <- place_list + 1
+
+
+    }
+
+for (m in 1:length(empty_list_datasets)){
+
+  dataset_temp <- empty_list_datasets[[m]]
+
+  if (method == "cor"){
+    calculation <- cor(dataset_temp[,1], dataset_temp[,2])
+    sig <- cor.test(dataset_temp[,1], dataset_temp[,2])$p.value
+    empty_list[[m]] <- calculation
+    empty_list_significance[[m]] <- sig
+    colname = "correlation"
+
+  } else if (method == "lm" & metric == "r.squared"){
+    MLR <- lm(optimized_return ~ ., data = dataset_temp)
+    colname = "r.squared"
+    empty_list[[m]] <- summary(MLR)$r.squared
+    empty_list_significance[[m]] <- NA
+  } else if (method == "lm" & metric == "adj.r.squared"){
+    MLR <- lm(optimized_return ~ ., data = dataset_temp)
+    empty_list[[m]] <- summary(MLR)$adj.r.squared
+    empty_list_significance[[m]] <- NA
+    colname = "adj.r.squared"
+  } else if (method == "brnn" & metric == "r.squared"){
+    capture.output(BRNN <- try(brnn(optimized_return ~ ., data = dataset_temp, neurons = neurons), silent = TRUE))
+    if (class(BRNN)[[1]] != "try-error"){
+      predictions <- predict(BRNN, dataset_temp, neurons = neurons)
+      r_squared <- 1 - (sum((dataset_temp[, 1] - predictions) ^ 2) /
+                          sum((dataset_temp[, 1] - mean(dataset_temp[, 1])) ^ 2))
+      empty_list[[m]] <- r_squared
+      empty_list_significance[[m]] <- NA
+      colname = "r.squared"
+    } else {
+      empty_list[[m]] <- NA
+      colname = "r.squared"
+      empty_list_significance[[m]] <- NA
+    }
+  } else if (method == "brnn" & metric == "adj.r.squared"){
+    capture.output(BRNN <- try(brnn(optimized_return ~ ., data = dataset_temp, neurons = neurons), silent = TRUE))
+    if (class(BRNN)[[1]] != "try-error"){
+      predictions <- predict(BRNN, dataset_temp, neurons = neurons)
+      r_squared <- 1 - (sum((dataset_temp[, 1] - predictions) ^ 2) /
+                          sum((dataset_temp[, 1] - mean(dataset_temp[, 1])) ^ 2))
+
+      adj_r_squared <- 1 - ((1 - r_squared) * ((nrow(dataset_temp) - 1)) /
+                              (nrow(dataset_temp) - ncol(as.data.frame(response[, 1])) -  1))
+      empty_list[[m]] <- adj_r_squared
+      empty_list_significance[[m]] <- NA
+      colname = "adj.r.squared"
+    } else {
+      empty_list[[m]] <- NA
+      colname = "adj.r.squared"
+      empty_list_significance[[m]] <- NA
+    }
+  }
+}
+    m1 <- do.call(rbind, empty_list)
+    m2 <- do.call(rbind, empty_list_period)
+    m3 <- do.call(rbind, empty_list_significance)
+
+    temporal_stability <- data.frame(cbind(m2, format(round(m1, 3), nsmall = 3), format(round(as.numeric(m3), digits = 3), nsmall = 3)))
+    colnames(temporal_stability) <-c("Period", colname, "p value")
+    temporal_stability
+}
+
+
 
 
   #########################################################################

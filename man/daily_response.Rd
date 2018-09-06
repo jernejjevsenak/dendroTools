@@ -11,7 +11,7 @@ daily_response(response, env_data, method = "lm", metric = "r.squared",
   PCA_transformation = FALSE, log_preprocess = TRUE,
   components_selection = "automatic", eigenvalues_threshold = 1,
   N_components = 2, aggregate_function = "mean",
-  temporal_stability_check = "sequential", k = 2,
+  temporal_stability_check = "sequential", k = 2, k_running_window = 30,
   cross_validation_type = "blocked", subset_years = NULL,
   plot_specific_window = NULL, ylimits = NULL, seed = NULL,
   tidy_env_data = FALSE, reference_window = "start")
@@ -89,14 +89,18 @@ manually enter the number of components to be used as predictors.}
 aggregated. The default is 'mean', the two other options are 'median' and 'sum'}
 
 \item{temporal_stability_check}{character string, specifying, how temporal stability
-between the optimal selection and response variables will be analysed. Current
-possibilities are "sequential" and "progressive". Sequential check will split data into
-k splits and calculate selected metric for each split. Progressive check will split data
-into k splits, calculate metric for the first split and then progressively add 1 split at
-a time and calculate selected metric.}
+between the optimal selection and response variable(s) will be analysed. Current
+possibilities are "sequential", "progressive" and "running_window". Sequential check
+will split data into k splits and calculate selected metric for each split. Progressive
+check will split data into k splits, calculate metric for the first split and then
+progressively add 1 split at a time and calculate selected metric. For running window,
+select the length of running window with the k_running_window argument.}
 
 \item{k}{integer, number of breaks (splits) for temporal stability and cross validation
 analysis.}
+
+\item{k_running_window}{the length of running window for temporal stability check.
+Applicalbe only if temporal_stability argument is set to running window.}
 
 \item{cross_validation_type}{character string, specifying, how to perform cross validation
 between the optimal selection and response variables. If the argument is set to "blocked",
@@ -235,5 +239,14 @@ example_multiproxy <- daily_response(response = example_proxies_1,
                                      remove_insignificant = TRUE, alpha = 0.05)
 
 example_multiproxy$plot_heatmap
+
+# 6 Example to test the temporal stability
+example_MVA_ts <- daily_response(response = data_MVA, env_data = LJ_daily_temperatures,
+method = "brnn", lower_limit = 100, metric = "adj.r.squared", upper_limit = 180,
+row_names_subset = TRUE, remove_insignificant = TRUE, alpha = 0.05,
+temporal_stability_check = "running_window", k_running_window = 10)
+
+example_MVA_ts$temporal_stability
+
 }
 }
