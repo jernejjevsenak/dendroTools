@@ -8,8 +8,8 @@ Jernej
 
 ## Test environments
 * local OS X install, R 3.5.0
-* TRAVIS: Ubuntu 14.04.5 LTS, Release:	14.04, trusty
-* win-builder using R Under development (unstable) (2018-07-01 r74950) 
+* TRAVIS: Platform: x86_64-pc-linux-gnu (64-bit), Running under: Ubuntu 14.04.5 LTS, R version 3.5.1 (2017-01-27)
+* win-builder using R Under development (unstable) (2018-10-12 r75434) 
 
 ## R CMD check results
 There were no ERRORs, WARNINGs or NOTEs
