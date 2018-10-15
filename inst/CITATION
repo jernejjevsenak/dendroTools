@@ -15,3 +15,19 @@ paste("Jevsenak J. and Levanic T., 2018.",
     "Dendrochronologia, 48, 32-39.",
     "doi 10.1016/j.dendro.2018.01.005")
 )
+
+citEntry(entry = "Article",
+title        = "Comparison of an optimal regression method for climate reconstruction with the compare_methods() function from the {dendroTools} R package",
+author       = personList(as.person("Jevsenak J."), as.person("Levanic T."), as.person("Dzeroski S.")),
+journal      = "Dendrochronologia",
+volume       = "52",
+pages        = "96-104",
+year         = "2018",
+doi          = "10.1016/j.dendro.2018.10.001",
+
+textVersion  =
+paste("Jevsenak J., Levanic T. and Dzeroski S., 2018.",
+    "Comparison of an optimal regression method for climate reconstruction with the compare_methods() function from the dendroTools R package.",
+    "Dendrochronologia, 52, 96-104.",
+    "doi 10.1016/j.dendro.2018.10.001")
+)
