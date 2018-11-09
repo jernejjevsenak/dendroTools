@@ -4,26 +4,27 @@
 \alias{compare_methods}
 \title{compare_methods}
 \usage{
-compare_methods(formula, dataset, k = 10, repeats = 2, optimize = TRUE,
-  dataset_complete = NULL, BRNN_neurons = 1, MT_committees = 1,
-  MT_neighbors = 5, MT_rules = 200, MT_unbiased = TRUE,
-  MT_extrapolation = 100, MT_sample = 0, BMT_P = 100, BMT_I = 100,
-  BMT_M = 4, BMT_N = F, BMT_U = F, BMT_R = F, RF_ntree = 500,
-  RF_maxnodes = 5, RF_mtry = 1, RF_nodesize = 1, seed_factor = 5,
-  digits = 3, blocked_CV = FALSE, PCA_transformation = FALSE,
-  log_preprocess = TRUE, components_selection = "automatic",
-  eigenvalues_threshold = 1, N_components = 2, round_bias_cal = 15,
-  round_bias_val = 4, n_bins = 30, edge_share = 0.1,
-  MLR_stepwise = FALSE, stepwise_direction = "backward",
-  methods = c("MLR", "BRNN", "MT", "BMT", "RF"), tuning_metric = "RMSE",
-  BRNN_neurons_vector = c(1, 2, 3), MT_committees_vector = c(1, 5, 10),
-  MT_neighbors_vector = c(0, 5), MT_rules_vector = c(100, 200),
-  MT_unbiased_vector = c(TRUE, FALSE), MT_extrapolation_vector = c(100),
-  MT_sample_vector = c(0), BMT_P_vector = c(100), BMT_I_vector = c(100),
-  BMT_M_vector = c(4, 8, 16, 25), BMT_N_vector = c(TRUE, FALSE),
-  BMT_U_vector = c(TRUE, FALSE), BMT_R_vector = c(FALSE),
-  RF_ntree_vector = c(100, 250, 500), RF_maxnodes_vector = c(5, 10, 20, 25),
-  RF_mtry_vector = c(1), RF_nodesize_vector = c(1, 5, 10), holdout = NULL,
+compare_methods(formula, dataset, k = 10, repeats = 2,
+  optimize = TRUE, dataset_complete = NULL, BRNN_neurons = 1,
+  MT_committees = 1, MT_neighbors = 5, MT_rules = 200,
+  MT_unbiased = TRUE, MT_extrapolation = 100, MT_sample = 0,
+  BMT_P = 100, BMT_I = 100, BMT_M = 4, BMT_N = F, BMT_U = F,
+  BMT_R = F, RF_ntree = 500, RF_maxnodes = 5, RF_mtry = 1,
+  RF_nodesize = 1, seed_factor = 5, digits = 3, blocked_CV = FALSE,
+  PCA_transformation = FALSE, log_preprocess = TRUE,
+  components_selection = "automatic", eigenvalues_threshold = 1,
+  N_components = 2, round_bias_cal = 15, round_bias_val = 4,
+  n_bins = 30, edge_share = 0.1, MLR_stepwise = FALSE,
+  stepwise_direction = "backward", methods = c("MLR", "BRNN", "MT",
+  "BMT", "RF"), tuning_metric = "RMSE", BRNN_neurons_vector = c(1, 2,
+  3), MT_committees_vector = c(1, 5, 10), MT_neighbors_vector = c(0,
+  5), MT_rules_vector = c(100, 200), MT_unbiased_vector = c(TRUE,
+  FALSE), MT_extrapolation_vector = c(100), MT_sample_vector = c(0),
+  BMT_P_vector = c(100), BMT_I_vector = c(100), BMT_M_vector = c(4,
+  8, 16, 25), BMT_N_vector = c(TRUE, FALSE), BMT_U_vector = c(TRUE,
+  FALSE), BMT_R_vector = c(FALSE), RF_ntree_vector = c(100, 250, 500),
+  RF_maxnodes_vector = c(5, 10, 20, 25), RF_mtry_vector = c(1),
+  RF_nodesize_vector = c(1, 5, 10), holdout = NULL,
   holdout_share = 0.1, holdout_manual = NULL,
   total_reproducibility = FALSE)
 }
@@ -242,52 +243,58 @@ methods of interest could be specified. Calculated performance metrics are the
 correlation coefficient (r), the root mean squared error (RMSE), the root
 relative squared error (RRSE), the index of agreement (d), the reduction
 of error (RE), the coefficient of efficiency (CE), the detrended
-efficiency (DE) and mean bias.
+efficiency (DE) and mean bias. For each of the considered methods, there are
+also residual diagnostic plots available, separately for calibration, holdout
+and edge data, if applicable.
 }
 \examples{
 \dontrun{
 
 # An example with default settings of machine learning algorithms
-experiment_1 <- compare_methods(formula = MVA~., dataset = example_dataset_1)
-experiment_1$mean_std
-experiment_1$holdout_results
-experiment_1$ranks
-experiment_1$bias_cal
-experiment_1$bias_val
-experiment_1$transfer_functions
-experiment_1$transfer_functions_together
-experiment_1$PCA_output
-experiment_1$parameter_values
-experiment_1$Residuals_vs_fitted_cal
-experiment_1$Residuals_vs_fitted_edge
-experiment_1$Residuals_vs_fitted_holdout
-experiment_1$Normal_QQ_cal
-experiment_1$Normal_QQ_edge
-experiment_1$Normal_QQ_holdout
+library(dendroTools)
+data(example_dataset_1)
+example_1 <- compare_methods(formula = MVA~., dataset = example_dataset_1,
+edge_share = 0, holdout = "late")
+example_1$mean_std
+example_1$holdout_results
+example_1$edge_results
+example_1$ranks
+example_1$bias_cal
+example_1$bias_val
+example_1$transfer_functions
+example_1$transfer_functions_together
+example_1$PCA_output
+example_1$parameter_values
+example_1$residuals_vs_fitted_cal
+example_1$residuals_vs_fitted_edge
+example_1$residuals_vs_fitted_holdout
+example_1$normal_QQ_cal
+example_1$normal_QQ_edge
+example_1$normal_QQ_holdout
 
 
-experiment_2 <- compare_methods(formula = MVA ~  T_APR,
+example_2 <- compare_methods(formula = MVA ~  T_APR,
 dataset = example_dataset_1, k = 5, repeats = 10, BRNN_neurons = 1,
 BMT_P = 100, BMT_I = 100, BMT_M = 4, BMT_N = FALSE, BMT_U = FALSE,
 BMT_R = FALSE, RF_ntree = 100, RF_mtry = 2, RF_maxnodes = 35, seed_factor = 5)
-experiment_2$mean_std
-experiment_2$ranks
-experiment_2$bias_cal
-experiment_2$transfer_functions
-experiment_2$transfer_functions_together
-experiment_2$PCA_output
-experiment_2$parameter_values
+example_2$mean_std
+example_2$ranks
+example_2$bias_cal
+example_2$transfer_functions
+example_2$transfer_functions_together
+example_2$PCA_output
+example_2$parameter_values
 
-experiment_3 <- compare_methods(formula = MVA ~ .,
+example_3 <- compare_methods(formula = MVA ~ .,
 dataset = example_dataset_1, k = 2, repeats = 5,
 methods = c("MLR", "BRNN", "MT", "BMT"),
 optimize = TRUE, MLR_stepwise = TRUE)
-experiment_3$mean_std
-experiment_3$ranks
-experiment_3$bias_val
-experiment_3$transfer_functions
-experiment_3$transfer_functions_together
-experiment_3$parameter_values
+example_3$mean_std
+example_3$ranks
+example_3$bias_val
+example_3$transfer_functions
+example_3$transfer_functions_together
+example_3$parameter_values
 
 library(dendroTools)
 library(ggplot2)
