@@ -1,6 +1,5 @@
-# dendroTools 1.0.1.
+# dendroTools 1.0.2.
 
-* New article was published and the citation is added
-* Additional option for temporal stability is introduced: running_window
-* New function is introduced, glimpse_daily_data(). This function is used for visual depiction of daily weather data. Especially, to spot missing values and to evaluate the suitability of using daily data. 
-* Package version is changed to 1.0.1
+* Package version is changed to 1.0.2
+* There have been many issues with RWeka package, which depends on rJava. Therefore, functions from RWeka are replaced with other functions. For random forest model we now use randomForest package
+* There are six new output elements, all of them are residual diagnostic plots for calibration, holdout and edge data.

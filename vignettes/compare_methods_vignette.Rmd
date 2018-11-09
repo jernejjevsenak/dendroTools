@@ -16,17 +16,17 @@ text-align: justify; font-size: 16px}
 
 ## 1. The *compare_methods()* 
 
-This is a short vignette about the *compare_methods()* function from the dendroTools R package. The *compare_methods()* uses the k-fold cross-validation to compare different regression methods. There are two additional options to compare different regression methods, i.e., 1) edge test, where the extreme (edge) points are estimated as a validation data and 2) holdout test, where data is excluded from the hyperparameter optimization and cross-validation and methods are later additionally evaluated for those points. Currently, there are five regression methods implemented: artificial neural networks with the Bayesian regularization training algorithm (BRNN), model trees (MT), bagging of model trees (BMT), random forests of regression trees (RF) and (multiple) linear regression (MLR). The calculated performance metrics are the correlation coefficient (r), the root mean squared error (RMSE), the root relative squared error (RRSE), the index of agreement (d), the reduction of error (RE), the coefficient of efficiency (CE), the dentrended efficiency (DE) and mean bias, calculated as the difference between observed and estimated mean response for the validation and calibration data. The output of the *compare_methods()* function is a list with 12 elements, which could be retrieved by calling the “$” operator and the element name. Please note, the examples presented here are made computationally less intensive to satisfy the CRAN policy. 
+This is a short vignette about the *compare_methods()* function from the dendroTools R package. The *compare_methods()* uses k-fold cross-validation to compare different regression methods. In addition, methods could be compared by 1) using a holdout data, where data is excluded from the hyperparameter optimization and cross-validation and methods are later additionally evaluated for those points, or 2) similarly by using edge data, where extreme (edge) points are estimated as a validation data. Currently, there are five regression methods implemented: artificial neural networks with the Bayesian regularization training algorithm (BRNN), model trees (MT), bagging of model trees (BMT), random forests of regression trees (RF) and (multiple) linear regression (MLR). The calculated performance metrics are the correlation coefficient (r), the root mean squared error (RMSE), the root relative squared error (RRSE), the index of agreement (d), the reduction of error (RE), the coefficient of efficiency (CE), the dentrended efficiency (DE) and mean bias, calculated as the difference between observed and estimated mean response for the validation and calibration data. The output of the *compare_methods()* function is a list with 18 elements, which could be retrieved by calling the “$” operator and the element name. Please note, the examples presented here are made computationally less intensive to satisfy the CRAN policy. 
 ```{r, echo = FALSE, warning = FALSE}
 library(knitr)
-dt <- data.frame(Element = c("$mean_std", "$std_ranks", "$edge_results", "$holdout_results", "$bias_cal", "$bias_val", "$transfer_functions", "$transfer_functions_together", "$parameter_values", "$PCA_output", "$reconstructions", "$reconstructions_together"), 
-                 Element_description = c("data frame with calculated metrics for the selected regression methods. For each regression method and each calculated metric, mean and standard deviation are given", "data frame with ranks of calculated metrics: mean rank and  share of rank_1 are given", "data frame with calculated performance metrics for the central-edge test. The central part of the data represents the calibration data, while the edge data, i.e. extreme values, represent the validation data. Different regression models are calibrated using the central data and validated for the edge (extreme) data. This test is particularly important to assess the performance of models for the prediction of the extreme data. The share of the edge (extreme) data is defined with the edge_share argument", "calculated metrics for the holdout data", "ggplot object of mean bias for calibration data", "ggplot object of mean bias for validation data", "ggplot or plotly object with transfer functions of different methods, facet is used to separate methods", "ggplot or plotly object with transfer functions of methods plotted together", "a data frame with specifications of parameters used for different regression methods", "princomp object: the result output of the PCA analysis", "ggplot object: reconstructed dependent variable based on the dataset_complete argument, facet is used to split plots by methods", "ggplot object: reconstructed dependent variable based on the dataset_complete argument, all reconstructions are on the same plot"))
+dt <- data.frame(Element = c("$mean_std", "$std_ranks", "$edge_results", "$holdout_results", "$bias_cal", "$bias_val", "$transfer_functions", "$transfer_functions_together", "$parameter_values", "$PCA_output", "$reconstructions", "$reconstructions_together", "$normal_QQ_cal", "$normal_QQ_holdout", "$normal_QQ_edge", "$residuals_vs_fitted_cal", "$residuals_vs_fitted_holdout", "$residuals_vs_fitted_edge"), 
+                 Element_description = c("data frame with calculated metrics for the selected regression methods. For each regression method and each calculated metric, mean and standard deviation are given", "data frame with ranks of calculated metrics: mean rank and  share of rank_1 are given", "data frame with calculated performance metrics for the central-edge test. The central part of the data represents the calibration data, while the edge data, i.e. extreme values, represent the validation data. Different regression models are calibrated using the central data and validated for the edge (extreme) data. This test is particularly important to assess the performance of models for the prediction of the extreme data. The share of the edge (extreme) data is defined with the edge_share argument", "calculated metrics for the holdout data", "ggplot object of mean bias for calibration data", "ggplot object of mean bias for validation data", "ggplot or plotly object with transfer functions of different methods, facet is used to separate methods", "ggplot or plotly object with transfer functions of methods plotted together", "a data frame with specifications of parameters used for different regression methods", "princomp object: the result output of the PCA analysis", "ggplot object: reconstructed dependent variable based on the dataset_complete argument, facet is used to split plots by methods", "ggplot object: reconstructed dependent variable based on the dataset_complete argument, all reconstructions are on the same plot", "normal q-q plot for calibration data", "normal q-q plot for holdout data", "normal q-q plot for edge data", "residuals vs fitted values plot for calibration data", "residuals vs fitted values plot for holdout data", "residuals vs fitted values plot for edge data"))
 kable(dt, "html")
 
 ```
 ## 2. Basic example
 
-For the basic example, we will use the dataset with the mean vessel area (MVA) chronology and the mean April temperature, the dataset is saved as dataset_MVA. All five regression methods will be compared with 10-fold cross-validation repeated 2 times. The *optimize* argument is set to TRUE, therefore all tuning parameters will be defined in a preliminary optimization phase. After the comparison, the output elements are retrieved. 
+For the basic example, we will use the dataset with the Mean Vessel Area (MVA) chronology and the mean April temperature, the dataset is saved as dataset_MVA. All five regression methods will be compared with 10-fold cross-validation repeated 1 times. The *optimize* argument is set to TRUE, therefore all tuning parameters will be defined in a preliminary optimization phase. After the comparison, the output elements are retrieved with the "$" operator. 
 
 ```{r, results = 'hide', warning=FALSE}
 # Load the dendroTools R package
@@ -36,7 +36,7 @@ library(dendroTools)
 data(dataset_MVA)
 
 # Basic example
-basic_example <- compare_methods(formula = T_Apr ~ MVA, dataset = dataset_MVA, k = 5, repeats = 2, optimize = TRUE)
+basic_example <- compare_methods(formula = T_Apr ~ MVA, dataset = dataset_MVA, k = 10, repeats = 1, optimize = TRUE, BMT_M_vector  = c(4, 25), MT_committees_vector = c(1), RF_maxnodes_vector = c(5), RF_nodesize_vector = c(10))
 ```
 
 ```{r }
@@ -76,7 +76,13 @@ basic_example$transfer_functions_together +
 
 ```{r }
 # The data frame of optimized tuning parameters for different methods
-basic_example$parameter_values
+kable(basic_example$parameter_values)
+```
+
+```{r r, fig.align='center', warning=FALSE, fig.width=8, fig.height=10, fig.cap=paste("Residual diagnostic plots for calibration data: Normal Q-Q plot (left plot) and residuals vs fitted plot (right plot)")}
+# For calibration data, there are residual diagnosti plots avaliable. Similar plots are avaliable also for holdout and edge data. 
+library(gridExtra)
+grid.arrange(basic_example$normal_QQ_cal, basic_example$residuals_vs_fitted_cal, ncol = 2)
 ```
 
 
@@ -86,7 +92,7 @@ Principal Component Analysis (PCA) is commonly used with tree-ring data to reduc
 
 To use PCA regression within the *compare_methods()*, set the argument *PCA_transformation* to TRUE. All independent variables in the *dataset* data frame will be transformed using the PCA transformation. If the parameter *log_preprocess* is set to TRUE, variables will be transformed with logarithmic transformation before used in PCA. With the argument *components_selection*, we specify how to select PC scores that will be used as predictors. There are three options: "automatic", "manual" and "plot_selection". If argument is set to "automatic", all PC scores with eigenvalues above 1 will be selected. This threshold could be changed by changing the *eigenvalues_threshold* argument. If argument is set to "manual", user should set the number of components with *N_components* argument. If *components_selection* is set to "plot_selection", A scree plot will be shown, and a user must manually enter the number of components to be used as predictors. The latter seems to be the most reasonable choice. 
 
-For the example with PCA, we use dataset dataset_MVA_individual, which consist of 10 individual Mean Vessel Area (MVA) chronologies and mean April temperature for the Ljubljana region, Slovenia. The dataset has 56 observations. The selection of components is set to "manual", *N_components* to be used in the later analysis is set to 2. In this example, the 5-fold cross-validation with 2 repeats will be used to compare MT, MLR and BRNN. The subset of methods could be set with the *methods* argument. The argument optimize is set to TRUE, therefore all tuning parameters will be set automatically. 
+For the example with PCA, we use dataset dataset_MVA_individual, which consist of 10 individual Mean Vessel Area (MVA) chronologies and mean April temperature for the Ljubljana region, Slovenia. The dataset has 56 observations. The selection of components is set to "manual", *N_components* to be used in the later analysis is set to 2. In this example, the 5-fold cross-validation with 1 repeat will be used to compare MT, MLR and BRNN. The subset of methods could be set with the *methods* argument. The argument *optimize* is set to TRUE, therefore all tuning parameters will be set automatically. 
 
 ```{r, results = 'hide', warning=FALSE}
 # Load the dendroTools R package
@@ -96,7 +102,7 @@ library(dendroTools)
 data(dataset_MVA_individual)
 
 # Example PCA
-example_PCA <- compare_methods(formula = T_Apr ~ ., dataset = dataset_MVA_individual, k = 5, repeats = 2, optimize = TRUE, methods = c("MLR", "MT", "BRNN"), PCA_transformation = TRUE, components_selection = "manual", N_components = 2, seed_factor = 5)
+example_PCA <- compare_methods(formula = T_Apr ~ ., dataset = dataset_MVA_individual, k = 5, repeats = 1, optimize = TRUE, methods = c("MLR", "MT", "BRNN"), PCA_transformation = TRUE, components_selection = "manual", N_components = 2, seed_factor = 5, BMT_M_vector  = c(4, 25), MT_committees_vector = c(1), RF_maxnodes_vector = c(5), RF_nodesize_vector = c(10))
 ```
 ```{r }
 # Get the summary statistics for the PCA
@@ -113,7 +119,7 @@ kable(example_PCA$mean_std)
 
 The *compare_methods()* enables the comparison of methods for regression problems with two or more independent variables. However, users should select multiple proxies reasonably and with caution, since there is nothing to prevent from including colinear variables. To perform the comparison of methods with multiproxy variables, simply include dataset with more than one independent variable and specify the relationship with the *formula* argument. If metrics on validation data are much lower than on calibration data, there is a problem of overfitting and users should exclude some independent variables and repeat the analysis.
 
-For the *multiproxy_example*, we will use *example_dataset_1*, which consist of the mean vessel area (MVA) chronology and two temperature variables, the mean April temperature (T_APR) and the mean temperature from August to September (T_aug_sep) from the previous growing season. To compare methods with multiproxy approach, specify formula with two independent variables, such as *formula = MVA ~ T_APR + T_aug_sep*. Here, we will compare MT, BMT and RF with 10-fold cross-validation and two repeats. 
+For the *multiproxy_example*, we will use *example_dataset_1*, which consist of the Mean Vessel Area (MVA) chronology and two temperature variables, the mean April temperature (T_APR) and the mean temperature from August to September (T_aug_sep) from the previous growing season. To compare methods with multiproxy approach, specify formula with two independent variables, such as *formula = MVA ~ T_APR + T_aug_sep*. Here, we will compare MT, BMT and RF with 10-fold cross-validation and 1 repeat. 
 
 ```{r, results = 'hide'}
 # Load the dendroTools R package
@@ -123,8 +129,11 @@ library(dendroTools)
 data(example_dataset_1)
 
 # Example multiproxy
-example_multiproxy <- compare_methods(formula = MVA ~ T_APR + T_aug_sep, dataset = example_dataset_1, k = 10, repeats = 2, optimize = FALSE, methods = c("MT", "BMT", "RF"))
+example_multiproxy <- compare_methods(formula = MVA ~ T_APR + T_aug_sep, dataset = example_dataset_1, k = 10, repeats = 1, optimize = FALSE, methods = c("MT", "BMT", "RF"))
+```
 
+```{r }
+# The mean and standard deviation data frame 
 kable(example_multiproxy$mean_std)
 ```
 
@@ -154,11 +163,12 @@ example_reconstruction$reconstructions
 example_reconstruction$reconstructions_together
 ```
 
+
 The comparison among different methods usually shows, that different regression techniques perform relatively similar for the central-calibration data, while for the extreme values, predictions differ. Therefore, we implemented additional central-edge test, where the central part of the dataset represents the calibration data, while the edge data, i.e. extreme values, represent the edge data. Different regression models are calibrated using the central data and validated using the edge (extreme) data. This test is particularly important to assess the performance of different methods for the prediction of the extreme and out of calibration data. The share of the edge (extreme) data is defined with the *edge_share* argument. To get the results for the central-edge test, use example_reconstruction$edge_results. 
 
 ```{r }
 # The central-edge test
-example_reconstruction$edge_results
+kable(example_reconstruction$edge_results)
 ```
 
 In this example, MLR had the worst validation results for all metrics, which indicates that linear interpolation for extreme values is not the best choice  BMT, MT and BRNN provided much better validation metrics, which indicates those methods are more accurate for predicting the extreme values. 
@@ -169,8 +179,13 @@ Machine learning methods have several tuning parameters that need to be set, e.g
 
 ```{r, echo = FALSE, warning = FALSE}
 library(knitr)
-dt <- data.frame(Method = c("BRNN", "MT", "MT", "MT", "MT", "BMT", "BMT", "BMT", "BMT", "BMT", "BMT", "RF", "RF"),
-                 Parameter = c("BRNN_neurons", "MT_M", "MT_N", "MT_U", "MT_R", "BMT_P", "BMT_I", "BMT_M", "BMT_N", "BMT_U", "BMT_R", "RF_P", "RF_I"), Vector_for_optimization = c("BRNN_neurons_vector", "MT_M_vector", "MT_N_vector", "MT_U_vector", "MT_R_vector", "BMT_P_vector", "BMT_I_vector", "BMT_M_vector", "BMT_N_vector", "BMT_U_vector", "BMT_R_vector", "RF_P_vector", "RF_I_vector"))
+dt <- data.frame(Method = c("BRNN", "MT", "MT", "MT", "MT","MT" , "MT","BMT", "BMT", "BMT", "BMT", "BMT", "BMT",
+             "RF", "RF", "RF", "RF"),
+                 Parameter = c("BRNN_neurons", "MT_committees", "MT_neighbors", "MT_rules", "MT_unbiased",
+                "MT_extrapolation", "MT_sample", "BMT_P", "BMT_I", "BMT_M",
+                "BMT_N", "BMT_U", "BMT_R", "RF_mtry", "RF_maxnodes", "RF_ntree", "RF_nodesize"), Vector_for_optimization = c("BRNN_neurons_vector", "MT_committees_vector", "MT_neighbors_vector", "MT_rules_vector", "MT_unbiased_vector",
+                "MT_extrapolation_vector", "MT_sample_vector", "BMT_P_vector", "BMT_I_vector", "BMT_M_vector",
+                "BMT_N_vector", "BMT_U_vector", "BMT_R_vector", "RF_mtry_vector", "RF_maxnodes_vector", "RF_ntree_vector", "RF_nodesize_vector"))
 kable(dt, "html")
 
 ```
@@ -183,9 +198,9 @@ library(dendroTools)
 # Load the data
 data(example_dataset_1)
 
-example_optimize <- compare_methods(formula = MVA ~  T_APR, dataset = example_dataset_1, k = 5, repeats = 2, optimize = FALSE, BRNN_neurons = 1, MT_M = 4, MT_N = FALSE, MT_U = FALSE, MT_R = FALSE, BMT_P = 100, BMT_I = 100, BMT_M = 4, BMT_N = FALSE, BMT_U = FALSE, BMT_R = FALSE, RF_P = 100, RF_I = 100, RF_depth = 0, seed_factor = 5)
+example_optimize <- compare_methods(formula = MVA ~  T_APR, dataset = example_dataset_1, k = 5, repeats = 2, optimize = FALSE, BRNN_neurons = 1, MT_committees = 1, MT_neighbors = 0, MT_rules = 100, MT_unbiased = FALSE, MT_extrapolation = 100, MT_sample = 0, BMT_P = 100, BMT_I = 100, BMT_M = 4, BMT_N = FALSE, BMT_U = FALSE, BMT_R = FALSE, RF_mtry = 1, RF_ntree = 100, RF_maxnodes = 20, seed_factor = 5)
 ```
 ```{r }
 # The data frame of tuning parameters, as defined by the user
-example_optimize$parameter_values
+kable(example_optimize$parameter_values)
 ```

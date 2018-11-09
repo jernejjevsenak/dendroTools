@@ -1,15 +1,17 @@
 #' compare_methods
 #'
-#' Calculates performance metrics for train and test data of different
-#' regression methods: multiple linear regression (MLR), artificial neural
-#' networks with Bayesian regularization training algorithm (BRNN),
-#' M5P model trees (MT), model trees with bagging (BMT) and random forest
-#' of regression trees (RF). With the subset argument, specific methods of
-#' interest could be specified. Calculated performance metrics are the
+#' Calculates performance metrics for calibration (train) and validation (test)
+#' data of different regression methods: multiple linear regression (MLR),
+#' artificial neural networks with Bayesian regularization training
+#' algorithm (BRNN), model trees (MT), model trees with bagging (BMT) and
+#' random forest of regression trees (RF). With the subset argument, specific
+#' methods of interest could be specified. Calculated performance metrics are the
 #' correlation coefficient (r), the root mean squared error (RMSE), the root
 #' relative squared error (RRSE), the index of agreement (d), the reduction
 #' of error (RE), the coefficient of efficiency (CE), the detrended
-#' efficiency (DE) and mean bias.
+#' efficiency (DE) and mean bias. For each of the considered methods, there are
+#' also residual diagnostic plots available, separately for calibration, holdout
+#' and edge data, if applicable.
 #'
 #' @param formula an object of class "formula" (or one that can be coerced
 #' to that class): a symbolic description of the model to be fitted.
@@ -17,26 +19,40 @@
 #' columns and (optional) years as row names.
 #' @param k number of folds for cross-validation
 #' @param repeats number of cross-validation repeats. Should be equal or more
-#' than 2.
-#' @param optimize if set to TRUE, the package caret will be used to tune parameters
-#' for regression methods
+#' than 1.
+#' @param optimize if set to TRUE (default), the optimal values for the tuning
+#' parameters will be selected in a preliminary cross-validation procedure
 #' @param dataset_complete optional, a data frame with the full length of tree-ring
 #' parameter, which will be used to reconstruct the climate variable specified
-#' with the formula argument.
+#' with the formula argument
 #' @param BRNN_neurons number of neurons to be used for the brnn method
-#' @param MT_M minimum number of instances used by model trees
-#' @param MT_N unpruned (argument for model trees)
-#' @param MT_U unsmoothed (argument for model trees)
-#' @param MT_R use regression trees (argument for model trees)
+#' @param MT_committees an integer:  how many committee models (e.g.  boosting
+#' iterations) should be used?
+#' @param MT_neighbors how many, if any, neighbors should be used to correct the
+#' model predictions
+#' @param MT_rules an integer (or NA): define an explicit limit to the number of
+#' rules used (NA let’s Cubist decide).
+#' @param MT_unbiased a logical: should unbiased rules be used?
+#' @param MT_extrapolation a number between 0 and 100: since Cubist uses linear models,
+#' predictions can be outside of the outside of the range seen the training set. This
+#' parameter controls how much rule predictions are adjusted to be consistent with the
+#' training set.
+#' @param MT_sample a number between 0 and 99.9:  this is the percentage of the dataset
+#' to be randomly selected for model building (not for out-of-bag type evaluation)
 #' @param BMT_P bagSizePercent (argument for bagging of model trees)
 #' @param BMT_I number of iterations (argument for bagging of model trees)
 #' @param BMT_M minimum number of instances used by model trees
 #' @param BMT_N unpruned (argument for bagging of model trees)
 #' @param BMT_U unsmoothed (argument for bagging of model trees)
 #' @param BMT_R use regression trees (argument for bagging of model trees)
-#' @param RF_P bagSizePercent (argument for random forest)
-#' @param RF_I number of iterations (argument for random forest)
-#' @param RF_depth maxDepth (argument for random forest)
+#' @param RF_mtry number of variables randomly sampled as candidates at each
+#' split
+#' @param RF_ntree number of trees to grow. This should not be set to too small
+#' a number, to ensure that every input row gets predicted at least a few times
+#' @param RF_maxnodes maximum number of terminal nodes trees in the forest can
+#' have
+#' @param RF_nodesize minimum size of terminal nodes. Setting this number larger
+#' causes smaller trees to be grown (and thus take less time).
 #' @param seed_factor an integer that will be used to change the seed options
 #' for different repeats.
 #' @param digits integer of number of digits to be displayed in the final
@@ -80,19 +96,22 @@
 #' the optimal value of tuning parameters. By default, the argument is set to "RMSE". It is
 #' also possible to use "RSquared".
 #' @param BRNN_neurons_vector a vector of possible values for BRNN_neurons argument optimization
-#' @param MT_M_vector a vector of possible values for MT_M argument optimization
-#' @param MT_N_vector a vector of possible values for MT_N argument optimization
-#' @param MT_U_vector a vector of possible values for MT_U argument optimization
-#' @param MT_R_vector a vector of possible values for MT_R argument optimization
+#' @param MT_committees_vector a vector of possible values for MT_committees argument optimization
+#' @param MT_neighbors_vector a vector of possible values for MT_neighbors argument optimization
+#' @param MT_rules_vector a vector of possible values for MT_rules argument optimization
+#' @param MT_unbiased_vector a vector of possible values for MT_unbiased argument optimization
+#' @param MT_extrapolation_vector a vector of possible values for MT_extrapolation argument optimization
+#' @param MT_sample_vector a vector of possible values for MT_sample argument optimization
 #' @param BMT_P_vector a vector of possible values for BMT_P argument optimization
 #' @param BMT_I_vector a vector of possible values for BMT_I argument optimization
 #' @param BMT_M_vector a vector of possible values for BMT_M argument optimization
 #' @param BMT_N_vector a vector of possible values for BMT_N argument optimization
 #' @param BMT_U_vector a vector of possible values for BMT_U argument optimization
 #' @param BMT_R_vector a vector of possible values for BMT_R argument optimization
-#' @param RF_P_vector a vector of possible values for RF_P argument optimization
-#' @param RF_I_vector a vector of possible values for RF_I argument optimization
-#' @param RF_depth_vector a vector of possible values for RF_depth argument optimization
+#' @param RF_ntree_vector a vector of possible values for RF_ntree argument optimization
+#' @param RF_maxnodes_vector a vector of possible values for RF_maxnodes argument optimization
+#' @param RF_mtry_vector a vector of possible values for RF_mtry argument optimization
+#' @param RF_nodesize_vector a vector of possible values for RF_nodesize argument optimization
 #' @param holdout this argument is used to define observations, which are excluded
 #' from the cross-validation and hyperparameters optimization. The holdout argument must be
 #' a character with one of the following inputs: “early”, “late” or “manual”. If
@@ -129,7 +148,13 @@
 #'  9 \tab $parameter_values    \tab a data frame with specifications of parameters used for different regression methods \cr
 #'  10 \tab $PCA_output    \tab princomp object: the result output of the PCA analysis \cr
 #'  11 \tab $reconstructions    \tab ggplot object: reconstructed dependent variable based on the dataset_complete argument, facet is used to split plots by methods  \cr
-#'  12 \tab $reconstructions_together    \tab ggplot object: reconstructed dependent variable based on the dataset_complete argument, all reconstructions are on the same plot
+#'  12 \tab $reconstructions_together    \tab ggplot object: reconstructed dependent variable based on the dataset_complete argument, all reconstructions are on the same plot \cr
+#'  13 \tab $normal_QQ_cal    \tab normal q-q plot for calibration data \cr
+#'  14 \tab $normal_QQ_holdout    \tab normal q-q plot for holdout data \cr
+#'  15 \tab $normal_QQ_edge    \tab normal q-q plot for edge data \cr
+#'  16 \tab $residuals_vs_fitted_cal    \tab residuals vs fitted values plot for calibration data \cr
+#'  17 \tab $residuals_vs_fitted_holdout    \tab residuals vs fitted values plot for holdout data \cr
+#'  18 \tab $residuals_vs_fitted_edge    \tab residuals vs fitted values plot for edge data
 #'}
 #'
 #' @export
@@ -168,48 +193,56 @@
 #' \dontrun{
 #'
 #' # An example with default settings of machine learning algorithms
-#' experiment_1 <- compare_methods(formula = MVA~.,
-#' dataset = example_dataset_1, k = 10, repeats = 10, blocked_CV = FALSE,
-#' PCA_transformation = FALSE, components_selection = "automatic",
-#' optimize = TRUE, tuning_metric = "RSquared", methods = c("MLR", "BRNN", "MT", "BMT"))
-#' experiment_1$mean_std
-#' experiment_1$ranks
-#' experiment_1$bias_cal
-#' experiment_1$bias_val
-#' experiment_1$transfer_functions
-#' experiment_1$transfer_functions_together
-#' experiment_1$PCA_output
-#' experiment_1$parameter_values
-#' experiment_1$transfer_functions
+#' library(dendroTools)
+#' data(example_dataset_1)
+#' example_1 <- compare_methods(formula = MVA~., dataset = example_dataset_1,
+#' edge_share = 0, holdout = "late")
+#' example_1$mean_std
+#' example_1$holdout_results
+#' example_1$edge_results
+#' example_1$ranks
+#' example_1$bias_cal
+#' example_1$bias_val
+#' example_1$transfer_functions
+#' example_1$transfer_functions_together
+#' example_1$PCA_output
+#' example_1$parameter_values
+#' example_1$residuals_vs_fitted_cal
+#' example_1$residuals_vs_fitted_edge
+#' example_1$residuals_vs_fitted_holdout
+#' example_1$normal_QQ_cal
+#' example_1$normal_QQ_edge
+#' example_1$normal_QQ_holdout
 #'
-#' experiment_2 <- compare_methods(formula = MVA ~  T_APR,
+#'
+#' example_2 <- compare_methods(formula = MVA ~  T_APR,
 #' dataset = example_dataset_1, k = 5, repeats = 10, BRNN_neurons = 1,
-#' MT_M = 4, MT_N = FALSE, MT_U = FALSE, MT_R = FALSE, BMT_P = 100,
-#' BMT_I = 100, BMT_M = 4, BMT_N = FALSE, BMT_U = FALSE, BMT_R = FALSE,
-#' RF_P = 100, RF_I = 100, RF_depth = 0, seed_factor = 5)
-#' experiment_2$mean_std
-#' experiment_2$ranks
-#' experiment_2$bias_cal
-#' experiment_2$transfer_functions
-#' experiment_2$transfer_functions_together
-#' experiment_2$PCA_output
+#' BMT_P = 100, BMT_I = 100, BMT_M = 4, BMT_N = FALSE, BMT_U = FALSE,
+#' BMT_R = FALSE, RF_ntree = 100, RF_mtry = 2, RF_maxnodes = 35, seed_factor = 5)
+#' example_2$mean_std
+#' example_2$ranks
+#' example_2$bias_cal
+#' example_2$transfer_functions
+#' example_2$transfer_functions_together
+#' example_2$PCA_output
+#' example_2$parameter_values
 #'
-#' experiment_3 <- compare_methods(formula = MVA ~ .,
+#' example_3 <- compare_methods(formula = MVA ~ .,
 #' dataset = example_dataset_1, k = 2, repeats = 5,
 #' methods = c("MLR", "BRNN", "MT", "BMT"),
 #' optimize = TRUE, MLR_stepwise = TRUE)
-#' experiment_3$mean_std
-#' experiment_3$ranks
-#' experiment_3$bias_val
-#' experiment_3$transfer_functions
-#' experiment_3$transfer_functions_together
-#' experiment_3$parameter_values
+#' example_3$mean_std
+#' example_3$ranks
+#' example_3$bias_val
+#' example_3$transfer_functions
+#' example_3$transfer_functions_together
+#' example_3$parameter_values
 #'
 #' library(dendroTools)
 #' library(ggplot2)
 #' data(dataset_TRW)
 #' comparison_TRW <- compare_methods(formula = T_Jun_Jul ~ TRW, dataset = dataset_TRW,
-#' k = 3, repeats = 10, optimize = TRUE, methods = c("MLR", "MT", "BMT", "BRNN"),
+#' k = 3, repeats = 10, optimize = FALSE, methods = c("MLR", "BRNN", "RF", "MT"),
 #' seed_factor = 5, dataset_complete = dataset_TRW_complete, MLR_stepwise = TRUE,
 #' stepwise_direction = "backward")
 #' comparison_TRW$mean_std
@@ -218,14 +251,20 @@
 #' ylab("June-July Mean Temperature [°C]")
 #' comparison_TRW$reconstructions
 #' comparison_TRW$reconstructions_together
+#' comparison_TRW$edge_results
 #' }
 
 compare_methods <- function(formula, dataset, k = 10, repeats = 2,
                             optimize = TRUE, dataset_complete = NULL,
-                            BRNN_neurons = 1, MT_M = 4, MT_N = F, MT_U = F,
-                            MT_R = F, BMT_P = 100, BMT_I = 100, BMT_M = 4,
-                            BMT_N = F, BMT_U = F, BMT_R = F, RF_P = 100,
-                            RF_I = 100, RF_depth = 0, seed_factor = 5,
+                            BRNN_neurons = 1, MT_committees = 1, MT_neighbors = 5,
+                            MT_rules = 200, MT_unbiased = TRUE, MT_extrapolation = 100,
+                            MT_sample = 0, BMT_P = 100, BMT_I = 100, BMT_M = 4,
+                            BMT_N = F, BMT_U = F, BMT_R = F,
+                            RF_ntree = 500,
+                            RF_maxnodes = 5,
+                            RF_mtry  = 1,
+                            RF_nodesize = 1,
+                            seed_factor = 5,
                             digits = 3, blocked_CV = FALSE,
                             PCA_transformation = FALSE, log_preprocess = TRUE,
                             components_selection = 'automatic',
@@ -236,19 +275,22 @@ compare_methods <- function(formula, dataset, k = 10, repeats = 2,
                             methods = c("MLR", "BRNN", "MT", "BMT", "RF"),
                             tuning_metric = "RMSE",
                             BRNN_neurons_vector = c(1, 2, 3),
-                            MT_M_vector  = c(4, 8, 16, 25),
-                            MT_N_vector  = c(TRUE, FALSE),
-                            MT_U_vector = c(TRUE, FALSE),
-                            MT_R_vector  = c(FALSE),
+                            MT_committees_vector = c(1, 5, 10),
+                            MT_neighbors_vector = c(0, 5),
+                            MT_rules_vector = c(100, 200),
+                            MT_unbiased_vector = c(TRUE, FALSE),
+                            MT_extrapolation_vector = c(100),
+                            MT_sample_vector = c(0),
                             BMT_P_vector = c(100),
                             BMT_I_vector = c(100),
                             BMT_M_vector  = c(4, 8, 16, 25),
                             BMT_N_vector  = c(TRUE, FALSE),
                             BMT_U_vector  = c(TRUE, FALSE),
                             BMT_R_vector = c(FALSE),
-                            RF_P_vector = c(100),
-                            RF_I_vector = c(100),
-                            RF_depth_vector  = c(0, 2),
+                            RF_ntree_vector = c(100, 250, 500),
+                            RF_maxnodes_vector = c(5, 10, 20, 25),
+                            RF_mtry_vector  = c(1),
+                            RF_nodesize_vector = c(1, 5, 10),
                             holdout = NULL, holdout_share = 0.10,
                             holdout_manual = NULL, total_reproducibility = FALSE){
 
@@ -340,6 +382,21 @@ allnames <- c(as.character(formula[[2]]), indep_names)
 # Let's remove them
 dataset <- dataset[ names(dataset)[names(dataset) %in% allnames] ]
 
+
+# Here, mtry is checked. mtry should not be larger than the unmber of independet variables
+
+if(sum(RF_mtry_vector > numIND) > 0){
+critical_values <- as.numeric(which(RF_mtry_vector > numIND))
+critical_values_inf <- RF_mtry_vector[critical_values]
+RF_mtry_vector <- RF_mtry_vector[-critical_values]
+warning(paste0("mtry argument for the RF should not be larger than the number of independent variables."),
+        " Values ", paste((critical_values_inf), collapse=", "), " for the argument RF_mtry_vector are depreciated!")
+}
+
+# Here, we define stop, if edge_share is 0
+if (!edge_share > 0 & numIND < 2){
+  stop("edge_share should be greater than 0!")
+}
 
 # Here, if holdout data is defined, we exclude those observations from cross-validation
 # and hyperparameters optimization
@@ -447,26 +504,25 @@ if (optimize == TRUE & blocked_CV == FALSE){
     BRNN_neurons <- as.numeric(best_parameters[1])
   }
 
-
-
-
-
-
-
-
-
-
   if ("MT" %in% methods | total_reproducibility == TRUE){
 
   print("Tuning parameters for the MT method...")
 
   # 2 Optimization for MT
-  MT_N <- MT_N_vector
-  MT_U <- MT_U_vector
-  MT_R <- MT_R_vector
-  MT_M <- MT_M_vector
+    MT_committees <- MT_committees_vector
+    MT_neighbors <- MT_neighbors_vector
+    MT_rules <- MT_rules_vector
+    MT_unbiased <- MT_unbiased_vector
+    MT_extrapolation <- MT_extrapolation_vector
+    MT_sample <- MT_sample_vector
 
-  hyper_grid <- expand.grid(N = MT_N, U = MT_U, M = MT_M, R = MT_R)
+    hyper_grid <- expand.grid(
+    committees = MT_committees,
+    neighbors = MT_neighbors,
+    rules = MT_rules,
+    unbiased = MT_unbiased,
+    extrapolation = MT_extrapolation,
+    sample = MT_sample)
 
   # Number of potential models in the grid
   num_models <- nrow(hyper_grid)
@@ -478,10 +534,12 @@ if (optimize == TRUE & blocked_CV == FALSE){
   for (i in 1:num_models) {
 
     # Get minsplit, maxdepth values at row i
-    N <- hyper_grid$N[i]
-    U <- hyper_grid$U[i]
-    M <- hyper_grid$M[i]
-    R <- hyper_grid$R[i]
+    committees <- hyper_grid$committees[i]
+    neighbors <- hyper_grid$neighbors[i]
+    rules <- hyper_grid$rules[i]
+    unbiased <- hyper_grid$unbiased[i]
+    extrapolation <- hyper_grid$extrapolation[i]
+    sample <- hyper_grid$sample[i]
 
     # cross_validation
     foldi <- seq(1:k)
@@ -503,12 +561,22 @@ if (optimize == TRUE & blocked_CV == FALSE){
       test <- dataset[testIndexes, ]
       train <- dataset[-testIndexes, ]
 
-      #MLR MODEL
-      model_temp <- M5P(formula, data = train,
-                        control = Weka_control(M = M, N =  N, U = U, R = R))
+      #MT MODEL
+      train_ind <- data.frame(train[, -DepIndex])
+      colnames(train_ind) <- indep_names
+      test_ind <- data.frame(test[, -DepIndex])
+      colnames(test_ind) <- indep_names
+
+      train_dep <- train[, DepIndex]
+      test_dep <- test[, DepIndex]
+
+      model_temp <- cubist(x = train_ind, y = train_dep, committees = committees,
+                           neighbors = neighbors, cubistControl(rules = rules, unbiased = unbiased,
+                                                                extrapolation = extrapolation,
+                                                                sample = sample))
 
       test_observed <- test[, DepIndex]
-      test_predicted <- predict(model_temp, test)
+      test_predicted <- predict(model_temp, test_ind)
 
       if (tuning_metric == "RMSE"){
         tuning_vector[j] <- MLmetrics::RMSE(test_predicted, test_observed)
@@ -535,16 +603,14 @@ if (optimize == TRUE & blocked_CV == FALSE){
 
   best_parameters <- hyper_grid[best_model, ]
 
-  MT_N <- as.logical(best_parameters[1])
-  MT_U <- as.logical(best_parameters[2])
-  MT_M <- as.numeric(best_parameters[3])
-  MT_R <- as.logical(best_parameters[4])
+  MT_committees <- as.numeric(best_parameters[1])
+  MT_neighbors <- as.numeric(best_parameters[2])
+  MT_rules <- as.numeric(best_parameters[3])
+  MT_unbiased <- as.logical(best_parameters[4])
+  MT_extrapolation <- as.numeric(best_parameters[5])
+  MT_sample <- as.numeric(best_parameters[6])
+
   }
-
-
-
-
-
 
 
 
@@ -644,20 +710,18 @@ if (optimize == TRUE & blocked_CV == FALSE){
 
 
 
-
-
-
-
   if ("RF" %in% methods | total_reproducibility == TRUE){
     # 2 Optimization for RF
 
     print("Tuning parameters for the RF method...")
 
-    RF_P <- RF_P_vector
-    RF_I <- RF_I_vector
-    RF_depth  <- RF_depth_vector
+    RF_mtry <- RF_mtry_vector
+    RF_maxnodes <- RF_maxnodes_vector
+    RF_ntree  <- RF_ntree_vector
+    RF_nodesize  <- RF_nodesize_vector
 
-    hyper_grid <- expand.grid(P = RF_P, I = RF_I, depth = RF_depth)
+    hyper_grid <- expand.grid(mtry = RF_mtry, maxnodes = RF_maxnodes,
+                              ntree = RF_ntree,  nodesize = RF_nodesize)
 
     # Number of potential models in the grid
     num_models <- nrow(hyper_grid)
@@ -669,9 +733,10 @@ if (optimize == TRUE & blocked_CV == FALSE){
     for (i in 1:num_models) {
 
       # Get minsplit, maxdepth values at row i
-      P <- hyper_grid$P[i]
-      I <- hyper_grid$I[i]
-      depth <- hyper_grid$depth[i]
+      mtry <- hyper_grid$mtry[i]
+      maxnodes <- hyper_grid$maxnodes[i]
+      ntree <- hyper_grid$ntree[i]
+      nodesize <- hyper_grid$nodesize[i]
 
       # cross_validation
       foldi <- seq(1:k)
@@ -694,9 +759,10 @@ if (optimize == TRUE & blocked_CV == FALSE){
         train <- dataset[-testIndexes, ]
 
         #MLR MODEL
-        RF <- make_Weka_classifier("weka/classifiers/trees/RandomForest")
-        model_temp <- RF(formula, data = train, control = Weka_control(P = P, I = I,
-                                                                     depth = depth))
+
+
+        model_temp <- randomForest(formula, data = train, mtry = mtry, maxnodes = maxnodes,
+                                   ntree = ntree, nodesize = nodesize)
 
         test_observed <- test[, DepIndex]
         test_predicted <- predict(model_temp, test)
@@ -726,9 +792,11 @@ if (optimize == TRUE & blocked_CV == FALSE){
 
     best_parameters <- hyper_grid[best_model, ]
 
-    RF_P <- as.numeric(best_parameters[1])
-    RF_I <- as.numeric(best_parameters[2])
-    RF_depth <- as.numeric(best_parameters[3])
+    RF_mtry <- as.numeric(best_parameters[1])
+    RF_maxnodes <- as.numeric(best_parameters[2])
+    RF_ntree  <- as.numeric(best_parameters[3])
+    RF_nodesize  <- as.numeric(best_parameters[4])
+
   }
 
 }
@@ -824,12 +892,20 @@ if (optimize == TRUE & blocked_CV == TRUE){
     print("Tuning parameters for the MT method...")
 
     # 2 Optimization for MT
-    MT_N <- MT_N_vector
-    MT_U <- MT_U_vector
-    MT_R <- MT_R_vector
-    MT_M <- MT_M_vector
+    MT_committees <- MT_committees_vector
+    MT_neighbors <- MT_neighbors_vector
+    MT_rules <- MT_rules_vector
+    MT_unbiased <- MT_unbiased_vector
+    MT_extrapolation <- MT_extrapolation_vector
+    MT_sample <- MT_sample_vector
 
-    hyper_grid <- expand.grid(N = MT_N, U = MT_U, M = MT_M, R = MT_R)
+    hyper_grid <- expand.grid(
+      committees = MT_committees,
+      neighbors = MT_neighbors,
+      rules = MT_rules,
+      unbiased = MT_unbiased,
+      extrapolation = MT_extrapolation,
+      sample = MT_sample)
 
     # Number of potential models in the grid
     num_models <- nrow(hyper_grid)
@@ -841,10 +917,12 @@ if (optimize == TRUE & blocked_CV == TRUE){
     for (i in 1:num_models) {
 
       # Get minsplit, maxdepth values at row i
-      N <- hyper_grid$N[i]
-      U <- hyper_grid$U[i]
-      M <- hyper_grid$M[i]
-      R <- hyper_grid$R[i]
+      committees <- hyper_grid$committees[i]
+      neighbors <- hyper_grid$neighbors[i]
+      rules <- hyper_grid$rules[i]
+      unbiased <- hyper_grid$unbiased[i]
+      extrapolation <- hyper_grid$extrapolation[i]
+      sample <- hyper_grid$sample[i]
 
       # cross_validation
       foldi <- seq(1:k)
@@ -866,12 +944,22 @@ if (optimize == TRUE & blocked_CV == TRUE){
         test <- dataset[testIndexes, ]
         train <- dataset[-testIndexes, ]
 
-        #MLR MODEL
-        model_temp <- M5P(formula, data = train,
-                          control = Weka_control(M = M, N =  N, U = U, R = R))
+        train_ind <- data.frame(train[, -DepIndex])
+        colnames(train_ind) <- indep_names
+        test_ind <- data.frame(test[, -DepIndex])
+        colnames(test_ind) <- indep_names
+
+        train_dep <- train[, DepIndex]
+        test_dep <- test[, DepIndex]
+
+        #MT MODEL
+        model_temp <- cubist(x = train_ind, y = train_dep, committees = committees,
+                             neighbors = neighbors, cubistControl(rules = rules, unbiased = unbiased,
+                                                                  extrapolation = extrapolation,
+                                                                  sample = sample))
 
         test_observed <- test[, DepIndex]
-        test_predicted <- predict(model_temp, test)
+        test_predicted <- predict(model_temp, test_ind)
 
         if (tuning_metric == "RMSE"){
           tuning_vector[j] <- MLmetrics::RMSE(test_predicted, test_observed)
@@ -898,10 +986,13 @@ if (optimize == TRUE & blocked_CV == TRUE){
 
     best_parameters <- hyper_grid[best_model, ]
 
-    MT_N <- as.logical(best_parameters[1])
-    MT_U <- as.logical(best_parameters[2])
-    MT_M <- as.numeric(best_parameters[3])
-    MT_R <- as.logical(best_parameters[4])
+    MT_committees <- as.numeric(best_parameters[1])
+    MT_neighbors <- as.numeric(best_parameters[2])
+    MT_rules <- as.numeric(best_parameters[3])
+    MT_unbiased <- as.logical(best_parameters[4])
+    MT_extrapolation <- as.numeric(best_parameters[5])
+    MT_sample <- as.numeric(best_parameters[6])
+
   }
 
 
@@ -1016,11 +1107,13 @@ if (optimize == TRUE & blocked_CV == TRUE){
 
     print("Tuning parameters for the RF method...")
 
-    RF_P <- RF_P_vector
-    RF_I <- RF_I_vector
-    RF_depth  <- RF_depth_vector
+    RF_mtry <- RF_mtry_vector
+    RF_maxnodes <- RF_maxnodes_vector
+    RF_ntree  <- RF_ntree_vector
+    RF_nodesize  <- RF_nodesize_vector
 
-    hyper_grid <- expand.grid(P = RF_P, I = RF_I, depth = RF_depth)
+    hyper_grid <- expand.grid(mtry = RF_mtry, maxnodes = RF_maxnodes,
+                              ntree = RF_ntree,  nodesize = RF_nodesize)
 
     # Number of potential models in the grid
     num_models <- nrow(hyper_grid)
@@ -1032,9 +1125,10 @@ if (optimize == TRUE & blocked_CV == TRUE){
     for (i in 1:num_models) {
 
       # Get minsplit, maxdepth values at row i
-      P <- hyper_grid$P[i]
-      I <- hyper_grid$I[i]
-      depth <- hyper_grid$depth[i]
+      mtry <- hyper_grid$mtry[i]
+      maxnodes <- hyper_grid$maxnodes[i]
+      ntree <- hyper_grid$ntree[i]
+      nodesize <- hyper_grid$nodesize[i]
 
       # cross_validation
       foldi <- seq(1:k)
@@ -1057,9 +1151,8 @@ if (optimize == TRUE & blocked_CV == TRUE){
         train <- dataset[-testIndexes, ]
 
         #MLR MODEL
-        RF <- make_Weka_classifier("weka/classifiers/trees/RandomForest")
-        model_temp <- RF(formula, data = train, control = Weka_control(P = P, I = I,
-                                                                       depth = depth))
+        model_temp <- randomForest(formula, data = train, mtry = mtry, maxnodes = maxnodes,
+                                   ntree = ntree, nodesize = nodesize)
 
         test_observed <- test[, DepIndex]
         test_predicted <- predict(model_temp, test)
@@ -1089,28 +1182,13 @@ if (optimize == TRUE & blocked_CV == TRUE){
 
     best_parameters <- hyper_grid[best_model, ]
 
-    RF_P <- as.numeric(best_parameters[1])
-    RF_I <- as.numeric(best_parameters[2])
-    RF_depth <- as.numeric(best_parameters[3])
+    RF_mtry <- as.numeric(best_parameters[1])
+    RF_maxnodes <- as.numeric(best_parameters[2])
+    RF_ntree  <- as.numeric(best_parameters[3])
+    RF_nodesize  <- as.numeric(best_parameters[4])
   }
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 ##################################################################################
@@ -1132,7 +1210,7 @@ for (m in 1:repeats){
 foldi <- seq(1:k)
 foldi <- paste("fold_", foldi)
 
-#Randomly shuffle the data
+#ly shuffle the data
 set.seed(seed_factor * m)
 dataset <- dataset[sample(nrow(dataset)), ]
 
@@ -1187,10 +1265,19 @@ for (j in 1:k){
   list_BRNN[[b]] <- calculations
 
   # Model Trees
-  MT_model <- M5P(formula, data = train,
-                  control = Weka_control(M = MT_M, N =  MT_N, U = MT_U, R = MT_R))
-  train_predicted <- predict(MT_model, train)
-  test_predicted <- predict(MT_model, test)
+  train_ind <- data.frame(train[, -DepIndex])
+  colnames(train_ind) <- indep_names
+  test_ind <- data.frame(test[, -DepIndex])
+  colnames(test_ind) <- indep_names
+
+  train_dep <- train[, DepIndex]
+  test_dep <- test[, DepIndex]
+
+  MT_model <- cubist(x = train_ind, y = train_dep, committees = MT_committees,
+                     neighbors = MT_neighbors, cubistControl(rules = MT_rules,
+                      unbiased = MT_unbiased, extrapolation = MT_extrapolation, sample = MT_sample))
+  train_predicted <- predict(MT_model, train_ind)
+  test_predicted <- predict(MT_model, test_ind)
   calculations <- calculate_metrics(train_predicted, test_predicted,
                                     train_observed, test_observed, digits = 15,
                                     formula = formula, test = test)
@@ -1212,10 +1299,9 @@ for (j in 1:k){
 
 
   # Random Forest, Regression Tree with random forest, WEKA
-  RF <- make_Weka_classifier("weka/classifiers/trees/RandomForest")
-  RF_model <- RF(formula, data = train, control = Weka_control(P = RF_P, I = RF_I,
-                                          depth = RF_depth))
-
+  RF_model <- randomForest(formula = formula, data = train, ntree = RF_ntree,
+                           maxnodes = RF_maxnodes, mtry  = RF_mtry,
+                           nodesize = RF_nodesize)
   train_predicted <- predict(RF_model, train)
   test_predicted <- predict(RF_model, test)
   calculations <- calculate_metrics(train_predicted, test_predicted,
@@ -1300,11 +1386,19 @@ if (blocked_CV == TRUE){
     list_BRNN[[b]] <- calculations
 
     # Model Trees
-    MT_model <- M5P(formula, data = train,
-                    control = Weka_control(M = MT_M, N =  MT_N, U = MT_U,
-                                           R = MT_R))
-    train_predicted <- predict(MT_model, train)
-    test_predicted <- predict(MT_model, test)
+    train_ind <- data.frame(train[, -DepIndex])
+    colnames(train_ind) <- indep_names
+    test_ind <- data.frame(test[, -DepIndex])
+    colnames(test_ind) <- indep_names
+
+    train_dep <- train[, DepIndex]
+    test_dep <- test[, DepIndex]
+
+    MT_model <- cubist(x = train_ind, y = train_dep, committees = MT_committees,
+                       neighbors = MT_neighbors, cubistControl(rules = MT_rules,
+                unbiased = MT_unbiased, extrapolation = MT_extrapolation, sample = MT_sample))
+    train_predicted <- predict(MT_model, train_ind)
+    test_predicted <- predict(MT_model, test_ind)
     calculations <- calculate_metrics(train_predicted, test_predicted,
                                       train_observed, test_observed, digits = 15,
                                       formula = formula, test = test)
@@ -1325,13 +1419,13 @@ if (blocked_CV == TRUE){
     list_BMT[[b]] <- calculations
 
     ##Random Forest
-    RF <- make_Weka_classifier("weka/classifiers/trees/RandomForest")
-    RegTree_Weka <- RF(formula, data = train, control = Weka_control(P = RF_P, I = RF_I,
-                                                                     depth = RF_depth))
-    train_predicted <- predict(RegTree_Weka, train)
-    test_predicted <- predict(RegTree_Weka, test)
+    RF_model <- randomForest(formula = formula, data = train, ntree = RF_ntree,
+                             maxnodes = RF_maxnodes, mtry  = RF_mtry,
+                             nodesize = RF_nodesize)
+    train_predicted <- predict(RF_model, train)
+    test_predicted <- predict(RF_model, test)
     calculations <- calculate_metrics(train_predicted, test_predicted,
-                                       train_observed, test_observed, digits = 15,
+                                      train_observed, test_observed, digits = 15,
                                       formula = formula, test = test)
     list_RF[[b]] <- calculations
 
@@ -1632,6 +1726,8 @@ type <- NULL
 data_edge_central <- NULL
 DE <- NULL
 data_holdout_calibration <- NULL
+residuals <- NULL
+predicted <- NULL
 
 ranks_together$Method <- methods
 ranks_together$Period <- c(rep("cal", length(methods)), rep("val", length(methods)))
@@ -1644,9 +1740,9 @@ ranks_together$Metric <- c(rep("r", length(methods) * 2),
                             rep("DE", length(methods) * 2))
 
 colnames(ranks_together)[1] <- "Avg_rank"
-togeter_AVG_rank <- reshape::cast(ranks_together,
+togeter_AVG_rank <- reshape2::dcast(ranks_together,
                                   formula = Metric + Period ~ Method,
-                                  value = c("Avg_rank"))
+                                  value.var = c("Avg_rank"))
 togeter_AVG_rank$Metric  <- factor(togeter_AVG_rank$Metric,
                                     levels = c("r", "RMSE", "RRSE", "d",
                                                "RE", "CE", "DE"))
@@ -1654,9 +1750,9 @@ togeter_AVG_rank <- togeter_AVG_rank[order(togeter_AVG_rank$Metric), ]
 togeter_AVG_rank <- dplyr::select(togeter_AVG_rank, Metric, Period, methods)
 
 colnames(ranks_together)[2] <- "Share_rank1"
-together_share1 <- reshape::cast(ranks_together,
+together_share1 <- reshape2::dcast(ranks_together,
                                  formula = Metric + Period ~ Method,
-                                 value = c("Share_rank1"))
+                                 value.var = c("Share_rank1"))
 
 together_share1$Metric  <- factor(together_share1$Metric,
                                    levels = c("r", "RMSE", "RRSE", "d",
@@ -1814,10 +1910,18 @@ capture.output(BRNN <- brnn(formula, data = dataset, BRNN_neurons = BRNN_neurons
 predicted_BRNN <- data.frame(pred = predict(BRNN, full_range), method = "BRNN")
 
 # Model Trees
-MT_model <- M5P(formula, data = dataset,
-                control = Weka_control(M = MT_M, N =  MT_N, U = MT_U,
-                                       R = MT_R))
-predicted_MT <- data.frame(pred = predict(MT_model, full_range), method = "MT")
+dataset_ind <- data.frame(dataset[, -DepIndex])
+colnames(dataset_ind) <- indep_names
+full_range_ind <- data.frame(full_range[, -DepIndex])
+colnames(full_range_ind) <- indep_names
+
+dataset_dep <- dataset[, DepIndex]
+full_range_dep <- full_range[, DepIndex]
+
+MT_model <- cubist(x = dataset_ind, y = dataset_dep, committees = MT_committees,
+                   neighbors = MT_neighbors, cubistControl(rules = MT_rules,
+                   unbiased = MT_unbiased, extrapolation = MT_extrapolation, sample = MT_sample))
+predicted_MT <- data.frame(pred = predict(MT_model, full_range_ind), method = "MT")
 
 #M5 Model with bagging
 BMT_model <- Bagging(formula,
@@ -1829,9 +1933,9 @@ BMT_model <- Bagging(formula,
 predicted_BMT <- data.frame(pred = predict(BMT_model, full_range), method = "BMT")
 
 # Random Forest
-RF <- make_Weka_classifier("weka/classifiers/trees/RandomForest")
-RF_model <- RF(formula = formula, data = dataset,
-               control = Weka_control(P = RF_P, I = RF_I, depth = RF_depth))
+RF_model <- randomForest(formula = formula, data = dataset, ntree = RF_ntree,
+                         maxnodes = RF_maxnodes, mtry  = RF_mtry,
+                         nodesize = RF_nodesize)
 predicted_RF <- data.frame(pred = predict(RF_model, full_range), method = "RF")
 
 # Subset of methods
@@ -1905,12 +2009,20 @@ plot_2 <- ggplot(predictions, aes(x = range, y = pred, group = method, colour = 
   }
 
   if ("MT" %in% methods){
-    modelList$MT = M5P(formula, dataset, control = Weka_control(M = MT_M, N = MT_N, U = MT_U, R = MT_R))
+    dataset_ind <- data.frame(dataset[, -DepIndex])
+    colnames(dataset_ind) <- indep_names
+    dataset_dep <- dataset[, DepIndex]
+
+    modelList$MT = cubist(x = dataset_ind, y = dataset_dep, committees = MT_committees,
+                          neighbors = MT_neighbors, cubistControl(rules = MT_rules,
+                          unbiased = MT_unbiased, extrapolation = MT_extrapolation, sample = MT_sample))
   }
 
   if ("RF" %in% methods){
-    RF = make_Weka_classifier("weka/classifiers/trees/RandomForest")
-    modelList$RF = RF(formula, dataset, control = Weka_control(P = RF_P, I = RF_I, depth = RF_depth))
+
+    modelList$RF = randomForest(formula = formula, data = dataset, ntree = RF_ntree,
+                                maxnodes = RF_maxnodes, mtry  = RF_mtry,
+                                nodesize = RF_nodesize)
   }
 
   for (i in 1:length(modelList)){
@@ -2109,8 +2221,8 @@ plot_2 <- ggplot(predictions, aes(x = range, y = pred, group = method, colour = 
 
   } else {
 
-  plot_1 <- "transfer functions are not avaliable for regression problems with more than 2 independent variables!"
-  plot_2 <- "Transfer functions are not avaliable for regression problems with more than 2 independent variables!"
+  plot_1 <- "transfer functions are not avaliable for regression problems with 2 or more independent variables!"
+  plot_2 <- "Transfer functions are not avaliable for regression problems with 2 or more independent variables!"
 
   }
 
@@ -2124,38 +2236,46 @@ Results_ranks <- round_df(Results_ranks, digits = digits)
 # Here, all optimized parameters are saved in a data frame, which will be saved as
 # a fifth elemnt of the final_list
 parameters <- data.frame(
-  Method = c("BRNN", "MT", "MT", "MT", "MT", "BMT", "BMT", "BMT", "BMT", "BMT", "BMT",
-             "RF", "RF", "RF"),
-  Parameter = c("BRNN_neurons", "MT_M", "MT_N", "MT_U", "MT_R", "BMT_P", "BMT_I", "BMT_M",
-                "BMT_N", "BMT_U", "BMT_R", "RF_P", "RF_I", "RF_depth"),
+  Method = c("BRNN", "MT", "MT", "MT", "MT","MT" , "MT","BMT", "BMT", "BMT", "BMT", "BMT", "BMT",
+             "RF", "RF", "RF", "RF"),
+  Parameter = c("BRNN_neurons", "MT_committees", "MT_neighbors", "MT_rules", "MT_unbiased",
+                "MT_extrapolation", "MT_sample", "BMT_P", "BMT_I", "BMT_M",
+                "BMT_N", "BMT_U", "BMT_R", "RF_mtry", "RF_maxnodes", "RF_ntree", "RF_nodesize"),
   Considered_values = c(
     as.character(paste0(BRNN_neurons_vector, collapse=", ")),
-    as.character(paste0(MT_M_vector, collapse=", ")),
-    as.character(paste0(MT_N_vector, collapse=", ")),
-    as.character(paste0(MT_U_vector, collapse=", ")),
-    as.character(paste0(MT_R_vector, collapse=", ")),
+    as.character(paste0(MT_committees_vector, collapse=", ")),
+    as.character(paste0(MT_neighbors_vector, collapse=", ")),
+    as.character(paste0(MT_rules_vector, collapse=", ")),
+    as.character(paste0(MT_unbiased_vector, collapse=", ")),
+    as.character(paste0(MT_extrapolation_vector, collapse=", ")),
+    as.character(paste0(MT_sample_vector, collapse=", ")),
     as.character(paste0(BMT_P_vector, collapse=", ")),
     as.character(paste0(BMT_I_vector, collapse=", ")),
     as.character(paste0(BMT_M_vector, collapse=", ")),
     as.character(paste0(BMT_N_vector, collapse=", ")),
     as.character(paste0(BMT_U_vector, collapse=", ")),
     as.character(paste0(BMT_R_vector, collapse=", ")),
-    as.character(paste0(RF_P_vector, collapse=", ")),
-    as.character(paste0(RF_I_vector, collapse=", ")),
-    as.character(paste0(RF_depth_vector, collapse=" "))
+    as.character(paste0(RF_mtry_vector, collapse=", ")),
+    as.character(paste0(RF_maxnodes_vector, collapse=", ")),
+    as.character(paste0(RF_ntree_vector, collapse=" ")),
+    as.character(paste0(RF_nodesize_vector, collapse=" "))
     ),
-  Value = c(BRNN_neurons, MT_M,
-            ifelse(MT_N == 1, as.character("TRUE"), as.character("FALSE")),
-            ifelse(MT_U == 1, as.character("TRUE"), as.character("FALSE")),
-            ifelse(MT_R == 1, as.character("TRUE"), as.character("FALSE")), BMT_P, BMT_I, BMT_M,
+  Value = c(BRNN_neurons, MT_committees, MT_neighbors, MT_rules,
+            ifelse(MT_unbiased == 1, as.character("TRUE"), as.character("FALSE")),
+            MT_extrapolation, MT_sample, BMT_P, BMT_I, BMT_M,
             ifelse(BMT_N == 1, as.character("TRUE"), as.character("FALSE")),
             ifelse(BMT_U == 1, as.character("TRUE"), as.character("FALSE")),
             ifelse(BMT_R == 1, as.character("TRUE"), as.character("FALSE")),
-            RF_P, RF_I, RF_depth))
+            RF_mtry, RF_maxnodes, RF_ntree, RF_nodesize))
 
 colnames(parameters) = c("Method", "Parameter", "Considered values", "Selected value")
 
 parameters <- parameters[parameters$Method %in% methods,]
+
+if (optimize == FALSE){
+  parameters[, 3] <- NULL
+
+}
 
                  ############################################################
                  # The reconstruction of climate based on all methods used  #
@@ -2169,10 +2289,17 @@ capture.output(BRNN_model <- brnn(formula, data = dataset, BRNN_neurons = BRNN_n
 reconstruction_BRNN <- data.frame(reconstruction = predict(BRNN_model, dataset_complete), method = "BRNN")
 
 # Model Trees
-MT_model <- M5P(formula, data = dataset,
-                control = Weka_control(M = MT_M, N =  MT_N, U = MT_U,
-                                       R = MT_R))
-reconstruction_MT <- data.frame(reconstruction = predict(MT_model, dataset_complete), method = "MT")
+dataset_ind <- data.frame(dataset[, -DepIndex])
+colnames(dataset_ind) <- indep_names
+dataset_complete_ind <- data.frame(dataset_complete)
+colnames(dataset_complete_ind) <- indep_names
+
+dataset_dep <- dataset[, DepIndex]
+
+MT_model <- cubist(x = dataset_ind, y = dataset_dep, committees = MT_committees,
+                   neighbors = MT_neighbors, cubistControl(rules = MT_rules,
+                   unbiased = MT_unbiased, extrapolation = MT_extrapolation, sample = MT_sample))
+reconstruction_MT <- data.frame(reconstruction = predict(MT_model, dataset_complete_ind), method = "MT")
 
 
 #M5 Model with bagging
@@ -2185,9 +2312,10 @@ BMT_model <- Bagging(formula,
 reconstruction_BMT <- data.frame(reconstruction = predict(BMT_model, dataset_complete), method = "BMT")
 
 # Random Forest
-RF <- make_Weka_classifier("weka/classifiers/trees/RandomForest")
-RF_model <- RF(formula = formula, data = dataset,
-               control = Weka_control(P = RF_P, I = RF_I, depth = RF_depth))
+RF_model <- randomForest(formula = formula, data = dataset, ntree = RF_ntree,
+                         maxnodes = RF_maxnodes, mtry  = RF_mtry,
+                         nodesize = RF_nodesize)
+
 reconstruction_RF <- data.frame(reconstruction = predict(RF_model, dataset_complete), method = "RF")
 
 
@@ -2238,7 +2366,7 @@ plot_4 <- ggplot(reconstructions, aes(x = Year, y = reconstruction, group = meth
 ############################################################
 # Here, I extract the "edge data", I calibrate models using the central part of the data and
 # afterwards use it on the edge data to see, how methods perform in modeling
-if (numIND == 1) {
+if (numIND == 1 & edge_share > 0) {
 edge_factor <- round2(nrow(dataset)*(edge_share/2),0)
 
 dataset_max <- dplyr::arrange(dataset, desc(dataset[, -DepIndex]))[1:edge_factor,]
@@ -2254,6 +2382,9 @@ dataset_central <- dplyr::arrange(dataset, desc(dataset[, -DepIndex]))[(edge_fac
 
   MLR_central_edge <- rbind(edge_prediction, central_prediction, edge_observed, central_observed)
 
+  residuals_edge_MLR <- data.frame(residuals = edge_prediction$value - edge_observed$value,
+                                      predicted = edge_prediction$value, method = "MLR")
+
   test_1 <- data.frame(dataset_edges[, DepIndex])
   colnames(test_1) <- "DE_TRICK"
   test_1$sequence <- seq(1:nrow(dataset_edges))
@@ -2268,15 +2399,29 @@ dataset_central <- dplyr::arrange(dataset, desc(dataset[, -DepIndex]))[(edge_fac
   central_observed <- data.frame(value = dataset_central[, DepIndex], data_edge_central = "central", type = "observed", method = "BRNN")
   BRNN_central_edge <- rbind(edge_prediction, central_prediction, edge_observed, central_observed)
 
+  residuals_edge_BRNN <- data.frame(residuals = edge_prediction$value - edge_observed$value,
+                                   predicted = edge_prediction$value, method = "BRNN")
 
   # Model Trees
-  MT_model <- M5P(formula, data = dataset_central,
-                  control = Weka_control(M = MT_M, N =  MT_N, U = MT_U, R = MT_R))
-  edge_prediction <- data.frame(value = predict(MT_model, dataset_edges), data_edge_central = "edge", type = "predicted", method = "MT")
-  central_prediction <- data.frame(value = predict(MT_model, dataset_central), data_edge_central = "central", type = "predicted", method = "MT")
+  dataset_central_ind <- data.frame(dataset_central[, -DepIndex])
+  colnames(dataset_central_ind) <- indep_names
+  dataset_edges_ind <- data.frame(dataset_edges[, -DepIndex])
+  colnames(dataset_edges_ind) <- indep_names
+
+  dataset_central_dep <- dataset_central[, DepIndex]
+  dataset_edges_dep <- dataset_edges[, DepIndex]
+
+  MT_model <- cubist(x = dataset_central_ind, y = dataset_central_dep, committees = MT_committees,
+                     neighbors = MT_neighbors, cubistControl(rules = MT_rules,
+                     unbiased = MT_unbiased, extrapolation = MT_extrapolation, sample = MT_sample))
+  edge_prediction <- data.frame(value = predict(MT_model, dataset_edges_ind), data_edge_central = "edge", type = "predicted", method = "MT")
+  central_prediction <- data.frame(value = predict(MT_model, dataset_central_ind), data_edge_central = "central", type = "predicted", method = "MT")
   edge_observed <- data.frame(value = dataset_edges[, DepIndex], data_edge_central = "edge", type = "observed", method = "MT")
   central_observed <- data.frame(value = dataset_central[, DepIndex], data_edge_central = "central", type = "observed", method = "MT")
   MT_central_edge <- rbind(edge_prediction, central_prediction, edge_observed, central_observed)
+
+  residuals_edge_MT <- data.frame(residuals = edge_prediction$value - edge_observed$value,
+                                   predicted = edge_prediction$value, method = "MT")
 
   #M5 Model with bagging
   BMT_model <- Bagging(formula,
@@ -2291,21 +2436,34 @@ dataset_central <- dplyr::arrange(dataset, desc(dataset[, -DepIndex]))[(edge_fac
   central_observed <- data.frame(value = dataset_central[, DepIndex], data_edge_central = "central", type = "observed", method = "BMT")
   BMT_central_edge <- rbind(edge_prediction, central_prediction, edge_observed, central_observed)
 
+  residuals_edge_BMT <- data.frame(residuals = edge_prediction$value - edge_observed$value,
+                                   predicted = edge_prediction$value, method = "BMT")
+
   # Random Forest
-  RF <- make_Weka_classifier("weka/classifiers/trees/RandomForest")
-  RF_model <- RF(formula = formula, data = dataset_central,
-                 control = Weka_control(P = RF_P, I = RF_I, depth = RF_depth))
+  RF_model <- randomForest(formula = formula, data = dataset_central, ntree = RF_ntree, maxnodes = RF_maxnodes, mtry  = RF_mtry,
+                           nodesize = RF_nodesize)
+
   edge_prediction <- data.frame(value = predict(RF_model, dataset_edges), data_edge_central = "edge", type = "predicted", method = "RF")
   central_prediction <- data.frame(value = predict(RF_model, dataset_central), data_edge_central = "central", type = "predicted", method = "RF")
   edge_observed <- data.frame(value = dataset_edges[, DepIndex], data_edge_central = "edge", type = "observed", method = "RF")
   central_observed <- data.frame(value = dataset_central[, DepIndex], data_edge_central = "central", type = "observed", method = "RF")
   RF_central_edge <- rbind(edge_prediction, central_prediction, edge_observed, central_observed)
 
+  residuals_edge_RF <- data.frame(residuals = edge_prediction$value - edge_observed$value,
+                                   predicted = edge_prediction$value, method = "RF")
+
   edge_central_data <- rbind(MLR_central_edge,
                              BRNN_central_edge,
                              MT_central_edge,
                              BMT_central_edge,
                              RF_central_edge)
+
+  # Here i define the residual dataframe for the holdout
+  residuals_edge = rbind(residuals_edge_MLR,
+                            residuals_edge_BRNN,
+                            residuals_edge_MT,
+                            residuals_edge_BMT,
+                            residuals_edge_RF)
 
   edge_central_data$DE = 0
 
@@ -2393,7 +2551,7 @@ dataset_central <- dplyr::arrange(dataset, desc(dataset[, -DepIndex]))[(edge_fac
 
 
 } else {
-  edge_results_t <- "No edge experiment is performed for regression problems with more than 2 independent variables."
+  edge_results_t <- "No edge data is avaliable for regression problems with more than 1 independent variable."
 }
 
 # Here, we once again subset the data frames with preformance metrics, to exclude
@@ -2416,6 +2574,9 @@ if (!is.null(holdout)) {
   holdout_observed <- data.frame(value = dataset_holdout[, DepIndex], data_holdout_calibration = "holdout", type = "observed", method = "MLR")
   calibration_observed <- data.frame(value = dataset[, DepIndex], data_holdout_calibration = "calibration", type = "observed", method = "MLR")
 
+  residuals_holdout_MLR <- data.frame(residuals = holdout_prediction$value - holdout_observed$value,
+                                      predicted = holdout_prediction$value, method = "MLR")
+
   MLR_calibration_holdout <- rbind(holdout_prediction, calibration_prediction, holdout_observed, calibration_observed)
 
   test_1 <- data.frame(dataset_holdout[, DepIndex])
@@ -2432,15 +2593,29 @@ if (!is.null(holdout)) {
   calibration_observed <- data.frame(value = dataset[, DepIndex], data_holdout_calibration = "calibration", type = "observed", method = "BRNN")
   BRNN_calibration_holdout <- rbind(holdout_prediction, calibration_prediction, holdout_observed, calibration_observed)
 
+  residuals_holdout_BRNN <- data.frame(residuals = holdout_prediction$value - holdout_observed$value,
+                                       predicted = holdout_prediction$value, method = "BRNN")
 
   # Model Trees
-  MT_model <- M5P(formula, data = dataset,
-                  control = Weka_control(M = MT_M, N =  MT_N, U = MT_U, R = MT_R))
-  holdout_prediction <- data.frame(value = predict(MT_model, dataset_holdout), data_holdout_calibration = "holdout", type = "predicted", method = "MT")
-  calibration_prediction <- data.frame(value = predict(MT_model, dataset), data_holdout_calibration = "calibration", type = "predicted", method = "MT")
+  dataset_ind <- data.frame(dataset[, -DepIndex])
+  colnames(dataset_ind) <- indep_names
+  dataset_holdout_ind <- data.frame(dataset_holdout[, -DepIndex])
+  colnames(dataset_holdout_ind) <- indep_names
+
+  dataset_dep <- dataset[, DepIndex]
+  dataset_holdout_dep <- dataset_holdout[, DepIndex]
+
+  MT_model <- cubist(x = dataset_ind, y = dataset_dep, committees = MT_committees,
+                     neighbors = MT_neighbors, cubistControl(rules = MT_rules,
+                     unbiased = MT_unbiased, extrapolation = MT_extrapolation, sample = MT_sample))
+  holdout_prediction <- data.frame(value = predict(MT_model, dataset_holdout_ind), data_holdout_calibration = "holdout", type = "predicted", method = "MT")
+  calibration_prediction <- data.frame(value = predict(MT_model, dataset_ind), data_holdout_calibration = "calibration", type = "predicted", method = "MT")
   holdout_observed <- data.frame(value = dataset_holdout[, DepIndex], data_holdout_calibration = "holdout", type = "observed", method = "MT")
   calibration_observed <- data.frame(value = dataset[, DepIndex], data_holdout_calibration = "calibration", type = "observed", method = "MT")
   MT_calibration_holdout <- rbind(holdout_prediction, calibration_prediction, holdout_observed, calibration_observed)
+
+  residuals_holdout_MT <- data.frame(residuals = holdout_prediction$value - holdout_observed$value,
+                                     predicted = holdout_prediction$value, method = "MT")
 
   #M5 Model with bagging
   BMT_model <- Bagging(formula,
@@ -2455,10 +2630,13 @@ if (!is.null(holdout)) {
   calibration_observed <- data.frame(value = dataset[, DepIndex], data_holdout_calibration = "calibration", type = "observed", method = "BMT")
   BMT_calibration_holdout <- rbind(holdout_prediction, calibration_prediction, holdout_observed, calibration_observed)
 
+  residuals_holdout_BMT <- data.frame(residuals = holdout_prediction$value - holdout_observed$value,
+                                      predicted = holdout_prediction$value, method = "BMT")
+
   # Random Forest
-  RF <- make_Weka_classifier("weka/classifiers/trees/RandomForest")
-  RF_model <- RF(formula = formula, data = dataset,
-                 control = Weka_control(P = RF_P, I = RF_I, depth = RF_depth))
+  RF_model <- randomForest(formula = formula, data = dataset, mtry = RF_mtry,
+                           maxnodes = RF_maxnodes, ntree = RF_ntree, nodesize = RF_nodesize)
+
   holdout_prediction <- data.frame(value = predict(RF_model, dataset_holdout), data_holdout_calibration = "holdout", type = "predicted", method = "RF")
   calibration_prediction <- data.frame(value = predict(RF_model, dataset), data_holdout_calibration = "calibration", type = "predicted", method = "RF")
   holdout_observed <- data.frame(value = dataset_holdout[, DepIndex], data_holdout_calibration = "holdout", type = "observed", method = "RF")
@@ -2470,6 +2648,19 @@ if (!is.null(holdout)) {
                              MT_calibration_holdout,
                              BMT_calibration_holdout,
                              RF_calibration_holdout)
+
+  residuals_holdout_RF <- data.frame(residuals = holdout_prediction$value - holdout_observed$value,
+                                     predicted = holdout_prediction$value, method = "RF")
+
+  # Here i define the residual dataframe for the holdout
+  residuals_holdout = rbind(residuals_holdout_MLR,
+                            residuals_holdout_BRNN,
+                            residuals_holdout_MT,
+                            residuals_holdout_BMT,
+                            residuals_holdout_RF)
+
+  residuals_holdout <- filter(residuals_holdout, method %in% methods)
+
 
   holdout_calibration_data$DE = 0
 
@@ -2552,6 +2743,156 @@ if (!is.null(holdout)) {
   holdout_results_t <- "No holdout data was defined."
 }
 
+###################### Residual diagnostic ###################################################################
+residuals_df <- data.frame(residuals = c(), predicted = c(), method = c())
+
+data_observed <- dataset[,DepIndex]
+
+#MLR model
+if ("MLR" %in% methods){
+MLR_model <- lm(formula, data = dataset)
+MLR_predicted <- predict(MLR_model, dataset)
+residuals_MLR <- MLR_predicted - data_observed
+LOESS_MLR <- loess.smooth(MLR_predicted, residuals_MLR)
+residuals_df_MLR <- data.frame(residuals = residuals_MLR,
+                               predicted = MLR_predicted,
+                               method = "MLR")
+residuals_df <- rbind(residuals_df, residuals_df_MLR)
+
+}
+
+# BRNN model
+if ("BRNN" %in% methods){
+capture.output(BRNN_model <- brnn(formula, data = dataset, BRNN_neurons = BRNN_neurons, verbose = FALSE))
+BRNN_predicted <- predict(BRNN_model, dataset)
+residuals_BRNN <- BRNN_predicted - data_observed
+LOESS_BRNN <- loess.smooth(BRNN_predicted, residuals_BRNN)
+residuals_df_BRNN <- data.frame(residuals = residuals_BRNN,
+                                predicted = BRNN_predicted,
+                                method = "BRNN")
+residuals_df <- rbind(residuals_df, residuals_df_BRNN)
+
+}
+
+# MT model
+if ("MF" %in% methods){
+dataset_ind <- data.frame(dataset[, -DepIndex])
+colnames(dataset_ind) <- indep_names
+dataset_dep <- dataset[, DepIndex]
+MT_model <- cubist(x = dataset_ind, y = dataset_dep, committees = MT_committees,
+                   neighbors = MT_neighbors, cubistControl(rules = MT_rules,
+                   unbiased = MT_unbiased, extrapolation = MT_extrapolation, sample = MT_sample))
+MT_predicted <- predict(MT_model, dataset_ind)
+residuals_MT <- MT_predicted - data_observed
+LOESS_MT <- loess.smooth(MT_predicted, residuals_MT)
+residuals_df_MT <- data.frame(residuals = residuals_MT,
+                              predicted = MT_predicted,
+                              method = "MT")
+residuals_df <- rbind(residuals_df, residuals_df_MT)
+
+}
+
+# BMT model
+if ("BMT" %in% methods){
+BMT_model <- Bagging(formula,
+                     data = dataset,
+                     control = Weka_control(P = BMT_P, I = BMT_I,
+                                            W = list("weka.classifiers.trees.M5P",
+                                                     M = BMT_M, N = BMT_N,
+                                                     U = BMT_U, R = BMT_R)))
+BMT_predicted <- predict(BMT_model, dataset)
+residuals_BMT <- BMT_predicted - data_observed
+LOESS_BMT <- loess.smooth(BMT_predicted, residuals_BMT)
+residuals_df_BMT <- data.frame(residuals = residuals_BMT,
+                               predicted = BMT_predicted,
+                               method = "BMT")
+residuals_df <- rbind(residuals_df, residuals_df_BMT)
+
+
+}
+
+# RF model
+if ("RF" %in% methods){
+  RF_model <- randomForest(formula = formula, data = dataset, ntree = RF_ntree,
+                           maxnodes = RF_maxnodes, mtry  = RF_mtry,
+                           nodesize = RF_nodesize)
+  RF_predicted <- predict(RF_model, dataset)
+  residuals_RF <- RF_predicted - data_observed
+  LOESS_RF <- loess.smooth(RF_predicted, residuals_RF)
+  residuals_df_RF <- data.frame(residuals = residuals_RF,
+                                predicted = RF_predicted,
+                                method = "RF")
+  residuals_df <- rbind(residuals_df, residuals_df_RF)
+}
+
+# Here we create plots for calibration
+
+Normal_QQ_cal1 <- ggplot(residuals_df, aes(sample = residuals)) +
+                    facet_grid(method~.)+ stat_qq() + stat_qq_line() +
+                    xlab("Theoretical quantiles") +
+                    ylab("Residuals") +
+                    ggtitle("Normal Q-Q plot, Calibration data") +
+                    theme_bw() +
+                    theme(text = element_text(size = 15))
+
+Residuals_vs_fitted_cal1 <- ggplot(residuals_df, aes(y = residuals, x = predicted)) +
+  geom_point() +
+  stat_smooth(method="loess", se = FALSE)+geom_hline(yintercept=0, col="red", linetype="dashed") +
+  facet_grid(method ~ .) +
+  xlab("Fitted values") +
+  ylab("Residuals") +
+  ggtitle("Residual vs Fitted Plot, Calibration data") +
+  theme_bw() +
+  theme(text = element_text(size = 15), axis.title.y = element_blank())
+
+# Residual plots for the holdout data
+if (!is.null(holdout)) {
+  Normal_QQ_holdout1 <- ggplot(residuals_holdout, aes(sample = residuals)) +
+  facet_grid(method~.)+ stat_qq() + stat_qq_line() +
+  xlab("Theoretical quantiles") +
+  ylab("Residuals") +
+  ggtitle("Normal Q-Q plot, Holdout data") +
+  theme_bw() +
+  theme(text = element_text(size = 15))
+
+  Residuals_vs_fitted_holdout1 <- ggplot(residuals_holdout, aes(y = residuals, x = predicted)) +
+  geom_point() +
+  stat_smooth(method="loess", se = FALSE)+geom_hline(yintercept=0, col="red", linetype="dashed") +
+  facet_grid(method ~ .) +
+  xlab("Fitted values") +
+  ylab("Residuals") +
+  ggtitle("Residual vs Fitted Plot, Holdout data") +
+  theme_bw() +
+  theme(text = element_text(size = 15), axis.title.y = element_blank())
+
+} else {
+  Normal_QQ_holdout1 <- "No holdout data was defined."
+  Residuals_vs_fitted_holdout1 <- "No holdout data was defined."
+}
+
+# Residual plots for the edge data
+if (numIND < 2 & edge_share > 0){
+  Normal_QQ_edge1 <- ggplot(residuals_edge, aes(sample = residuals)) +
+    facet_grid(method~.)+ stat_qq() + stat_qq_line() +
+    xlab("Theoretical quantiles") +
+    ylab("Residuals") +
+    ggtitle("Normal Q-Q plot, edge data") +
+    theme_bw() +
+    theme(text = element_text(size = 15))
+
+  Residuals_vs_fitted_edge1 <- ggplot(residuals_edge, aes(y = residuals, x = predicted)) +
+    geom_point() +
+    stat_smooth(method="loess", se = FALSE)+geom_hline(yintercept=0, col="red", linetype="dashed") +
+    facet_grid(method ~ .) +
+    xlab("Fitted values") +
+    ylab("Residuals") +
+    ggtitle("Residual vs Fitted Plot, edge data") +
+    theme_bw() +
+    theme(text = element_text(size = 15), axis.title.y = element_blank())
+} else {
+  Residuals_vs_fitted_edge1 <- "No edge data is avaliable for regression problems with 2 or more independent variables."
+  Normal_QQ_edge1 <- "No edge data is avaliable for regression problems with 2 or more independent variables."
+}
 
 
   #####################################################################
@@ -2562,12 +2903,19 @@ if (!is.null(holdout)) {
                      holdout_results = holdout_results_t,
                      bias_cal = suppressMessages(gg_object_cal),
                      bias_val = suppressMessages(gg_object_val),
-                     transfer_functions = plot_1,
-                     transfer_functions_together = plot_2,
+                     transfer_functions = suppressMessages(plot_1),
+                     transfer_functions_together = suppressMessages(plot_2),
                      parameter_values = parameters,
                      PCA_output = PCA_result,
-                     reconstructions = plot_4,
-                     reconstructions_together = plot_3)
+                     reconstructions = suppressMessages(plot_4),
+                     reconstructions_together = suppressMessages(plot_3),
+                     normal_QQ_cal = suppressMessages(Normal_QQ_cal1),
+                     normal_QQ_holdout = suppressMessages(Normal_QQ_holdout1),
+                     normal_QQ_edge = suppressMessages(Normal_QQ_edge1),
+                     residuals_vs_fitted_cal = suppressMessages(Residuals_vs_fitted_cal1),
+                     residuals_vs_fitted_holdout = suppressMessages(Residuals_vs_fitted_holdout1),
+                     residuals_vs_fitted_edge = suppressMessages(Residuals_vs_fitted_edge1)
+                     )
 
 return(final_list) # Return the final list
 
