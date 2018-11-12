@@ -16,7 +16,7 @@ text-align: justify; font-size: 16px}
 
 ## 1. The *compare_methods()* 
 
-This is a short vignette about the *compare_methods()* function from the dendroTools R package. The *compare_methods()* uses k-fold cross-validation to compare different regression methods. In addition, methods could be compared by 1) using a holdout data, where data is excluded from the hyperparameter optimization and cross-validation and methods are later additionally evaluated for those points, or 2) similarly by using edge data, where extreme (edge) points are estimated as a validation data. Currently, there are five regression methods implemented: artificial neural networks with the Bayesian regularization training algorithm (BRNN), model trees (MT), bagging of model trees (BMT), random forests of regression trees (RF) and (multiple) linear regression (MLR). The calculated performance metrics are the correlation coefficient (r), the root mean squared error (RMSE), the root relative squared error (RRSE), the index of agreement (d), the reduction of error (RE), the coefficient of efficiency (CE), the dentrended efficiency (DE) and mean bias, calculated as the difference between observed and estimated mean response for the validation and calibration data. The output of the *compare_methods()* function is a list with 18 elements, which could be retrieved by calling the “$” operator and the element name. Please note, the examples presented here are made computationally less intensive to satisfy the CRAN policy. 
+This is a short vignette about the *compare_methods()* function from the dendroTools R package. The *compare_methods()* uses k-fold cross-validation to compare different regression methods. In addition, methods could be compared by 1) using a holdout data, where data is excluded from the hyperparameter optimization and cross-validation and methods are later additionally evaluated for those points, or 2) similarly by using edge data, where extreme (edge) points are estimated as a validation data. Currently, there are five regression methods implemented: artificial neural networks with the Bayesian regularization training algorithm (BRNN), (ensemble of) model trees (MT), random forests of regression trees (RF) and (multiple) linear regression (MLR). The calculated performance metrics are the correlation coefficient (r), the root mean squared error (RMSE), the root relative squared error (RRSE), the index of agreement (d), the reduction of error (RE), the coefficient of efficiency (CE), the dentrended efficiency (DE) and mean bias, calculated as the difference between observed and estimated mean response for the validation and calibration data. The output of the *compare_methods()* function is a list with 18 elements, which could be retrieved by calling the “$” operator and the element name. Please note, the examples presented here are made computationally less intensive to satisfy the CRAN policy. 
 ```{r, echo = FALSE, warning = FALSE}
 library(knitr)
 dt <- data.frame(Element = c("$mean_std", "$std_ranks", "$edge_results", "$holdout_results", "$bias_cal", "$bias_val", "$transfer_functions", "$transfer_functions_together", "$parameter_values", "$PCA_output", "$reconstructions", "$reconstructions_together", "$normal_QQ_cal", "$normal_QQ_holdout", "$normal_QQ_edge", "$residuals_vs_fitted_cal", "$residuals_vs_fitted_holdout", "$residuals_vs_fitted_edge"), 
@@ -36,7 +36,7 @@ library(dendroTools)
 data(dataset_MVA)
 
 # Basic example
-basic_example <- compare_methods(formula = T_Apr ~ MVA, dataset = dataset_MVA, k = 10, repeats = 1, optimize = TRUE, BMT_M_vector  = c(4, 25), MT_committees_vector = c(1), RF_maxnodes_vector = c(5), RF_nodesize_vector = c(10))
+basic_example <- compare_methods(formula = T_Apr ~ MVA, dataset = dataset_MVA, k = 10, repeats = 1, optimize = TRUE, MT_committees_vector = c(1), RF_maxnodes_vector = c(5), RF_nodesize_vector = c(10))
 ```
 
 ```{r }
@@ -102,7 +102,7 @@ library(dendroTools)
 data(dataset_MVA_individual)
 
 # Example PCA
-example_PCA <- compare_methods(formula = T_Apr ~ ., dataset = dataset_MVA_individual, k = 5, repeats = 1, optimize = TRUE, methods = c("MLR", "MT", "BRNN"), PCA_transformation = TRUE, components_selection = "manual", N_components = 2, seed_factor = 5, BMT_M_vector  = c(4, 25), MT_committees_vector = c(1), RF_maxnodes_vector = c(5), RF_nodesize_vector = c(10))
+example_PCA <- compare_methods(formula = T_Apr ~ ., dataset = dataset_MVA_individual, k = 5, repeats = 1, optimize = TRUE, methods = c("MLR", "MT", "BRNN"), PCA_transformation = TRUE, components_selection = "manual", N_components = 2, seed_factor = 5, MT_committees_vector = c(1), RF_maxnodes_vector = c(5), RF_nodesize_vector = c(10))
 ```
 ```{r }
 # Get the summary statistics for the PCA
@@ -119,7 +119,7 @@ kable(example_PCA$mean_std)
 
 The *compare_methods()* enables the comparison of methods for regression problems with two or more independent variables. However, users should select multiple proxies reasonably and with caution, since there is nothing to prevent from including colinear variables. To perform the comparison of methods with multiproxy variables, simply include dataset with more than one independent variable and specify the relationship with the *formula* argument. If metrics on validation data are much lower than on calibration data, there is a problem of overfitting and users should exclude some independent variables and repeat the analysis.
 
-For the *multiproxy_example*, we will use *example_dataset_1*, which consist of the Mean Vessel Area (MVA) chronology and two temperature variables, the mean April temperature (T_APR) and the mean temperature from August to September (T_aug_sep) from the previous growing season. To compare methods with multiproxy approach, specify formula with two independent variables, such as *formula = MVA ~ T_APR + T_aug_sep*. Here, we will compare MT, BMT and RF with 10-fold cross-validation and 1 repeat. 
+For the *multiproxy_example*, we will use *example_dataset_1*, which consist of the Mean Vessel Area (MVA) chronology and two temperature variables, the mean April temperature (T_APR) and the mean temperature from August to September (T_aug_sep) from the previous growing season. To compare methods with multiproxy approach, specify formula with two independent variables, such as *formula = MVA ~ T_APR + T_aug_sep*. Here, we will compare MT, BRNN and RF with 10-fold cross-validation and 1 repeat. 
 
 ```{r, results = 'hide'}
 # Load the dendroTools R package
@@ -129,7 +129,7 @@ library(dendroTools)
 data(example_dataset_1)
 
 # Example multiproxy
-example_multiproxy <- compare_methods(formula = MVA ~ T_APR + T_aug_sep, dataset = example_dataset_1, k = 10, repeats = 1, optimize = FALSE, methods = c("MT", "BMT", "RF"))
+example_multiproxy <- compare_methods(formula = MVA ~ T_APR + T_aug_sep, dataset = example_dataset_1, k = 10, repeats = 1, optimize = FALSE, methods = c("MT", "BRNN", "RF"))
 ```
 
 ```{r }
@@ -152,7 +152,7 @@ data(dataset_TRW)
 data(dataset_TRW_complete)
 
 # Example reconstruction
-example_reconstruction <- compare_methods(formula = T_Jun_Jul ~ TRW, dataset = dataset_TRW, k = 3, optimize = FALSE, methods = c("MLR", "RF"), dataset_complete = dataset_TRW_complete)
+example_reconstruction <- compare_methods(formula = T_Jun_Jul ~ TRW, dataset = dataset_TRW, k = 3, optimize = FALSE, methods = c("MLR", "BRNN", "MT", "RF"), dataset_complete = dataset_TRW_complete)
 ```
 
 ```{r, fig.align='center', warning=FALSE, fig.width=7, fig.height=5, fig.cap=paste("The reconstructed June-July temperatures based on the dataset_complete argument, facet is used to split plots by methods.")}
@@ -171,7 +171,7 @@ The comparison among different methods usually shows, that different regression 
 kable(example_reconstruction$edge_results)
 ```
 
-In this example, MLR had the worst validation results for all metrics, which indicates that linear interpolation for extreme values is not the best choice  BMT, MT and BRNN provided much better validation metrics, which indicates those methods are more accurate for predicting the extreme values. 
+In this example, MLR and MT had worse validation results than RF and BRNN. This indicates that linear interpolation for extreme values is not the best choice. 
 
 ## 6. Tuning the machine learning parameters
 
@@ -179,13 +179,10 @@ Machine learning methods have several tuning parameters that need to be set, e.g
 
 ```{r, echo = FALSE, warning = FALSE}
 library(knitr)
-dt <- data.frame(Method = c("BRNN", "MT", "MT", "MT", "MT","MT" , "MT","BMT", "BMT", "BMT", "BMT", "BMT", "BMT",
-             "RF", "RF", "RF", "RF"),
+dt <- data.frame(Method = c("BRNN", "MT", "MT", "MT", "MT","MT" , "MT", "RF", "RF", "RF", "RF"),
                  Parameter = c("BRNN_neurons", "MT_committees", "MT_neighbors", "MT_rules", "MT_unbiased",
-                "MT_extrapolation", "MT_sample", "BMT_P", "BMT_I", "BMT_M",
-                "BMT_N", "BMT_U", "BMT_R", "RF_mtry", "RF_maxnodes", "RF_ntree", "RF_nodesize"), Vector_for_optimization = c("BRNN_neurons_vector", "MT_committees_vector", "MT_neighbors_vector", "MT_rules_vector", "MT_unbiased_vector",
-                "MT_extrapolation_vector", "MT_sample_vector", "BMT_P_vector", "BMT_I_vector", "BMT_M_vector",
-                "BMT_N_vector", "BMT_U_vector", "BMT_R_vector", "RF_mtry_vector", "RF_maxnodes_vector", "RF_ntree_vector", "RF_nodesize_vector"))
+                "MT_extrapolation", "MT_sample", "RF_mtry", "RF_maxnodes", "RF_ntree", "RF_nodesize"), Vector_for_optimization = c("BRNN_neurons_vector", "MT_committees_vector", "MT_neighbors_vector", "MT_rules_vector", "MT_unbiased_vector",
+                "MT_extrapolation_vector", "MT_sample_vector", "RF_mtry_vector", "RF_maxnodes_vector", "RF_ntree_vector", "RF_nodesize_vector"))
 kable(dt, "html")
 
 ```
@@ -198,7 +195,7 @@ library(dendroTools)
 # Load the data
 data(example_dataset_1)
 
-example_optimize <- compare_methods(formula = MVA ~  T_APR, dataset = example_dataset_1, k = 5, repeats = 2, optimize = FALSE, BRNN_neurons = 1, MT_committees = 1, MT_neighbors = 0, MT_rules = 100, MT_unbiased = FALSE, MT_extrapolation = 100, MT_sample = 0, BMT_P = 100, BMT_I = 100, BMT_M = 4, BMT_N = FALSE, BMT_U = FALSE, BMT_R = FALSE, RF_mtry = 1, RF_ntree = 100, RF_maxnodes = 20, seed_factor = 5)
+example_optimize <- compare_methods(formula = MVA ~  T_APR, dataset = example_dataset_1, k = 5, repeats = 2, optimize = FALSE, BRNN_neurons = 1, MT_committees = 1, MT_neighbors = 0, MT_rules = 100, MT_unbiased = FALSE, MT_extrapolation = 100, MT_sample = 0, RF_mtry = 1, RF_ntree = 100, RF_maxnodes = 20, seed_factor = 5)
 ```
 ```{r }
 # The data frame of tuning parameters, as defined by the user

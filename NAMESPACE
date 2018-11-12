@@ -6,7 +6,6 @@ importFrom("stats", "cor", "lm", "qt", "quantile", "predict", "sd", "as.formula"
 importFrom("utils", "capture.output", "setTxtProgressBar", "txtProgressBar")
 importFrom("graphics", "plot")
 importFrom("MLmetrics", "RRSE", "RMSE")
-importFrom("RWeka", "Bagging", "Weka_control")
 importFrom("Cubist", "cubist", "cubistControl")
 importFrom("dplyr", "select", "desc", "summarise", "filter", "group_by")
 importFrom("oce", "rescale")

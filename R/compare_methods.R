@@ -3,15 +3,14 @@
 #' Calculates performance metrics for calibration (train) and validation (test)
 #' data of different regression methods: multiple linear regression (MLR),
 #' artificial neural networks with Bayesian regularization training
-#' algorithm (BRNN), model trees (MT), model trees with bagging (BMT) and
-#' random forest of regression trees (RF). With the subset argument, specific
-#' methods of interest could be specified. Calculated performance metrics are the
-#' correlation coefficient (r), the root mean squared error (RMSE), the root
-#' relative squared error (RRSE), the index of agreement (d), the reduction
-#' of error (RE), the coefficient of efficiency (CE), the detrended
-#' efficiency (DE) and mean bias. For each of the considered methods, there are
-#' also residual diagnostic plots available, separately for calibration, holdout
-#' and edge data, if applicable.
+#' algorithm (BRNN), (ensemble of) model trees (MT) and random forest of regression
+#' trees (RF). With the subset argument, specific methods of interest could be
+#' specified. Calculated performance metrics are the correlation coefficient (r),
+#' the root mean squared error (RMSE), the root relative squared error (RRSE),
+#' the index of agreement (d), the reduction of error (RE), the coefficient of
+#' efficiency (CE), the detrended efficiency (DE) and mean bias. For each of the
+#' considered methods, there are also residual diagnostic plots available,
+#' separately for calibration, holdout and edge data, if applicable.
 #'
 #' @param formula an object of class "formula" (or one that can be coerced
 #' to that class): a symbolic description of the model to be fitted.
@@ -39,12 +38,6 @@
 #' training set.
 #' @param MT_sample a number between 0 and 99.9:  this is the percentage of the dataset
 #' to be randomly selected for model building (not for out-of-bag type evaluation)
-#' @param BMT_P bagSizePercent (argument for bagging of model trees)
-#' @param BMT_I number of iterations (argument for bagging of model trees)
-#' @param BMT_M minimum number of instances used by model trees
-#' @param BMT_N unpruned (argument for bagging of model trees)
-#' @param BMT_U unsmoothed (argument for bagging of model trees)
-#' @param BMT_R use regression trees (argument for bagging of model trees)
 #' @param RF_mtry number of variables randomly sampled as candidates at each
 #' split
 #' @param RF_ntree number of trees to grow. This should not be set to too small
@@ -90,7 +83,7 @@
 #' the output list)
 #' @param n_bins number of bins used for the histograms of mean bias
 #' @param methods a vector of strings related to methods that will be compared. A full
-#' method vector is methods = c("MLR", "BRNN", "MT", "BMT", "RF").
+#' method vector is methods = c("MLR", "BRNN", "MT", "RF").
 #' To use only a subset of methods, pass a vector of methods that you would like to compare.
 #' @param tuning_metric a string that specifies what summary metric will be used to select
 #' the optimal value of tuning parameters. By default, the argument is set to "RMSE". It is
@@ -102,12 +95,6 @@
 #' @param MT_unbiased_vector a vector of possible values for MT_unbiased argument optimization
 #' @param MT_extrapolation_vector a vector of possible values for MT_extrapolation argument optimization
 #' @param MT_sample_vector a vector of possible values for MT_sample argument optimization
-#' @param BMT_P_vector a vector of possible values for BMT_P argument optimization
-#' @param BMT_I_vector a vector of possible values for BMT_I argument optimization
-#' @param BMT_M_vector a vector of possible values for BMT_M argument optimization
-#' @param BMT_N_vector a vector of possible values for BMT_N argument optimization
-#' @param BMT_U_vector a vector of possible values for BMT_U argument optimization
-#' @param BMT_R_vector a vector of possible values for BMT_R argument optimization
 #' @param RF_ntree_vector a vector of possible values for RF_ntree argument optimization
 #' @param RF_maxnodes_vector a vector of possible values for RF_maxnodes argument optimization
 #' @param RF_mtry_vector a vector of possible values for RF_mtry argument optimization
@@ -217,8 +204,7 @@
 #'
 #' example_2 <- compare_methods(formula = MVA ~  T_APR,
 #' dataset = example_dataset_1, k = 5, repeats = 10, BRNN_neurons = 1,
-#' BMT_P = 100, BMT_I = 100, BMT_M = 4, BMT_N = FALSE, BMT_U = FALSE,
-#' BMT_R = FALSE, RF_ntree = 100, RF_mtry = 2, RF_maxnodes = 35, seed_factor = 5)
+#' RF_ntree = 100, RF_mtry = 2, RF_maxnodes = 35, seed_factor = 5)
 #' example_2$mean_std
 #' example_2$ranks
 #' example_2$bias_cal
@@ -229,7 +215,7 @@
 #'
 #' example_3 <- compare_methods(formula = MVA ~ .,
 #' dataset = example_dataset_1, k = 2, repeats = 5,
-#' methods = c("MLR", "BRNN", "MT", "BMT"),
+#' methods = c("MLR", "BRNN", "MT"),
 #' optimize = TRUE, MLR_stepwise = TRUE)
 #' example_3$mean_std
 #' example_3$ranks
@@ -258,8 +244,7 @@ compare_methods <- function(formula, dataset, k = 10, repeats = 2,
                             optimize = TRUE, dataset_complete = NULL,
                             BRNN_neurons = 1, MT_committees = 1, MT_neighbors = 5,
                             MT_rules = 200, MT_unbiased = TRUE, MT_extrapolation = 100,
-                            MT_sample = 0, BMT_P = 100, BMT_I = 100, BMT_M = 4,
-                            BMT_N = F, BMT_U = F, BMT_R = F,
+                            MT_sample = 0,
                             RF_ntree = 500,
                             RF_maxnodes = 5,
                             RF_mtry  = 1,
@@ -272,7 +257,7 @@ compare_methods <- function(formula, dataset, k = 10, repeats = 2,
                             round_bias_cal = 15, round_bias_val = 4,
                             n_bins = 30, edge_share = 0.10,
                             MLR_stepwise = FALSE, stepwise_direction = "backward",
-                            methods = c("MLR", "BRNN", "MT", "BMT", "RF"),
+                            methods = c("MLR", "BRNN", "MT", "RF"),
                             tuning_metric = "RMSE",
                             BRNN_neurons_vector = c(1, 2, 3),
                             MT_committees_vector = c(1, 5, 10),
@@ -281,12 +266,6 @@ compare_methods <- function(formula, dataset, k = 10, repeats = 2,
                             MT_unbiased_vector = c(TRUE, FALSE),
                             MT_extrapolation_vector = c(100),
                             MT_sample_vector = c(0),
-                            BMT_P_vector = c(100),
-                            BMT_I_vector = c(100),
-                            BMT_M_vector  = c(4, 8, 16, 25),
-                            BMT_N_vector  = c(TRUE, FALSE),
-                            BMT_U_vector  = c(TRUE, FALSE),
-                            BMT_R_vector = c(FALSE),
                             RF_ntree_vector = c(100, 250, 500),
                             RF_maxnodes_vector = c(5, 10, 20, 25),
                             RF_mtry_vector  = c(1),
@@ -304,7 +283,12 @@ if (repeats > 1 & blocked_CV == TRUE){
 
 dataset <- data.frame(dataset) # dataset needs to be of class data.frame!
 
-full_methods <- c("MLR", "BRNN", "MT", "BMT", "RF")
+full_methods <- c("MLR", "BRNN", "MT", "RF")
+
+if ("BMT" %in% methods){
+  warning(paste0("BMT and MT from RWeka package are now replaced with cubist R function and refered as MT.",
+                 "To fit ensemble model tree, use committees argument (MT_committees)."))
+}
 
 methods <- sort(methods)
 
@@ -318,7 +302,6 @@ set.seed(seed_factor) # We ensure that the optimization results are always the s
 list_MLR <- list()
 list_BRNN <- list()
 list_MT <- list()
-list_BMT <- list()
 list_RF <- list()
 
 # Here, idex of dependent variable is extracted and later used to locate the
@@ -613,103 +596,6 @@ if (optimize == TRUE & blocked_CV == FALSE){
   }
 
 
-
-  if ("BMT" %in% methods | total_reproducibility == TRUE){
-
-    print("Tuning parameters for the BMT method...")
-
-    # 2 Optimization for MT
-    BMT_P <- BMT_P_vector
-    BMT_I <- BMT_I_vector
-    BMT_N <- BMT_N_vector
-    BMT_U <- BMT_U_vector
-    BMT_R <- BMT_R_vector
-    BMT_M <- BMT_M_vector
-
-    hyper_grid <- expand.grid(P = BMT_P, I = BMT_I, N = BMT_N, U = BMT_U, M = BMT_M, R = BMT_R)
-
-    # Number of potential models in the grid
-    num_models <- nrow(hyper_grid)
-
-    # Create an empty list to store models
-    grade_models <- list()
-
-    # Write a loop over the rows of hyper_grid to train the grid of models
-    for (i in 1:num_models) {
-
-      # Get minsplit, maxdepth values at row i
-      P <- hyper_grid$P[i]
-      I <- hyper_grid$I[i]
-      R <- hyper_grid$R[i]
-      N <- hyper_grid$N[i]
-      U <- hyper_grid$U[i]
-      M <- hyper_grid$M[i]
-
-      # cross_validation
-      foldi <- seq(1:k)
-      foldi <- paste("fold_", foldi)
-
-      #Randomly shuffle the data
-      dataset <- dataset[sample(nrow(dataset)), ]
-
-      #Create 10 equally size folds
-      folds <- cut(seq(1, nrow(dataset)), breaks = k, labels = FALSE)
-
-      #Perform k fold cross validation
-      tuning_vector <- c()
-
-      for (j in 1:k){
-
-        #Segement your data by fold using the which() function
-        testIndexes <- which(folds == j, arr.ind = TRUE)
-        test <- dataset[testIndexes, ]
-        train <- dataset[-testIndexes, ]
-
-        #MLR MODEL
-        model_temp <- Bagging(formula, data = train,
-                              control = Weka_control(P = P, I = I,
-                              W = list("weka.classifiers.trees.M5P",
-                              M = M, N = N, U = U, R = R)))
-
-        test_observed <- test[, DepIndex]
-        test_predicted <- predict(model_temp, test)
-
-        if (tuning_metric == "RMSE"){
-          tuning_vector[j] <- MLmetrics::RMSE(test_predicted, test_observed)
-        } else if (tuning_metric == "RSquared"){
-          tuning_vector[j] <- cor(test_predicted, test_observed)^2
-        } else {
-          stop(paste0("tuning_metric argument should be RMSE or RSquared! Instead it is ", tuning_metric))
-        }
-
-      }
-
-      grade_models[i] <- mean(tuning_vector)
-
-    }
-
-    grade_list <- unlist(grade_models)
-
-    # Identify the model with smallest validation set RMSE
-    if (tuning_metric == "RMSE"){
-      best_model <- which.min(grade_list)}
-    if (tuning_metric == "RSquared"){
-      best_model <- which.max(grade_list)
-    }
-
-    best_parameters <- hyper_grid[best_model, ]
-
-    BMT_P <- as.numeric(best_parameters[1])
-    BMT_I <- as.numeric(best_parameters[2])
-    BMT_N <- as.logical(best_parameters[3])
-    BMT_U <- as.logical(best_parameters[4])
-    BMT_M <- as.numeric(best_parameters[5])
-    BMT_R <- as.logical(best_parameters[6])
-  }
-
-
-
-
   if ("RF" %in% methods | total_reproducibility == TRUE){
     # 2 Optimization for RF
 
@@ -995,113 +881,6 @@ if (optimize == TRUE & blocked_CV == TRUE){
 
   }
 
-
-
-
-
-
-
-
-  if ("BMT" %in% methods | total_reproducibility == TRUE){
-
-    print("Tuning parameters for the BMT method...")
-
-    # 2 Optimization for MT
-    BMT_P <- BMT_P_vector
-    BMT_I <- BMT_I_vector
-    BMT_N <- BMT_N_vector
-    BMT_U <- BMT_U_vector
-    BMT_R <- BMT_R_vector
-    BMT_M <- BMT_M_vector
-
-    hyper_grid <- expand.grid(P = BMT_P, I = BMT_I, N = BMT_N, U = BMT_U, M = BMT_M, R = BMT_R)
-
-    # Number of potential models in the grid
-    num_models <- nrow(hyper_grid)
-
-    # Create an empty list to store models
-    grade_models <- list()
-
-    # Write a loop over the rows of hyper_grid to train the grid of models
-    for (i in 1:num_models) {
-
-      # Get minsplit, maxdepth values at row i
-      P <- hyper_grid$P[i]
-      I <- hyper_grid$I[i]
-      R <- hyper_grid$R[i]
-      N <- hyper_grid$N[i]
-      U <- hyper_grid$U[i]
-      M <- hyper_grid$M[i]
-
-      # cross_validation
-      foldi <- seq(1:k)
-      foldi <- paste("fold_", foldi)
-
-      #Randomly shuffle the data
-      #dataset <- dataset[sample(nrow(dataset)), ]
-
-      #Create 10 equally size folds
-      folds <- cut(seq(1, nrow(dataset)), breaks = k, labels = FALSE)
-
-      #Perform k fold cross validation
-      tuning_vector <- c()
-
-      for (j in 1:k){
-
-        #Segement your data by fold using the which() function
-        testIndexes <- which(folds == j, arr.ind = TRUE)
-        test <- dataset[testIndexes, ]
-        train <- dataset[-testIndexes, ]
-
-        #MLR MODEL
-        model_temp <- Bagging(formula, data = train,
-                              control = Weka_control(P = P, I = I,
-                                                     W = list("weka.classifiers.trees.M5P",
-                                                              M = M, N = N, U = U, R = R)))
-
-        test_observed <- test[, DepIndex]
-        test_predicted <- predict(model_temp, test)
-
-        if (tuning_metric == "RMSE"){
-          tuning_vector[j] <- MLmetrics::RMSE(test_predicted, test_observed)
-        } else if (tuning_metric == "RSquared"){
-          tuning_vector[j] <- cor(test_predicted, test_observed)^2
-        } else {
-          stop(paste0("tuning_metric argument should be RMSE or RSquared! Instead it is ", tuning_metric))
-        }
-
-      }
-
-      grade_models[i] <- mean(tuning_vector)
-
-    }
-
-    grade_list <- unlist(grade_models)
-
-    # Identify the model with smallest validation set RMSE
-    if (tuning_metric == "RMSE"){
-      best_model <- which.min(grade_list)}
-    if (tuning_metric == "RSquared"){
-      best_model <- which.max(grade_list)
-    }
-
-    best_parameters <- hyper_grid[best_model, ]
-
-    BMT_P <- as.numeric(best_parameters[1])
-    BMT_I <- as.numeric(best_parameters[2])
-    BMT_N <- as.logical(best_parameters[3])
-    BMT_U <- as.logical(best_parameters[4])
-    BMT_M <- as.numeric(best_parameters[5])
-    BMT_R <- as.logical(best_parameters[6])
-  }
-
-
-
-
-
-
-
-
   if ("RF" %in% methods | total_reproducibility == TRUE){
     # 2 Optimization for RF
 
@@ -1283,21 +1062,6 @@ for (j in 1:k){
                                     formula = formula, test = test)
   list_MT[[b]] <- calculations
 
-  #M5 Model with bagging
-  BMT_model <- Bagging(formula,
-                       data = train,
-                       control = Weka_control(P = BMT_P, I = BMT_I,
-                                              W = list("weka.classifiers.trees.M5P",
-                                                       M = BMT_M, N = BMT_N,
-                                                       U = BMT_U, R = BMT_R)))
-  train_predicted <- predict(BMT_model, train)
-  test_predicted <- predict(BMT_model, test)
-  calculations <- calculate_metrics(train_predicted, test_predicted,
-                                    train_observed, test_observed, digits = 15,
-                                    formula = formula, test = test)
-  list_BMT[[b]] <- calculations
-
-
   # Random Forest, Regression Tree with random forest, WEKA
   RF_model <- randomForest(formula = formula, data = train, ntree = RF_ntree,
                            maxnodes = RF_maxnodes, mtry  = RF_mtry,
@@ -1404,19 +1168,6 @@ if (blocked_CV == TRUE){
                                       formula = formula, test = test)
     list_MT[[b]] <- calculations
 
-    #M5 Model with bagging
-    BMT_model <- Bagging(formula,
-                         data = train,
-                         control = Weka_control(P = BMT_P, I = BMT_I,
-                                                W = list("weka.classifiers.trees.M5P",
-                                                         M = BMT_M, N = BMT_N,
-                                                         U = BMT_U, R = BMT_R)))
-    train_predicted <- predict(BMT_model, train)
-    test_predicted <- predict(BMT_model, test)
-    calculations <- calculate_metrics(train_predicted, test_predicted,
-                                      train_observed, test_observed, digits = 15,
-                                      formula = formula, test = test)
-    list_BMT[[b]] <- calculations
 
     ##Random Forest
     RF_model <- randomForest(formula = formula, data = train, ntree = RF_ntree,
@@ -1482,18 +1233,6 @@ rownames(df_MT_avg) <- c("r_cal", "r_val", "RMSE_cal", "RMSE_val", "RSSE_cal",
                       "RSSE_val", "d_cal", "d_val", "RE_cal", "RE_val",
                       "CE_cal", "CE_val", "DE_cal", "DE_val")
 
-listVec <- lapply(list_BMT, c, recursive = TRUE)
-m <- do.call(cbind, listVec)
-averages <- apply(m, 1, mean, na.rm = TRUE)
-std <- apply(m, 1, sd, na.rm = TRUE)
-m <- cbind(m, averages, std)
-df_BMT <- data.frame(m)
-df_BMT_bias <- df_BMT[c(15, 16), c(1: position)]
-df_BMT_rank <- df_BMT[-c(15, 16), c(1: position)]
-df_BMT_avg <- df_BMT[-c(15, 16), c(position + 1, position + 2)]
-rownames(df_BMT_avg) <- c("r_cal", "r_val", "RMSE_cal", "RMSE_val", "RSSE_cal",
-                      "RSSE_val", "d_cal", "d_val", "RE_cal", "RE_val",
-                      "CE_cal", "CE_val", "DE_cal", "DE_val")
 
 listVec <- lapply(list_RF, c, recursive = TRUE)
 m <- do.call(cbind, listVec)
@@ -1661,8 +1400,6 @@ CE_val_ranks <- cbind(AVG_rank, shareOne)
 names(CE_val_ranks) <-  c("Mean Rank",  "%rank_1")
 
 
-
-
 AVG_rank <- data.frame(rowMeans(apply(-DE_cal, 2, rank, ties.method = "min")))
 shareOne <- data.frame(apply(apply(-DE_cal, 2, rank, ties.method = "min"), 1,
                              count_ones) /  position)
@@ -1693,10 +1430,6 @@ BRNN_AR <- NULL
 BRNN_M <- NULL
 BRNN_S1 <- NULL
 BRNN_SD <- NULL
-BMT <- NULL
-BMT_AR <- NULL
-BMT_S1 <- NULL
-BMT_SD <- NULL
 MLR <- NULL
 MLR_AR <- NULL
 MLR_M <- NULL
@@ -1827,9 +1560,6 @@ df_BRNN_bias$Method <- "BRNN"
 df_MT_bias$Period <- c("Calibration", "Validation")
 df_MT_bias$Method <- "MT"
 
-df_BMT_bias$Period <- c("Calibration", "Validation")
-df_BMT_bias$Method <- "BMT"
-
 df_RF_bias$Period <- c("Calibration", "Validation")
 df_RF_bias$Method <- "RF"
 
@@ -1923,15 +1653,6 @@ MT_model <- cubist(x = dataset_ind, y = dataset_dep, committees = MT_committees,
                    unbiased = MT_unbiased, extrapolation = MT_extrapolation, sample = MT_sample))
 predicted_MT <- data.frame(pred = predict(MT_model, full_range_ind), method = "MT")
 
-#M5 Model with bagging
-BMT_model <- Bagging(formula,
-                     data = dataset,
-                     control = Weka_control(P = BMT_P, I = BMT_I,
-                                            W = list("weka.classifiers.trees.M5P",
-                                                     M = BMT_M, N = BMT_N,
-                                                     U = BMT_U, R = BMT_R)))
-predicted_BMT <- data.frame(pred = predict(BMT_model, full_range), method = "BMT")
-
 # Random Forest
 RF_model <- randomForest(formula = formula, data = dataset, ntree = RF_ntree,
                          maxnodes = RF_maxnodes, mtry  = RF_mtry,
@@ -1993,12 +1714,6 @@ plot_2 <- ggplot(predictions, aes(x = range, y = pred, group = method, colour = 
   modelList = list()
   plotList = list()
   plotListNames = methods
-
-  if ("BMT" %in% methods){
-    modelList$BMT = Bagging(formula, dataset, control = Weka_control(P = BMT_P, I = BMT_I,
-                                                                    W = list("weka.classifiers.trees.M5P",
-                                                                             M = BMT_M, N = BMT_N, U = BMT_U, R = BMT_R)))
-  }
 
   if ("BRNN" %in% methods){
     modelList$BRNN = brnn(formula, dataset, neurons = BRNN_neurons)
@@ -2236,11 +1951,9 @@ Results_ranks <- round_df(Results_ranks, digits = digits)
 # Here, all optimized parameters are saved in a data frame, which will be saved as
 # a fifth elemnt of the final_list
 parameters <- data.frame(
-  Method = c("BRNN", "MT", "MT", "MT", "MT","MT" , "MT","BMT", "BMT", "BMT", "BMT", "BMT", "BMT",
-             "RF", "RF", "RF", "RF"),
+  Method = c("BRNN", "MT", "MT", "MT", "MT","MT" , "MT", "RF", "RF", "RF", "RF"),
   Parameter = c("BRNN_neurons", "MT_committees", "MT_neighbors", "MT_rules", "MT_unbiased",
-                "MT_extrapolation", "MT_sample", "BMT_P", "BMT_I", "BMT_M",
-                "BMT_N", "BMT_U", "BMT_R", "RF_mtry", "RF_maxnodes", "RF_ntree", "RF_nodesize"),
+                "MT_extrapolation", "MT_sample", "RF_mtry", "RF_maxnodes", "RF_ntree", "RF_nodesize"),
   Considered_values = c(
     as.character(paste0(BRNN_neurons_vector, collapse=", ")),
     as.character(paste0(MT_committees_vector, collapse=", ")),
@@ -2249,12 +1962,6 @@ parameters <- data.frame(
     as.character(paste0(MT_unbiased_vector, collapse=", ")),
     as.character(paste0(MT_extrapolation_vector, collapse=", ")),
     as.character(paste0(MT_sample_vector, collapse=", ")),
-    as.character(paste0(BMT_P_vector, collapse=", ")),
-    as.character(paste0(BMT_I_vector, collapse=", ")),
-    as.character(paste0(BMT_M_vector, collapse=", ")),
-    as.character(paste0(BMT_N_vector, collapse=", ")),
-    as.character(paste0(BMT_U_vector, collapse=", ")),
-    as.character(paste0(BMT_R_vector, collapse=", ")),
     as.character(paste0(RF_mtry_vector, collapse=", ")),
     as.character(paste0(RF_maxnodes_vector, collapse=", ")),
     as.character(paste0(RF_ntree_vector, collapse=" ")),
@@ -2262,11 +1969,7 @@ parameters <- data.frame(
     ),
   Value = c(BRNN_neurons, MT_committees, MT_neighbors, MT_rules,
             ifelse(MT_unbiased == 1, as.character("TRUE"), as.character("FALSE")),
-            MT_extrapolation, MT_sample, BMT_P, BMT_I, BMT_M,
-            ifelse(BMT_N == 1, as.character("TRUE"), as.character("FALSE")),
-            ifelse(BMT_U == 1, as.character("TRUE"), as.character("FALSE")),
-            ifelse(BMT_R == 1, as.character("TRUE"), as.character("FALSE")),
-            RF_mtry, RF_maxnodes, RF_ntree, RF_nodesize))
+            MT_extrapolation, MT_sample, RF_mtry, RF_maxnodes, RF_ntree, RF_nodesize))
 
 colnames(parameters) = c("Method", "Parameter", "Considered values", "Selected value")
 
@@ -2301,15 +2004,6 @@ MT_model <- cubist(x = dataset_ind, y = dataset_dep, committees = MT_committees,
                    unbiased = MT_unbiased, extrapolation = MT_extrapolation, sample = MT_sample))
 reconstruction_MT <- data.frame(reconstruction = predict(MT_model, dataset_complete_ind), method = "MT")
 
-
-#M5 Model with bagging
-BMT_model <- Bagging(formula,
-                     data = dataset,
-                     control = Weka_control(P = BMT_P, I = BMT_I,
-                                            W = list("weka.classifiers.trees.M5P",
-                                                     M = BMT_M, N = BMT_N,
-                                                     U = BMT_U, R = BMT_R)))
-reconstruction_BMT <- data.frame(reconstruction = predict(BMT_model, dataset_complete), method = "BMT")
 
 # Random Forest
 RF_model <- randomForest(formula = formula, data = dataset, ntree = RF_ntree,
@@ -2423,22 +2117,6 @@ dataset_central <- dplyr::arrange(dataset, desc(dataset[, -DepIndex]))[(edge_fac
   residuals_edge_MT <- data.frame(residuals = edge_prediction$value - edge_observed$value,
                                    predicted = edge_prediction$value, method = "MT")
 
-  #M5 Model with bagging
-  BMT_model <- Bagging(formula,
-                       data = dataset_central,
-                       control = Weka_control(P = BMT_P, I = BMT_I,
-                                              W = list("weka.classifiers.trees.M5P",
-                                                       M = BMT_M, N = BMT_N,
-                                                       U = BMT_U, R = BMT_R)))
-  edge_prediction <- data.frame(value = predict(BMT_model, dataset_edges), data_edge_central = "edge", type = "predicted", method = "BMT")
-  central_prediction <- data.frame(value = predict(BMT_model, dataset_central), data_edge_central = "central", type = "predicted", method = "BMT")
-  edge_observed <- data.frame(value = dataset_edges[, DepIndex], data_edge_central = "edge", type = "observed", method = "BMT")
-  central_observed <- data.frame(value = dataset_central[, DepIndex], data_edge_central = "central", type = "observed", method = "BMT")
-  BMT_central_edge <- rbind(edge_prediction, central_prediction, edge_observed, central_observed)
-
-  residuals_edge_BMT <- data.frame(residuals = edge_prediction$value - edge_observed$value,
-                                   predicted = edge_prediction$value, method = "BMT")
-
   # Random Forest
   RF_model <- randomForest(formula = formula, data = dataset_central, ntree = RF_ntree, maxnodes = RF_maxnodes, mtry  = RF_mtry,
                            nodesize = RF_nodesize)
@@ -2455,14 +2133,12 @@ dataset_central <- dplyr::arrange(dataset, desc(dataset[, -DepIndex]))[(edge_fac
   edge_central_data <- rbind(MLR_central_edge,
                              BRNN_central_edge,
                              MT_central_edge,
-                             BMT_central_edge,
                              RF_central_edge)
 
   # Here i define the residual dataframe for the holdout
   residuals_edge = rbind(residuals_edge_MLR,
                             residuals_edge_BRNN,
                             residuals_edge_MT,
-                            residuals_edge_BMT,
                             residuals_edge_RF)
 
   edge_central_data$DE = 0
@@ -2470,10 +2146,9 @@ dataset_central <- dplyr::arrange(dataset, desc(dataset[, -DepIndex]))[(edge_fac
   DE_data_MLR <- data.frame(value = DE_predicted, data_edge_central = "edge", type = "predicted", method = "MLR", DE = 1)
   DE_data_BRNN <- data.frame(value = DE_predicted, data_edge_central = "edge", type = "predicted", method = "BRNN", DE = 1)
   DE_data_MT <- data.frame(value = DE_predicted, data_edge_central = "edge", type = "predicted", method = "MT", DE = 1)
-  DE_data_BMT <- data.frame(value = DE_predicted, data_edge_central = "edge", type = "predicted", method = "BMT", DE = 1)
   DE_data_RF <- data.frame(value = DE_predicted, data_edge_central = "edge", type = "predicted", method = "RF", DE = 1)
 
-  DE_data <- rbind(DE_data_MLR,DE_data_BRNN,DE_data_MT,DE_data_BMT, DE_data_RF)
+  DE_data <- rbind(DE_data_MLR,DE_data_BRNN,DE_data_MT,DE_data_RF)
 
   edge_central_data <- rbind(edge_central_data, DE_data)
 
@@ -2617,22 +2292,6 @@ if (!is.null(holdout)) {
   residuals_holdout_MT <- data.frame(residuals = holdout_prediction$value - holdout_observed$value,
                                      predicted = holdout_prediction$value, method = "MT")
 
-  #M5 Model with bagging
-  BMT_model <- Bagging(formula,
-                       data = dataset,
-                       control = Weka_control(P = BMT_P, I = BMT_I,
-                                              W = list("weka.classifiers.trees.M5P",
-                                                       M = BMT_M, N = BMT_N,
-                                                       U = BMT_U, R = BMT_R)))
-  holdout_prediction <- data.frame(value = predict(BMT_model, dataset_holdout), data_holdout_calibration = "holdout", type = "predicted", method = "BMT")
-  calibration_prediction <- data.frame(value = predict(BMT_model, dataset), data_holdout_calibration = "calibration", type = "predicted", method = "BMT")
-  holdout_observed <- data.frame(value = dataset_holdout[, DepIndex], data_holdout_calibration = "holdout", type = "observed", method = "BMT")
-  calibration_observed <- data.frame(value = dataset[, DepIndex], data_holdout_calibration = "calibration", type = "observed", method = "BMT")
-  BMT_calibration_holdout <- rbind(holdout_prediction, calibration_prediction, holdout_observed, calibration_observed)
-
-  residuals_holdout_BMT <- data.frame(residuals = holdout_prediction$value - holdout_observed$value,
-                                      predicted = holdout_prediction$value, method = "BMT")
-
   # Random Forest
   RF_model <- randomForest(formula = formula, data = dataset, mtry = RF_mtry,
                            maxnodes = RF_maxnodes, ntree = RF_ntree, nodesize = RF_nodesize)
@@ -2646,7 +2305,6 @@ if (!is.null(holdout)) {
   holdout_calibration_data <- rbind(MLR_calibration_holdout,
                              BRNN_calibration_holdout,
                              MT_calibration_holdout,
-                             BMT_calibration_holdout,
                              RF_calibration_holdout)
 
   residuals_holdout_RF <- data.frame(residuals = holdout_prediction$value - holdout_observed$value,
@@ -2656,7 +2314,6 @@ if (!is.null(holdout)) {
   residuals_holdout = rbind(residuals_holdout_MLR,
                             residuals_holdout_BRNN,
                             residuals_holdout_MT,
-                            residuals_holdout_BMT,
                             residuals_holdout_RF)
 
   residuals_holdout <- filter(residuals_holdout, method %in% methods)
@@ -2667,10 +2324,9 @@ if (!is.null(holdout)) {
   DE_data_MLR <- data.frame(value = DE_predicted, data_holdout_calibration = "holdout", type = "predicted", method = "MLR", DE = 1)
   DE_data_BRNN <- data.frame(value = DE_predicted, data_holdout_calibration = "holdout", type = "predicted", method = "BRNN", DE = 1)
   DE_data_MT <- data.frame(value = DE_predicted, data_holdout_calibration = "holdout", type = "predicted", method = "MT", DE = 1)
-  DE_data_BMT <- data.frame(value = DE_predicted, data_holdout_calibration = "holdout", type = "predicted", method = "BMT", DE = 1)
   DE_data_RF <- data.frame(value = DE_predicted, data_holdout_calibration = "holdout", type = "predicted", method = "RF", DE = 1)
 
-  DE_data <- rbind(DE_data_MLR,DE_data_BRNN,DE_data_MT,DE_data_BMT, DE_data_RF)
+  DE_data <- rbind(DE_data_MLR,DE_data_BRNN,DE_data_MT,DE_data_RF)
 
   holdout_calibration_data <- rbind(holdout_calibration_data, DE_data)
 
@@ -2789,25 +2445,6 @@ residuals_df_MT <- data.frame(residuals = residuals_MT,
                               predicted = MT_predicted,
                               method = "MT")
 residuals_df <- rbind(residuals_df, residuals_df_MT)
-
-}
-
-# BMT model
-if ("BMT" %in% methods){
-BMT_model <- Bagging(formula,
-                     data = dataset,
-                     control = Weka_control(P = BMT_P, I = BMT_I,
-                                            W = list("weka.classifiers.trees.M5P",
-                                                     M = BMT_M, N = BMT_N,
-                                                     U = BMT_U, R = BMT_R)))
-BMT_predicted <- predict(BMT_model, dataset)
-residuals_BMT <- BMT_predicted - data_observed
-LOESS_BMT <- loess.smooth(BMT_predicted, residuals_BMT)
-residuals_df_BMT <- data.frame(residuals = residuals_BMT,
-                               predicted = BMT_predicted,
-                               method = "BMT")
-residuals_df <- rbind(residuals_df, residuals_df_BMT)
-
 
 }
 
