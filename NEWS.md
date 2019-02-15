@@ -1,5 +1,10 @@
-# dendroTools 1.0.2.
+# dendroTools 1.0.3.
 
+* Package version is changed to 1.0.3
+* There is new function introduced: KNMI_daily_transform() which transforms daily data obtained from KNMI Climate explorer into data frame suitable for daily_response(). 
+* New TRW chronology is included, swit272
+
+# dendroTools 1.0.2.
 * Package version is changed to 1.0.2
 * There have been many issues with RWeka package, which depends on rJava. Therefore, functions from RWeka are replaced with other functions. For random forest model we now use randomForest package
 * There are six new output elements, all of them are residual diagnostic plots for calibration, holdout and edge data.

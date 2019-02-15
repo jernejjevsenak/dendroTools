@@ -2,7 +2,7 @@ Package: dendroTools
 Type: Package
 Title: Linear and Nonlinear Methods for Analyzing Dendroclimatological Data
 Version: 1.0.2
-Author: Jernej Jevsenak [aut, cre], Tom Levanic [ctb]
+Author: Jernej Jevsenak [aut, cre]
 Maintainer: Jernej Jevsenak <jernej.jevsenak@gmail.com>
 Description: Provides novel dendroclimatological methods, primarily used by the
     Tree-ring research community. There are two core functions. The first one is 
@@ -19,7 +19,7 @@ RoxygenNote: 6.1.1
 Imports: ggplot2(>= 2.2.0), brnn(>= 0.6), reshape2(>= 1.4.2), scales(>= 0.4.1), 
   stats, oce(>= 0.9-21), MLmetrics(>= 1.1.1), dplyr(>= 0.7.0), gridExtra(>= 2.2.1), 
   knitr(>= 1.19), magrittr(>= 1.5), plotly(>= 4.7.1), randomForest(>= 4.6-14), 
-  Cubist(>= 0.2.2)
+  Cubist(>= 0.2.2), lubridate (>= 1.7.4)
 Depends: R(>= 3.4)
 NeedsCompilation: no
 Repository: CRAN
