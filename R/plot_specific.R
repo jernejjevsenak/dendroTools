@@ -20,6 +20,8 @@
 #' DOY 15. If the reference window is set to ‘end’, then this calculation will be
 #' related to the DOY 35. If the reference_window is set to 'middle', then this
 #' calculation is related to DOY 25.
+#' @param type the character string describing type of analysis: daily or monthly
+#'
 #' @return A ggplot2 object containing the plot display
 #'
 #' @examples
@@ -49,7 +51,7 @@
 #' @keywords internal
 
 plot_specific <- function(result_daily_response, window_width, title = TRUE,
-                          ylimits = NULL, reference_window = "start") {
+                          ylimits = NULL, reference_window = "start", type = "daily") {
 
   # Short description of the function. It
   # - extracts matrix (the frst object of a list)
@@ -93,7 +95,7 @@ plot_specific <- function(result_daily_response, window_width, title = TRUE,
   }
   # To check if the last row is a missing value
   if (is.na(temporal_vector[nrow(temporal_vector), ] == TRUE)) {
-    temporal_vector <- temporal_vector[-c(row_count:(row_count +
+    temporal_vector <- temporal_vector[-c((row_count + 1):(row_count +
                                                          delete_rows)), ]
   }
   temporal_vector <- data.frame(temporal_vector)

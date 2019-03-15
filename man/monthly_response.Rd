@@ -5,8 +5,7 @@
 \title{monthly_response}
 \usage{
 monthly_response(response, env_data, method = "lm",
-  metric = "r.squared", lower_limit = 1, upper_limit = 12,
-  fixed_width = 0, previous_year = FALSE, neurons = 1,
+  metric = "r.squared", previous_year = FALSE, neurons = 1,
   brnn_smooth = TRUE, remove_insignificant = TRUE, alpha = 0.05,
   row_names_subset = FALSE, PCA_transformation = FALSE,
   log_preprocess = TRUE, components_selection = "automatic",
@@ -14,7 +13,7 @@ monthly_response(response, env_data, method = "lm",
   aggregate_function = "mean", temporal_stability_check = "sequential",
   k = 2, k_running_window = 30, cross_validation_type = "blocked",
   subset_years = NULL, plot_specific_window = NULL, ylimits = NULL,
-  seed = NULL, tidy_env_data = FALSE, reference_window = "start")
+  seed = NULL, tidy_env_data = FALSE)
 }
 \arguments{
 \item{response}{a data frame with tree-ring proxy variables as columns and
@@ -36,13 +35,6 @@ possibilities are "cor", "lm" and "brnn".}
 \item{metric}{a character string specifying which metric to use. Current
 possibilities are "r.squared" and "adj.r.squared". If method = "cor",
 metric is not relevant.}
-
-\item{lower_limit}{lower limit of window width}
-
-\item{upper_limit}{upper limit of window width}
-
-\item{fixed_width}{fixed width used for calculation. If fixed_width is
-assigned a value, upper_limit and lower_limit will be ignored}
 
 \item{previous_year}{if set to TRUE, env_data and response variables will be
 rearranged in a way, that also previous year will be used for calculations of
@@ -118,23 +110,7 @@ given in the form of: ylimits = c(0,1)}
 \item{seed}{optional seed argument for reproducible results}
 
 \item{tidy_env_data}{if set to TRUE, env_data should be inserted as a data frame with three
-columns: "Year", "DOY", "Precipitation/Temperature/etc."}
-
-\item{reference_window}{character string, the reference_window argument describes,
-how each calculation is referred. There are three different options: 'start'
-(default), 'end' and 'middle'. If the reference_window argument is set to 'start',
-then each calculation is related to the starting day of window. If the
-reference_window argument is set to 'middle', each calculation is related to the
-middle day of window calculation. If the reference_window argument is set to
-'end', then each calculation is related to the ending day of window calculation.
-For example, if we consider correlations with window from DOY 15 to DOY 35. If
-reference window is set to ‘start’, then this calculation will be related to the
-DOY 15. If the reference window is set to ‘end’, then this calculation will be
-related to the DOY 35. If the reference_window is set to 'middle', then this
-calculation is related to DOY 25.
-The optimal selection, which describes the optimal consecutive days that returns
-the highest calculated metric and is obtained by the $plot_extreme output, is the
-same for all three reference windows.}
+columns: "Year", "Month", "Precipitation/Temperature/etc."}
 }
 \value{
 a list with 13 elements:
@@ -151,20 +127,18 @@ a list with 13 elements:
  10 \tab $plot_heatmap    \tab ggplot2 object: a heatmap of calculated metrics\cr
  11 \tab $plot_extreme    \tab ggplot2 object: line plot of a row with the highest value in a matrix of calculated metrics\cr
  12 \tab $plot_specific    \tab ggplot2 object: line plot of a row with a selected window width in a matrix of calculated metrics\cr
- 13 \tab $PCA_output    \tab princomp object: the result output of the PCA analysis
+ 13 \tab $PCA_output    \tab princomp object: the result output of the PCA analysis\cr
+ 14 \tab $type    \tab the character string describing type of analysis: daily or monthly
 }
 }
 \description{
 Function calculates all possible values of a selected statistical metric
 between one or more response variables and monthly sequences of environmental
-data. Calculations are based on moving window which is defined with two
-arguments: window width and a location in a matrix of monthly sequences of
-environmental data. Window width could be fixed (use fixed_width) or
-variable width (use lower_limit and upper_limit arguments). In this case,
-all window widths between lower and upper limit will be used. All calculated
-metrics are stored in a matrix. The location of stored calculated metric
-in the matrix is indicating a window width (row names) and a location in a
-matrix of monthly sequences of environmental data (column names).
+data. Calculations are based on moving window which slides through monthly
+environmental data. All calculated metrics are stored in a matrix. The
+location of stored calculated metric in the matrix is indicating a window
+width (row names) and a location in a matrix of monthly sequences of
+environmental data (column names).
 }
 \examples{
 \dontrun{
@@ -178,21 +152,29 @@ data(data_TRW_1)
 data(example_proxies_individual)
 data(example_proxies_1)
 data(LJ_monthly_temperatures)
+data(LJ_monthly_precipitation)
 
 # 1 Example with fixed width
-example_fixed_width <- monthly_response(response = data_MVA, env_data = LJ_monthly_temperatures,
-                                     method = "cor", fixed_width = 0,
-                                     row_names_subset = TRUE, remove_insignificant = TRUE,
+example_tidy_data <- monthly_response(response = data_MVA, env_data = LJ_monthly_precipitation,
+                                     method = "cor", row_names_subset = TRUE,
+                                     remove_insignificant = TRUE,
                                      alpha = 0.05, aggregate_function = 'mean',
-                                     reference_window = "end")
-example_fixed_width$plot_extreme
+                                     tidy_env_data = TRUE)
+example_tidy_data$plot_extreme
+example_tidy_data$plot_heatmap
 
 # 2 Example for past and present
 example_MVA_past <- monthly_response(response = data_MVA, env_data = LJ_monthly_temperatures,
-method = "cor", lower_limit = 21, upper_limit = 180,
-row_names_subset = TRUE, previous_year = TRUE,
-remove_insignificant = TRUE, alpha = 0.05,
-plot_specific_window = 60, subset_years = c(1940, 1980), aggregate_function = 'sum')
+method = "cor", row_names_subset = TRUE, previous_year = TRUE, remove_insignificant = TRUE,
+alpha = 0.05, subset_years = c(1940, 1980), aggregate_function = 'sum')
+
+
+
+
+
+
+
+
 
 example_MVA_present <- monthly_response(response = data_MVA, env_data = LJ_monthly_temperatures,
                                       method = "cor", lower_limit = 21, upper_limit = 60,
@@ -209,7 +191,6 @@ example_MVA_present$plot_specific
 # 3 Example PCA
 example_PCA <- monthly_response(response = example_proxies_individual,
                               env_data = LJ_monthly_temperatures, method = "lm",
-                              lower_limit = 21, upper_limit = 180,
                               row_names_subset = TRUE, remove_insignificant = TRUE,
                               alpha = 0.01, PCA_transformation = TRUE,
                               components_selection = "manual", N_components = 2)
@@ -219,9 +200,8 @@ example_PCA$plot_heatmap
 
 # 4 Example negative correlations
 example_neg_cor <- monthly_response(response = data_TRW_1, env_data = LJ_monthly_temperatures,
-                                  method = "cor", lower_limit = 21, upper_limit = 180,
-                                  row_names_subset = TRUE, remove_insignificant = TRUE,
-                                  alpha = 0.05)
+                                  method = "cor", row_names_subset = TRUE,
+                                  remove_insignificant = TRUE, alpha = 0.05)
 
 example_neg_cor$plot_heatmap
 example_neg_cor$plot_extreme
@@ -234,7 +214,6 @@ cor(example_proxies_1)
 example_multiproxy <- monthly_response(response = example_proxies_1,
                                      env_data = LJ_monthly_temperatures,
                                      method = "lm", metric = "adj.r.squared",
-                                     lower_limit = 21, upper_limit = 180,
                                      row_names_subset = TRUE, previous_year = FALSE,
                                      remove_insignificant = TRUE, alpha = 0.05)
 
@@ -242,8 +221,8 @@ example_multiproxy$plot_heatmap
 
 # 6 Example to test the temporal stability
 example_MVA_ts <- monthly_response(response = data_MVA, env_data = LJ_monthly_temperatures,
-method = "brnn", lower_limit = 100, metric = "adj.r.squared", upper_limit = 180,
-row_names_subset = TRUE, remove_insignificant = TRUE, alpha = 0.05,
+method = "brnn", metric = "adj.r.squared", row_names_subset = TRUE,
+remove_insignificant = TRUE, alpha = 0.05,
 temporal_stability_check = "running_window", k_running_window = 10)
 
 example_MVA_ts$temporal_stability

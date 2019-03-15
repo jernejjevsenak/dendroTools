@@ -4,7 +4,8 @@
 \alias{plot_heatmap}
 \title{plot_heatmap}
 \usage{
-plot_heatmap(result_daily_response, reference_window = "start")
+plot_heatmap(result_daily_response, reference_window = "start",
+  type = "daily")
 }
 \arguments{
 \item{result_daily_response}{a list with three objects as produced by
@@ -22,6 +23,8 @@ reference window is set to ‘start’, then this calculation will be related to
 DOY 15. If the reference window is set to ‘end’, then this calculation will be
 related to the DOY 35. If the reference_window is set to 'middle', then this
 calculation is related to DOY 25.}
+
+\item{type}{the character string describing type of analysis: daily or monthly}
 }
 \value{
 A ggplot2 object containing the heatmap display

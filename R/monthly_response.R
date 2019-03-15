@@ -2,14 +2,11 @@
 #'
 #' Function calculates all possible values of a selected statistical metric
 #' between one or more response variables and monthly sequences of environmental
-#' data. Calculations are based on moving window which is defined with two
-#' arguments: window width and a location in a matrix of monthly sequences of
-#' environmental data. Window width could be fixed (use fixed_width) or
-#' variable width (use lower_limit and upper_limit arguments). In this case,
-#' all window widths between lower and upper limit will be used. All calculated
-#' metrics are stored in a matrix. The location of stored calculated metric
-#' in the matrix is indicating a window width (row names) and a location in a
-#' matrix of monthly sequences of environmental data (column names).
+#' data. Calculations are based on moving window which slides through monthly
+#' environmental data. All calculated metrics are stored in a matrix. The
+#' location of stored calculated metric in the matrix is indicating a window
+#' width (row names) and a location in a matrix of monthly sequences of
+#' environmental data (column names).
 #'
 #' @param response a data frame with tree-ring proxy variables as columns and
 #' (optional) years as row names. Row.names should be matched with those from a
@@ -27,10 +24,6 @@
 #' @param metric a character string specifying which metric to use. Current
 #' possibilities are "r.squared" and "adj.r.squared". If method = "cor",
 #' metric is not relevant.
-#' @param lower_limit lower limit of window width
-#' @param upper_limit upper limit of window width
-#' @param fixed_width fixed width used for calculation. If fixed_width is
-#' assigned a value, upper_limit and lower_limit will be ignored
 #' @param previous_year if set to TRUE, env_data and response variables will be
 #' rearranged in a way, that also previous year will be used for calculations of
 #' selected statistical metric.
@@ -85,22 +78,7 @@
 #' given in the form of: ylimits = c(0,1)
 #' @param seed optional seed argument for reproducible results
 #' @param tidy_env_data if set to TRUE, env_data should be inserted as a data frame with three
-#' columns: "Year", "DOY", "Precipitation/Temperature/etc."
-#' @param reference_window character string, the reference_window argument describes,
-#' how each calculation is referred. There are three different options: 'start'
-#' (default), 'end' and 'middle'. If the reference_window argument is set to 'start',
-#' then each calculation is related to the starting day of window. If the
-#' reference_window argument is set to 'middle', each calculation is related to the
-#' middle day of window calculation. If the reference_window argument is set to
-#' 'end', then each calculation is related to the ending day of window calculation.
-#' For example, if we consider correlations with window from DOY 15 to DOY 35. If
-#' reference window is set to ‘start’, then this calculation will be related to the
-#' DOY 15. If the reference window is set to ‘end’, then this calculation will be
-#' related to the DOY 35. If the reference_window is set to 'middle', then this
-#' calculation is related to DOY 25.
-#' The optimal selection, which describes the optimal consecutive days that returns
-#' the highest calculated metric and is obtained by the $plot_extreme output, is the
-#' same for all three reference windows.
+#' columns: "Year", "Month", "Precipitation/Temperature/etc."
 #'
 #' @return a list with 13 elements:
 #' \tabular{rll}{
@@ -134,24 +112,32 @@
 #' data(example_proxies_individual)
 #' data(example_proxies_1)
 #' data(LJ_monthly_temperatures)
+#' data(LJ_monthly_precipitation)
 #'
 #' # 1 Example with fixed width
-#' example_fixed_width <- monthly_response(response = data_MVA, env_data = LJ_monthly_temperatures,
-#'                                      method = "cor", fixed_width = 0,
-#'                                      row_names_subset = TRUE, remove_insignificant = TRUE,
+#' example_tidy_data <- monthly_response(response = data_MVA, env_data = LJ_monthly_precipitation,
+#'                                      method = "cor", row_names_subset = TRUE,
+#'                                      remove_insignificant = TRUE,
 #'                                      alpha = 0.05, aggregate_function = 'mean',
-#'                                      reference_window = "end")
-#' example_fixed_width$plot_extreme
+#'                                      tidy_env_data = TRUE)
+#' example_tidy_data$plot_extreme
+#' example_tidy_data$plot_heatmap
 #'
 #' # 2 Example for past and present
 #' example_MVA_past <- monthly_response(response = data_MVA, env_data = LJ_monthly_temperatures,
-#' method = "cor", lower_limit = 21, upper_limit = 180,
-#' row_names_subset = TRUE, previous_year = TRUE,
-#' remove_insignificant = TRUE, alpha = 0.05,
-#' plot_specific_window = 60, subset_years = c(1940, 1980), aggregate_function = 'sum')
+#' method = "cor", row_names_subset = TRUE, previous_year = TRUE, remove_insignificant = TRUE,
+#' alpha = 0.05, subset_years = c(1940, 1980), aggregate_function = 'sum')
+#'
+#'
+#'
+#'
+#'
+#'
+#'
+#'
 #'
 #' example_MVA_present <- monthly_response(response = data_MVA, env_data = LJ_monthly_temperatures,
-#'                                       method = "cor", lower_limit = 21, upper_limit = 60,
+#'                                       method = "cor",
 #'                                       row_names_subset = TRUE, previous_year = TRUE,
 #'                                       remove_insignificant = TRUE, alpha = 0.05,
 #'                                       plot_specific_window = 60, subset_years = c(1981, 2010),
@@ -165,7 +151,6 @@
 #' # 3 Example PCA
 #' example_PCA <- monthly_response(response = example_proxies_individual,
 #'                               env_data = LJ_monthly_temperatures, method = "lm",
-#'                               lower_limit = 21, upper_limit = 180,
 #'                               row_names_subset = TRUE, remove_insignificant = TRUE,
 #'                               alpha = 0.01, PCA_transformation = TRUE,
 #'                               components_selection = "manual", N_components = 2)
@@ -175,9 +160,8 @@
 #'
 #' # 4 Example negative correlations
 #' example_neg_cor <- monthly_response(response = data_TRW_1, env_data = LJ_monthly_temperatures,
-#'                                   method = "cor", lower_limit = 21, upper_limit = 180,
-#'                                   row_names_subset = TRUE, remove_insignificant = TRUE,
-#'                                   alpha = 0.05)
+#'                                   method = "cor", row_names_subset = TRUE,
+#'                                   remove_insignificant = TRUE, alpha = 0.05)
 #'
 #' example_neg_cor$plot_heatmap
 #' example_neg_cor$plot_extreme
@@ -190,7 +174,6 @@
 #' example_multiproxy <- monthly_response(response = example_proxies_1,
 #'                                      env_data = LJ_monthly_temperatures,
 #'                                      method = "lm", metric = "adj.r.squared",
-#'                                      lower_limit = 21, upper_limit = 180,
 #'                                      row_names_subset = TRUE, previous_year = FALSE,
 #'                                      remove_insignificant = TRUE, alpha = 0.05)
 #'
@@ -198,8 +181,8 @@
 #'
 #' # 6 Example to test the temporal stability
 #' example_MVA_ts <- monthly_response(response = data_MVA, env_data = LJ_monthly_temperatures,
-#' method = "brnn", lower_limit = 100, metric = "adj.r.squared", upper_limit = 180,
-#' row_names_subset = TRUE, remove_insignificant = TRUE, alpha = 0.05,
+#' method = "brnn", metric = "adj.r.squared", row_names_subset = TRUE,
+#' remove_insignificant = TRUE, alpha = 0.05,
 #' temporal_stability_check = "running_window", k_running_window = 10)
 #'
 #' example_MVA_ts$temporal_stability
@@ -207,8 +190,7 @@
 #' }
 
 monthly_response <- function(response, env_data, method = "lm",
-                           metric = "r.squared", lower_limit = 1,
-                           upper_limit = 12, fixed_width = 0,
+                           metric = "r.squared",
                            previous_year = FALSE, neurons = 1,
                            brnn_smooth = TRUE, remove_insignificant = TRUE,
                            alpha = .05, row_names_subset = FALSE,
@@ -219,13 +201,17 @@ monthly_response <- function(response, env_data, method = "lm",
                            temporal_stability_check = "sequential", k = 2,
                            k_running_window = 30, cross_validation_type = "blocked",
                            subset_years = NULL, plot_specific_window = NULL,
-                           ylimits = NULL, seed = NULL, tidy_env_data = FALSE,
-                           reference_window = 'start') {
+                           ylimits = NULL, seed = NULL, tidy_env_data = FALSE) {
 
 
   if (!is.null(seed)) {
     set.seed(seed)
   }
+
+  lower_limit = 1
+  upper_limit = 12
+  fixed_width = 0
+  reference_window = 'start'
 
  # Defining global variables
  median <- NULL
@@ -257,6 +243,14 @@ monthly_response <- function(response, env_data, method = "lm",
  }
 
 
+ # If you insert daily data into monthly response, you get an error
+ if ((ncol(env_data) != 12) && (tidy_env_data == FALSE)){
+   stop(paste0("You must insert env_data with 12 columns (months)! Instead, you have ", ncol(env_data),
+               " columns!"))
+ }
+
+
+
  # If env_data is given in tidy version, transformation is needed
  if (tidy_env_data == TRUE){
 
@@ -274,14 +268,14 @@ monthly_response <- function(response, env_data, method = "lm",
                 colnames_tidy_DF[1], "instead!"))
    }
 
-   if (colnames_tidy_DF[2] != "DOY"){
+   if (colnames_tidy_DF[2] != "Month"){
      stop(paste("env_data was inserted in tidy version (tidy_env_data is set to TRUE).",
                 "The second column name of the env_data should be 'DOY', but it is",
                 colnames_tidy_DF[2], "instead!"))
    }
 
    value_variable = colnames(env_data)[3]
-   env_data <- dcast(env_data, Year~DOY, value.var = value_variable)
+   env_data <- dcast(env_data, Year~Month, value.var = value_variable)
    env_data <- years_to_rownames(env_data, "Year")
 
 
@@ -1087,21 +1081,20 @@ monthly_response <- function(response, env_data, method = "lm",
   if (reference_window == 'start'){
 
 
-
   if (aggregate_function == 'median'){
-    dataf <- data.frame(apply(env_data[, as.numeric(plot_column):
+    dataf <- data.frame(apply(data.frame(env_data[, as.numeric(plot_column):
                                             (as.numeric(plot_column) +
-                                               as.numeric(row_index) - 1)],1 , median, na.rm = TRUE))
+                                               as.numeric(row_index) - 1)]),1 , median, na.rm = TRUE))
 
   } else if (aggregate_function == 'sum'){
-    dataf <- data.frame(apply(env_data[, as.numeric(plot_column):
+    dataf <- data.frame(apply(data.frame(env_data[, as.numeric(plot_column):
                                          (as.numeric(plot_column) +
-                                            as.numeric(row_index) - 1)],1 , sum, na.rm = TRUE))
+                                            as.numeric(row_index) - 1)]),1 , sum, na.rm = TRUE))
 
   } else if (aggregate_function == 'mean'){
-    dataf <- data.frame(rowMeans(env_data[, as.numeric(plot_column):
+    dataf <- data.frame(rowMeans(data.frame(env_data[, as.numeric(plot_column):
                                             (as.numeric(plot_column) +
-                                               as.numeric(row_index) - 1)],
+                                               as.numeric(row_index) - 1)]),
                                  na.rm = TRUE))
   } else {
     stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median or sum."))
@@ -1115,17 +1108,17 @@ monthly_response <- function(response, env_data, method = "lm",
   # for the analysed period.
 
   if (aggregate_function == 'median'){
-    dataf_original <- data.frame(apply(env_data_original[, as.numeric(plot_column):
+    dataf_original <- data.frame(apply(data.frame(env_data_original[, as.numeric(plot_column):
                                          (as.numeric(plot_column) +
-                                            as.numeric(row_index) - 1)],1 , median, na.rm = TRUE))
+                                            as.numeric(row_index) - 1)]),1 , median, na.rm = TRUE))
   } else if (aggregate_function == 'sum'){
-    dataf_original <- data.frame(apply(env_data_original[, as.numeric(plot_column):
+    dataf_original <- data.frame(apply(data.frame(env_data_original[, as.numeric(plot_column):
                                                            (as.numeric(plot_column) +
-                                                              as.numeric(row_index) - 1)],1 , sum, na.rm = TRUE))
+                                                              as.numeric(row_index) - 1)]),1 , sum, na.rm = TRUE))
   } else if (aggregate_function == 'mean'){
-    dataf_original <- data.frame(rowMeans(env_data_original[, as.numeric(plot_column):
+    dataf_original <- data.frame(rowMeans(data.frame(env_data_original[, as.numeric(plot_column):
                                             (as.numeric(plot_column) +
-                                               as.numeric(row_index) - 1)],
+                                               as.numeric(row_index) - 1)]),
                                  na.rm = TRUE))
   } else {
     stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median or sum."))
@@ -1837,13 +1830,13 @@ for (m in 1:length(empty_list_datasets)){
 
 
 
-    plot_heatmapA <- plot_heatmap(final_list, reference_window = reference_window)
-    plot_extremeA <- plot_extreme(final_list, ylimits = ylimits, reference_window = reference_window)
+    plot_heatmapA <- plot_heatmap(final_list, reference_window = reference_window, type = "monthly")
+    plot_extremeA <- plot_extreme(final_list, ylimits = ylimits, reference_window = reference_window, type = "monthly")
 
     width_sequence = seq(lower_limit, upper_limit)
 
     if (is.null(plot_specific_window)){
-      (plot_specificA <- "plot_specific_window is not avaliable. No plot_specific is made!")
+      (plot_specificA <- "plot_specific_window is not avaliable for monthly_response function!")
     } else if (fixed_width != 0){
 
       if (fixed_width != plot_specific_window){
@@ -1853,10 +1846,10 @@ for (m in 1:length(empty_list_datasets)){
 
       plot_specific_window = fixed_width
       plot_specificA <- plot_specific(final_list, window_width = plot_specific_window, ylimits = ylimits,
-                                      reference_window = reference_window)
+                                      reference_window = reference_window, type = "monthly")
     } else if (plot_specific_window %in% width_sequence){
       plot_specificA <- plot_specific(final_list, window_width = plot_specific_window, ylimits = ylimits,
-                                      reference_window = reference_window)
+                                      reference_window = reference_window, type = "monthly")
     } else (plot_specificA <- "Selected plot_specific_window is not avaliable. No plot_specific is made!")
 
     # Here, for the sake of simplicity, we create final list again

@@ -137,7 +137,7 @@ the highest calculated metric and is obtained by the $plot_extreme output, is th
 same for all three reference windows.}
 }
 \value{
-a list with 13 elements:
+a list with 14 elements:
 \tabular{rll}{
  1 \tab $calculations   \tab a matrix with calculated metrics\cr
  2 \tab $method \tab the character string of a method \cr
@@ -151,7 +151,8 @@ a list with 13 elements:
  10 \tab $plot_heatmap    \tab ggplot2 object: a heatmap of calculated metrics\cr
  11 \tab $plot_extreme    \tab ggplot2 object: line plot of a row with the highest value in a matrix of calculated metrics\cr
  12 \tab $plot_specific    \tab ggplot2 object: line plot of a row with a selected window width in a matrix of calculated metrics\cr
- 13 \tab $PCA_output    \tab princomp object: the result output of the PCA analysis
+ 13 \tab $PCA_output    \tab princomp object: the result output of the PCA analysis\cr
+ 14 \tab $type    \tab the character string describing type of analysis: daily or monthly
 }
 }
 \description{

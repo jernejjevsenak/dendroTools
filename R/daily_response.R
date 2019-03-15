@@ -1813,8 +1813,8 @@ for (m in 1:length(empty_list_datasets)){
     final_list[[4]]
 
 
-    plot_heatmapA <- plot_heatmap(final_list, reference_window = reference_window)
-    plot_extremeA <- plot_extreme(final_list, ylimits = ylimits, reference_window = reference_window)
+    plot_heatmapA <- plot_heatmap(final_list, reference_window = reference_window, type = "daily")
+    plot_extremeA <- plot_extreme(final_list, ylimits = ylimits, reference_window = reference_window, type = "daily")
 
     width_sequence = seq(lower_limit, upper_limit)
 

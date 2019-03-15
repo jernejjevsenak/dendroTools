@@ -17,6 +17,7 @@
 #' DOY 15. If the reference window is set to ‘end’, then this calculation will be
 #' related to the DOY 35. If the reference_window is set to 'middle', then this
 #' calculation is related to DOY 25.
+#' @param type the character string describing type of analysis: daily or monthly
 #'
 #' @return A ggplot2 object containing the heatmap display
 #'
@@ -45,11 +46,16 @@
 #'
 #' @keywords internal
 
-plot_heatmap <- function(result_daily_response, reference_window = "start"){
+plot_heatmap <- function(result_daily_response, reference_window = "start", type = "daily"){
 
   # Extracting a matrix from a list and converting it into a data frame
-  result_daily_element1 <- data.frame(result_daily_response [[1]])
+  result_daily_element1 <- data.frame(result_daily_response[[1]])
 
+  # Do we have monthly or daily data?
+  type = type
+
+  # String for analysed period
+  period_string <- paste0("\nAnalysed Period: ", result_daily_response[[4]])
 
   # Creating a nice string that will be used to generate ggplot Legend
   if (result_daily_response[[2]] == "cor"){
@@ -97,6 +103,8 @@ plot_heatmap <- function(result_daily_response, reference_window = "start"){
           plot.title = element_text(size = 16,  face = "bold"),
           legend.position = "bottom", legend.key.width = unit(3, "line"))
 
+
+  if (type == "daily"){
 
   final_plot <- suppressWarnings(ggplot(result_daily_element1_melted,
     aes_(x = ~as.numeric(variable), y = ~as.numeric(temp_row_names),
@@ -175,6 +183,62 @@ plot_heatmap <- function(result_daily_response, reference_window = "start"){
         xlab(x_lab) +
         ggtitle(paste0(period_string, method_string, reference_string))
 
+  }
+
+  if (type == "monthly"){
+
+    if (ncol(result_daily_response[[1]]) == 12){
+
+    months <- c("J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D")
+
+    final_plot <- suppressWarnings(ggplot(result_daily_element1_melted,
+                                          aes_(x = ~as.numeric(variable), y = ~as.numeric(temp_row_names),
+                                               fill = ~Value)) +
+                                     geom_tile() +
+                                     scale_fill_gradientn(temp_string,
+                                                          colours = c("blue", "red", "yellow", "black"),
+                                                          values = rescale(c(bound1, bound2, bound3, bound4)),
+                                                          guide = "colorbar", limits = c(min_limit, max_limit),
+                                                          na.value = "white") +
+                                     ylab("Window Width") +
+                                     xlab("Month") +
+                                     scale_x_continuous(expand = c(0, 0), breaks = seq(1,12, by = 1),
+                                                        labels = months) +
+                                     scale_y_continuous(expand = c(0, 0), breaks = seq(1,12, by = 1)) +
+                                     ggtitle(paste0(period_string, method_string)) +
+                                     journal_theme)
+
+    } else if (ncol(result_daily_response[[1]]) == 24){
+
+
+      months <- c("j", "f", "m", "a", "m", "j", "j", "a", "s", "o", "n", "d",
+                  "J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D")
+
+    final_plot <- suppressWarnings(ggplot(result_daily_element1_melted,
+                                          aes_(x = ~as.numeric(variable), y = ~as.numeric(temp_row_names),
+                                               fill = ~Value)) +
+                                     geom_tile() +
+                                     scale_fill_gradientn(temp_string,
+                                                          colours = c("blue", "red", "yellow", "black"),
+                                                          values = rescale(c(bound1, bound2, bound3, bound4)),
+                                                          guide = "colorbar", limits = c(min_limit, max_limit),
+                                                          na.value = "white") +
+                                     ylab("Window Width") +
+                                     xlab("Month (Including Previous Year)") +
+                                     scale_x_continuous(expand = c(0, 0), breaks = seq(1,24, by = 1),
+                                                        labels = months) +
+                                     scale_y_continuous(expand = c(0, 0), breaks = seq(1,12, by = 1)) +
+                                     ggtitle(paste0(period_string, method_string)) +
+                                     journal_theme)
+
+
+  }
+
+
+  }
+
+
   final_plot
-}
+
+  }
 
