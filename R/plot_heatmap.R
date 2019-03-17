@@ -227,7 +227,7 @@ plot_heatmap <- function(result_daily_response, reference_window = "start", type
                                      xlab("Month (Including Previous Year)") +
                                      scale_x_continuous(expand = c(0, 0), breaks = seq(1,24, by = 1),
                                                         labels = months) +
-                                     scale_y_continuous(expand = c(0, 0), breaks = seq(1,12, by = 1)) +
+                                     scale_y_continuous(expand = c(0, 0), breaks = seq(1,24, by = 1)) +
                                      ggtitle(paste0(period_string, method_string)) +
                                      journal_theme)
 

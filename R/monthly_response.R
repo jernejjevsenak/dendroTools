@@ -128,14 +128,6 @@
 #' method = "cor", row_names_subset = TRUE, previous_year = TRUE, remove_insignificant = TRUE,
 #' alpha = 0.05, subset_years = c(1940, 1980), aggregate_function = 'sum')
 #'
-#'
-#'
-#'
-#'
-#'
-#'
-#'
-#'
 #' example_MVA_present <- monthly_response(response = data_MVA, env_data = LJ_monthly_temperatures,
 #'                                       method = "cor",
 #'                                       row_names_subset = TRUE, previous_year = TRUE,
@@ -147,6 +139,9 @@
 #' example_MVA_present$plot_heatmap
 #' example_MVA_past$plot_specific
 #' example_MVA_present$plot_specific
+#' example_MVA_past$plot_extreme
+#' example_MVA_present$plot_extreme
+#'
 #'
 #' # 3 Example PCA
 #' example_PCA <- monthly_response(response = example_proxies_individual,
@@ -213,6 +208,11 @@ monthly_response <- function(response, env_data, method = "lm",
   fixed_width = 0
   reference_window = 'start'
 
+  if (previous_year == TRUE)
+  {
+    upper_limit = 24
+  }
+
  # Defining global variables
  median <- NULL
  proxy <- NULL
@@ -248,6 +248,8 @@ monthly_response <- function(response, env_data, method = "lm",
    stop(paste0("You must insert env_data with 12 columns (months)! Instead, you have ", ncol(env_data),
                " columns!"))
  }
+
+
 
 
 
@@ -309,14 +311,14 @@ monthly_response <- function(response, env_data, method = "lm",
     stop(paste("More than 1 variable in response data frame not suitable ",
   "for 'cor' method. Use 'lm' or 'brnn'"))
 
-  if (lower_limit >= upper_limit)
-    stop("lower_limit can not be higher than upper_limit!")
-
-  if (lower_limit > 12 | lower_limit < 1)
-    stop("lower_limit out of bounds! It should be between 1 and 12 for monthly response")
-
-  if (upper_limit > 12 | upper_limit < 1)
-    stop("upper_limit out of bounds! It should be between 1 and 12 for monthly response")
+#  if (lower_limit >= upper_limit)
+#    stop("lower_limit can not be higher than upper_limit!")
+#
+#  if (lower_limit > 12 | lower_limit < 1)
+#    stop("lower_limit out of bounds! It should be between 1 and 12 for monthly response")
+#
+#  if (upper_limit > 12 | upper_limit < 1)
+#    stop("upper_limit out of bounds! It should be between 1 and 12 for monthly response")
 
 
   # Data manipulation

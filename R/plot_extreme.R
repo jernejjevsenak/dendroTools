@@ -389,13 +389,12 @@ plot_extreme <- function(result_daily_response, title = TRUE, ylimits = NULL, re
       months <- c("j", "f", "m", "a", "m", "j", "j", "a", "s", "o", "n", "d",
                   "J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D")
 
-
-
+     window_widths <- seq(1, length(temporal_vector))
 
 
       final_plot <- suppressWarnings(
         ggplot(temporal_vector, aes(y = temporal_vector,
-                                    x = seq(1, length(temporal_vector)))) + geom_line(lwd = 1.2) +
+                                    x = window_widths)) + geom_line(lwd = 1.2) +
           geom_vline(xintercept = plot_column, col = "red") +
                     xlab("Month (Including Previous Year)") +
                     ylab(y_lab) +
