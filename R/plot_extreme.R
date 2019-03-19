@@ -408,19 +408,6 @@ plot_extreme <- function(result_daily_response, title = TRUE, ylimits = NULL, re
 
   }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
   final_plot
 
 }

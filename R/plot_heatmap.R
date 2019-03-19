@@ -57,6 +57,24 @@ plot_heatmap <- function(result_daily_response, reference_window = "start", type
   # String for analysed period
   period_string <- paste0("\nAnalysed Period: ", result_daily_response[[4]])
 
+  if (result_daily_response[[2]] == 'cor'){
+    method_string <- paste0("\nMethod: Pearson Correlation")
+  } else if (result_daily_response[[2]] == 'lm'){
+    method_string <- paste0("\nMethod: Linear Regression")
+  } else if (result_daily_response[[2]] == 'brnn'){
+    method_string <- paste0("\nMethod: ANN with Bayesian Regularization")
+  }
+
+  period_string <- paste0("\nAnalysed Period: ", result_daily_response[[4]])
+
+  if (reference_window == 'start'){
+    reference_string <- "\nDOY Reference of Each Calculation is the Beginning of the Window"
+  } else if (reference_window == 'end'){
+    reference_string <- "\nDOY Reference of Each Calculation is the End Day of the Window"
+  } else if (reference_window == 'middle'){
+    reference_string <- "\nDOY Reference of Each Calculation is the Middle Day of the Window"
+  }
+
   # Creating a nice string that will be used to generate ggplot Legend
   if (result_daily_response[[2]] == "cor"){
     temp_string <- "Correlation Coefficient"
@@ -161,23 +179,7 @@ plot_heatmap <- function(result_daily_response, reference_window = "start", type
     x_lab <- "Day of Year"
   }
 
-  if (result_daily_response[[2]] == 'cor'){
-    method_string <- paste0("\nMethod: Pearson Correlation")
-  } else if (result_daily_response[[2]] == 'lm'){
-    method_string <- paste0("\nMethod: Linear Regression")
-  } else if (result_daily_response[[2]] == 'brnn'){
-    method_string <- paste0("\nMethod: ANN with Bayesian Regularization")
-  }
 
-  period_string <- paste0("\nAnalysed Period: ", result_daily_response[[4]])
-
-  if (reference_window == 'start'){
-    reference_string <- "\nDOY Reference of Each Calculation is the Beginning of the Window"
-  } else if (reference_window == 'end'){
-    reference_string <- "\nDOY Reference of Each Calculation is the End Day of the Window"
-  } else if (reference_window == 'middle'){
-    reference_string <- "\nDOY Reference of Each Calculation is the Middle Day of the Window"
-  }
 
   final_plot <- final_plot +
         xlab(x_lab) +
