@@ -376,7 +376,7 @@ plot_extreme <- function(result_daily_response, title = TRUE, ylimits = NULL, re
                  y = calculated_metric, x = plot_column + 1) +
         annotate("label", label = paste("Month", as.character(plot_column), sep = " "),
                  y = min(temporal_vector, na.rm = TRUE) + 0.2*min(temporal_vector, na.rm = TRUE), x = plot_column + 1) +
-        xlab("Month") +
+        xlab("Starting Month of Calculation") +
         ylab(y_lab) +
         ggtitle(paste0(period_string, method_string, optimal_calculation,
                        optimal_window_string, reference_string, Optimal_string)) +
@@ -396,7 +396,7 @@ plot_extreme <- function(result_daily_response, title = TRUE, ylimits = NULL, re
         ggplot(temporal_vector, aes(y = temporal_vector,
                                     x = window_widths)) + geom_col(stat="identity") +
           geom_vline(xintercept = plot_column, col = "red") +
-                    xlab("Month (Including Previous Year)") +
+                    xlab("Starting Month of calculation (Including Previous Year)") +
                     ylab(y_lab) +
           scale_x_continuous(expand = c(0, 0), breaks = seq(1,24, by = 1),
                              labels = months) +
