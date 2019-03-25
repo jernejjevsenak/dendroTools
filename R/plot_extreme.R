@@ -389,7 +389,7 @@ plot_extreme <- function(result_daily_response, title = TRUE, ylimits = NULL, re
       months <- c("j", "f", "m", "a", "m", "j", "j", "a", "s", "o", "n", "d",
                   "J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D")
 
-     window_widths <- seq(1, length(temporal_vector))
+     window_widths <- seq(1, nrow(temporal_vector))
 
 
       final_plot <- suppressWarnings(
