@@ -57,7 +57,7 @@
 
 plot_extreme <- function(result_daily_response, title = TRUE, ylimits = NULL, reference_window = "start", type = "daily") {
 
-    # Short description of the function. It
+  # Short description of the function. It
   # - extracts matrix (the frst object of a list)
   # - in case of method == "cor" (second object of a list), calculates the
   # highest minimum and maximum and compare its absolute values. If absolute
@@ -367,7 +367,7 @@ plot_extreme <- function(result_daily_response, title = TRUE, ylimits = NULL, re
 
     final_plot <- suppressWarnings(
       ggplot(temporal_vector, aes(y = temporal_vector,
-                                  x = seq(1, length(temporal_vector)))) + geom_line(lwd = 1.2) +
+                                  x = seq(1, length(temporal_vector)))) + geom_col(stat="identity") +
         geom_vline(xintercept = plot_column, col = "red") +
         scale_x_continuous(breaks = sort(c(seq(1, 12, 1)), decreasing = FALSE),
                            labels = months) +
@@ -394,7 +394,7 @@ plot_extreme <- function(result_daily_response, title = TRUE, ylimits = NULL, re
 
       final_plot <- suppressWarnings(
         ggplot(temporal_vector, aes(y = temporal_vector,
-                                    x = window_widths)) + geom_line(lwd = 1.2) +
+                                    x = window_widths)) + geom_col(stat="identity") +
           geom_vline(xintercept = plot_column, col = "red") +
                     xlab("Month (Including Previous Year)") +
                     ylab(y_lab) +
