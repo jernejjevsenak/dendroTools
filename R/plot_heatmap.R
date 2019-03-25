@@ -202,8 +202,8 @@ plot_heatmap <- function(result_daily_response, reference_window = "start", type
                                                           values = rescale(c(bound1, bound2, bound3, bound4)),
                                                           guide = "colorbar", limits = c(min_limit, max_limit),
                                                           na.value = "white") +
-                                     ylab("Window Width") +
-                                     xlab("Month") +
+                                     ylab("Number of Consecutive Months") +
+                                     xlab("Starting Month of Calculation") +
                                      scale_x_continuous(expand = c(0, 0), breaks = seq(1,12, by = 1),
                                                         labels = months) +
                                      scale_y_continuous(expand = c(0, 0), breaks = seq(1,12, by = 1)) +
@@ -225,8 +225,8 @@ plot_heatmap <- function(result_daily_response, reference_window = "start", type
                                                           values = rescale(c(bound1, bound2, bound3, bound4)),
                                                           guide = "colorbar", limits = c(min_limit, max_limit),
                                                           na.value = "white") +
-                                     ylab("Window Width") +
-                                     xlab("Month (Including Previous Year)") +
+                                     ylab("Number of Consecutive Months") +
+                                     xlab("Starting Month of Calculation (Including Previous Year)") +
                                      scale_x_continuous(expand = c(0, 0), breaks = seq(1,24, by = 1),
                                                         labels = months) +
                                      scale_y_continuous(expand = c(0, 0), breaks = seq(1,24, by = 1)) +
