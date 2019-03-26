@@ -1,7 +1,8 @@
 #' plot_extreme
 #'
-#' Graphs a line plot of a row with the highest metric in a matrix, produced by
-#' \code{\link{daily_response}} function.
+#' Graphs a line or bar plot of a row with the highest metric in a matrix, produced by
+#' \code{\link{daily_response}} or \code{\link{monthly_response}} functions. Bar plot is
+#' drawn for monthly_response(), while for daily_response, line plot is produced.
 #'
 #' @param result_daily_response a list with three objects as produced by
 #' daily_response function
@@ -363,6 +364,10 @@ plot_extreme <- function(result_daily_response, title = TRUE, ylimits = NULL, re
 
     if (ncol(result_daily_response[[1]]) == 12){
 
+
+      color_values <- rep("grey50", 12)
+      color_values[ plot_column] <- "red"
+
     months <- c("J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D")
 
     final_plot <- suppressWarnings(
@@ -372,6 +377,7 @@ plot_extreme <- function(result_daily_response, title = TRUE, ylimits = NULL, re
         scale_x_continuous(breaks = sort(c(seq(1, 12, 1)), decreasing = FALSE),
                            labels = months) +
         scale_y_continuous(limits = ylimits) +
+        scale_fill_manual(values = color_values) +
         annotate("label", label = as.character(calculated_metric),
                  y = calculated_metric, x = plot_column + 1) +
         annotate("label", label = paste("Month", as.character(plot_column), sep = " "),
