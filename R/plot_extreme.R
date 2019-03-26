@@ -316,6 +316,15 @@ plot_extreme <- function(result_daily_response, title = TRUE, ylimits = NULL, re
 
   if (type == "monthly"){
 
+    # In case of previous_year == TRUE, we calculate the day of a year
+    # (plot_column), considering 366 days of previous year.
+    if (nrow(temporal_vector) > 12 & plot_column > 12) {
+      plot_column_extra <- plot_column %% 12
+    } else {
+      plot_column_extra <- plot_column
+    }
+
+
     if (reference_window == 'start' &&  plot_column > 12 && nrow(temporal_vector) > 12){
       reference_string <- paste0("\nStarting Month of Optimal Window Width: Month ",
                                  plot_column_extra, " of Current Year")}
@@ -365,24 +374,28 @@ plot_extreme <- function(result_daily_response, title = TRUE, ylimits = NULL, re
     if (ncol(result_daily_response[[1]]) == 12){
 
 
-      color_values <- rep("grey50", 12)
-      color_values[ plot_column] <- "red"
+      row_count <- 1
+      delete_rows <- 0
+      while (is.na(temporal_vector[row_count, ] == TRUE)){
+        delete_rows <- delete_rows + 1
+        row_count <-  row_count + 1
+      }
+
+      color_values <- rep("grey50", sum(!is.na(temporal_vector)))
+      color_values[ plot_column - row_count + 1] <- "red"
 
     months <- c("J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D")
 
     final_plot <- suppressWarnings(
-      ggplot(temporal_vector, aes(y = temporal_vector,
-                                  x = seq(1, length(temporal_vector)))) + geom_col(stat="identity") +
-        geom_vline(xintercept = plot_column, col = "red") +
+      ggplot(temporal_vector, aes(y = temporal_vector, x = seq(1, length(temporal_vector)))) +
+        geom_col(stat="identity", fill = color_values) +
+        geom_hline(yintercept = 0) +
         scale_x_continuous(breaks = sort(c(seq(1, 12, 1)), decreasing = FALSE),
                            labels = months) +
         scale_y_continuous(limits = ylimits) +
-        scale_fill_manual(values = color_values) +
         annotate("label", label = as.character(calculated_metric),
-                 y = calculated_metric, x = plot_column + 1) +
-        annotate("label", label = paste("Month", as.character(plot_column), sep = " "),
-                 y = min(temporal_vector, na.rm = TRUE) + 0.2*min(temporal_vector, na.rm = TRUE), x = plot_column + 1) +
-        xlab("Starting Month of Calculation") +
+                 y = calculated_metric, x = plot_column) +
+        xlab(paste0("Starting Month of Calculation and ",as.character(as.numeric(row_index)) ," Conecutive Months")) +
         ylab(y_lab) +
         ggtitle(paste0(period_string, method_string, optimal_calculation,
                        optimal_window_string, reference_string, Optimal_string)) +
@@ -397,16 +410,25 @@ plot_extreme <- function(result_daily_response, title = TRUE, ylimits = NULL, re
 
      window_widths <- seq(1, nrow(temporal_vector))
 
+     row_count <- 1
+     delete_rows <- 0
+     while (is.na(temporal_vector[row_count, ] == TRUE)){
+       delete_rows <- delete_rows + 1
+       row_count <-  row_count + 1
+     }
 
+     color_values <- rep("grey50", sum(!is.na(temporal_vector)))
+     color_values[ plot_column - row_count + 1] <- "red"
       final_plot <- suppressWarnings(
         ggplot(temporal_vector, aes(y = temporal_vector,
-                                    x = window_widths)) + geom_col(stat="identity") +
-          geom_vline(xintercept = plot_column, col = "red") +
-                    xlab("Starting Month of calculation (Including Previous Year)") +
+                                    x = window_widths)) + geom_col(stat="identity", fill = color_values) +
+          annotate("label", label = as.character(calculated_metric), y = calculated_metric, x = plot_column) +
+                    xlab(paste0("Starting Month of Calculation (Including Previous Year) and ",as.character(as.numeric(row_index)) ,
+                         " Conecutive Months")) +
                     ylab(y_lab) +
-          scale_x_continuous(expand = c(0, 0), breaks = seq(1,24, by = 1),
-                             labels = months) +
-          scale_y_continuous(expand = c(0, 0), limits = ylimits) +
+          scale_x_continuous(breaks = seq(1,24, by = 1), labels = months) +
+          geom_hline(yintercept = 0) +
+          scale_y_continuous(limits = ylimits) +
           ggtitle(paste0(period_string, method_string, optimal_calculation,
                          optimal_window_string, reference_string, Optimal_string)) +
           journal_theme)
