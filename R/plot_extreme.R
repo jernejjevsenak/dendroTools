@@ -96,6 +96,7 @@ plot_extreme <- function(result_daily_response, title = TRUE, ylimits = NULL, re
     max_result <- suppressWarnings(which.max(apply(result_daily_element1,
       MARGIN = 2, max, na.rm = TRUE)))
     plot_column <- max_result
+    plot_column_source <- plot_column
     max_index <- which.max(result_daily_element1[, names(max_result)])
     row_index <- row.names(result_daily_element1)[max_index]
     temporal_vector <- unlist(result_daily_element1[max_index, ])
@@ -127,6 +128,7 @@ plot_extreme <- function(result_daily_response, title = TRUE, ylimits = NULL, re
     min_result <- suppressWarnings(which.min(apply(result_daily_element1,
       MARGIN = 2, min, na.rm = TRUE)))
     plot_column <- min_result
+    plot_column_source <- plot_column
     min_index <- which.min(result_daily_element1[, names(min_result)])
     row_index <- row.names(result_daily_element1)[min_index]
     temporal_vector <- unlist(result_daily_element1[min_index, ])
@@ -318,6 +320,7 @@ plot_extreme <- function(result_daily_response, title = TRUE, ylimits = NULL, re
 
     # In case of previous_year == TRUE, we calculate the day of a year
     # (plot_column), considering 366 days of previous year.
+
     if (ncol(result_daily_response[[1]]) == 24 & plot_column > 12) {
       plot_column_extra <- plot_column %% 12
     } else {
@@ -340,24 +343,36 @@ plot_extreme <- function(result_daily_response, title = TRUE, ylimits = NULL, re
         optimal_window_string <- paste0("\nOptimal Window Width: ", as.numeric(row_index),
                                     " Months")
 
-        # Here we define a data frame of dates and corresponing day of year (doi). Later
+        # Here we define a data frame of months. Later
         # this dataframe will be used to describe tht optimal sequence od days
-        date_codes <- c("Jan*", "Feb*", "Mar*", "Apr*", "May*", "Jun*", "Jul*", "Aug*", "Sep*", "Oct*", "Nov*", "Dec*",
-                        "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+
+        if (ncol(result_daily_response[[1]]) == 24){
+          date_codes <- c("Jan*", "Feb*", "Mar*", "Apr*", "May*", "Jun*", "Jul*", "Aug*", "Sep*", "Oct*", "Nov*", "Dec*",
+                          "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+
+        } else if (ncol(result_daily_response[[1]]) == 12){
+
+          date_codes <- c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+
+        }
+
+
+
+
 
 
         if (reference_window == "start"){
           Optimal_string <- paste("\nOptimal Selection:",
-                                  as.character(date_codes[plot_column_extra]),"-",
-                                  as.character(date_codes[plot_column_extra + as.numeric(row_index) - 1]))
+                                  as.character(date_codes[plot_column_source]),"-",
+                                  as.character(date_codes[plot_column_source + as.numeric(row_index) - 1]))
         } else if (reference_window == "end") {
           Optimal_string <- paste("\nOptimal Selection:",
-                                  as.character(date_codes[plot_column_extra - as.numeric(row_index) + 1]),"-",
-                                  as.character(date_codes[plot_column_extra]))
+                                  as.character(date_codes[plot_column_source - as.numeric(row_index) + 1]),"-",
+                                  as.character(date_codes[plot_column_source]))
         } else if (reference_window == "middle") {
           Optimal_string <- paste("\nOptimal Selection:",
-                                  as.character(date_codes[(round2((plot_column_extra - as.numeric(row_index)/2)) - adjustment_1)]),"-",
-                                  as.character(date_codes[(round2((plot_column_extra + as.numeric(row_index)/2)) - adjustment_2)]))
+                                  as.character(date_codes[(round2((plot_column_source - as.numeric(row_index)/2)) - adjustment_1)]),"-",
+                                  as.character(date_codes[(round2((plot_column_source + as.numeric(row_index)/2)) - adjustment_2)]))
         }
 
         if (as.numeric(row_index == 1)){
