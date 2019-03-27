@@ -117,7 +117,7 @@
 #' # 1 Example with tidy precipitation data
 #' example_tidy_data <- monthly_response(response = data_MVA, env_data = LJ_monthly_precipitation,
 #'                                      method = "cor", row_names_subset = TRUE,
-#'                                      remove_insignificant = TRUE,
+#'                                      remove_insignificant = TRUE, previous_year = FALSE,
 #'                                      alpha = 0.05, aggregate_function = 'mean',
 #'                                      tidy_env_data = TRUE)
 #' example_tidy_data$plot_extreme
