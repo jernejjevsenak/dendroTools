@@ -373,9 +373,11 @@ plot_extreme <- function(result_daily_response, title = TRUE, ylimits = NULL, re
 
     if (ncol(result_daily_response[[1]]) == 12){
 
+      window_widths <- seq(1, length(temporal_vector))
 
       row_count <- 1
       delete_rows <- 0
+
       while (is.na(temporal_vector[row_count, ] == TRUE)){
         delete_rows <- delete_rows + 1
         row_count <-  row_count + 1
@@ -386,18 +388,10 @@ plot_extreme <- function(result_daily_response, title = TRUE, ylimits = NULL, re
 
     months <- c("J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D")
 
-    color_values <- rep("grey50", sum(!is.na(temporal_vector)))
-    color_values[ plot_column - row_count + 1] <- "red"
-
-    temporal_vector1 <- data.frame(temporal_vector = temporal_vector,
-                                   window_widths = window_widths,
-                                   colS = color_values)
-
-
-
 
     final_plot <- suppressWarnings(
-      ggplot(temporal_vector, aes(y = temporal_vector, x = window_widths, fill = colS)) +
+      ggplot(temporal_vector, aes(y = temporal_vector,
+                                  x = seq(1, length(temporal_vector)))) +
         geom_col() +
         geom_hline(yintercept = 0) +
         scale_x_continuous(breaks = sort(c(seq(1, 12, 1)), decreasing = FALSE),
@@ -430,16 +424,9 @@ plot_extreme <- function(result_daily_response, title = TRUE, ylimits = NULL, re
      color_values <- rep("grey50", sum(!is.na(temporal_vector)))
      color_values[ plot_column - row_count + 1] <- "red"
 
-
-
-     temporal_vector1 <- data.frame(temporal_vector = temporal_vector,
-                                    window_widths = window_widths,
-                                    colS = color_values)
-
-
      final_plot <- suppressWarnings(
-        ggplot(temporal_vector1, aes(y = temporal_vector, x = window_widths, fill = colS)) +
-          geom_col() +
+       ggplot(temporal_vector, aes(y = temporal_vector, x = seq(1, length(temporal_vector)))) +
+         geom_col() +
           scale_x_continuous(breaks = sort(c(seq(1, 24, 1)), decreasing = FALSE),
                            labels = months) +
                   annotate("label", label = as.character(calculated_metric), y = calculated_metric, x = plot_column) +
