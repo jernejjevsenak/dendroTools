@@ -126,13 +126,13 @@
 #' # 2 Example with splited data for past and present
 #' example_MVA_past <- monthly_response(response = data_MVA, env_data = LJ_monthly_temperatures,
 #' method = "cor", row_names_subset = TRUE, previous_year = TRUE, remove_insignificant = FALSE,
-#' alpha = 0.05, subset_years = c(1940, 1980), aggregate_function = 'sum')
+#' alpha = 0.05, subset_years = c(1940, 1980), aggregate_function = 'mean')
 #'
 #' example_MVA_present <- monthly_response(response = data_MVA, env_data = LJ_monthly_temperatures,
 #'                                       method = "cor", row_names_subset = TRUE, previous_year = TRUE,
 #'                                       remove_insignificant = FALSE, alpha = 0.05,
 #'                                       subset_years = c(1981, 2010),
-#'                                       aggregate_function = 'sum')
+#'                                       aggregate_function = 'mean')
 #'
 #' example_MVA_past$plot_heatmap
 #' example_MVA_present$plot_heatmap

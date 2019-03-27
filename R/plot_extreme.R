@@ -318,22 +318,22 @@ plot_extreme <- function(result_daily_response, title = TRUE, ylimits = NULL, re
 
     # In case of previous_year == TRUE, we calculate the day of a year
     # (plot_column), considering 366 days of previous year.
-    if (nrow(temporal_vector) > 12 & plot_column > 12) {
+    if (ncol(result_daily_response[[1]]) == 24 & plot_column > 12) {
       plot_column_extra <- plot_column %% 12
     } else {
       plot_column_extra <- plot_column
     }
 
 
-    if (reference_window == 'start' &&  plot_column > 12 && nrow(temporal_vector) > 12){
+    if (reference_window == 'start' &&  plot_column > 12 && ncol(result_daily_response[[1]]) == 24){
       reference_string <- paste0("\nStarting Month of Optimal Window Width: Month ",
                                  plot_column_extra, " of Current Year")}
 
-    if (reference_window == 'start' &&  plot_column <= 12 && nrow(temporal_vector) > 12){
+    if (reference_window == 'start' &&  plot_column <= 12 && ncol(result_daily_response[[1]]) == 24){
       reference_string <- paste0("\nStarting Month of Optimal Window Width: Month ",
                                  plot_column_extra, " of Previous Year")}
 
-    if (reference_window == 'start' &&  plot_column <=  12 && nrow(temporal_vector) <=  12){
+    if (reference_window == 'start' &&  plot_column <=  12 && ncol(result_daily_response[[1]]) <=  12){
       reference_string <- paste0("\nStarting Month of Optimal Window Width: Month ",
                                  plot_column_extra)}
 
