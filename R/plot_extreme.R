@@ -342,7 +342,7 @@ plot_extreme <- function(result_daily_response, title = TRUE, ylimits = NULL, re
 
         # Here we define a data frame of dates and corresponing day of year (doi). Later
         # this dataframe will be used to describe tht optimal sequence od days
-        date_codes <- c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+        date_codes <- c("Jan*", "Feb*", "Mar*", "Apr*", "May*", "Jun*", "Jul*", "Aug*", "Sep*", "Oct*", "Nov*", "Dec*",
                         "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
 
 
@@ -409,7 +409,7 @@ plot_extreme <- function(result_daily_response, title = TRUE, ylimits = NULL, re
 
     } else if (ncol(result_daily_response[[1]]) == 24){
 
-      months <- c("j", "f", "m", "a", "m", "j", "j", "a", "s", "o", "n", "d",
+      months <- c("J*", "F*", "M*", "A*", "M*", "J*", "J*", "A*", "S*", "O*", "N*", "D*",
                   "J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D")
 
      window_widths <- seq(1, nrow(temporal_vector))

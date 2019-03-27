@@ -92,8 +92,8 @@
 #'  8 \tab $temporal_stability    \tab a data frame with calculations of selected metric for different temporal subsets\cr
 #'  9\tab $cross_validation   \tab a data frame with cross validation results \cr
 #'  10 \tab $plot_heatmap    \tab ggplot2 object: a heatmap of calculated metrics\cr
-#'  11 \tab $plot_extreme    \tab ggplot2 object: line plot of a row with the highest value in a matrix of calculated metrics\cr
-#'  12 \tab $plot_specific    \tab ggplot2 object: line plot of a row with a selected window width in a matrix of calculated metrics\cr
+#'  11 \tab $plot_extreme    \tab ggplot2 object: line or bar plot of a row with the highest value in a matrix of calculated metrics\cr
+#'  12 \tab $plot_specific    \tab not avaliable for monthly_response() \cr
 #'  13 \tab $PCA_output    \tab princomp object: the result output of the PCA analysis\cr
 #'  14 \tab $type    \tab the character string describing type of analysis: daily or monthly
 #'}
@@ -129,8 +129,7 @@
 #' alpha = 0.05, subset_years = c(1940, 1980), aggregate_function = 'sum')
 #'
 #' example_MVA_present <- monthly_response(response = data_MVA, env_data = LJ_monthly_temperatures,
-#'                                       method = "cor",
-#'                                       row_names_subset = TRUE, previous_year = TRUE,
+#'                                       method = "cor", row_names_subset = TRUE, previous_year = TRUE,
 #'                                       remove_insignificant = FALSE, alpha = 0.05,
 #'                                       subset_years = c(1981, 2010),
 #'                                       aggregate_function = 'sum')
@@ -147,11 +146,12 @@
 #' example_PCA <- monthly_response(response = example_proxies_individual,
 #'                               env_data = LJ_monthly_temperatures, method = "lm",
 #'                               row_names_subset = TRUE, remove_insignificant = TRUE,
-#'                               alpha = 0.01, PCA_transformation = TRUE,
+#'                               alpha = 0.01, PCA_transformation = TRUE, previous_year = TRUE,
 #'                               components_selection = "manual", N_components = 2)
 #'
 #' summary(example_PCA$PCA_output)
 #' example_PCA$plot_heatmap
+#' example_PCA$plot_extreme
 #'
 #' # 4 Example negative correlations
 #' example_neg_cor <- monthly_response(response = data_TRW_1, env_data = LJ_monthly_temperatures,
