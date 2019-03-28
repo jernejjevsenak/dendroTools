@@ -117,7 +117,7 @@
 #' # 1 Example with tidy precipitation data
 #' example_tidy_data <- monthly_response(response = data_MVA, env_data = LJ_monthly_precipitation,
 #'                                      method = "cor", row_names_subset = TRUE,
-#'                                      remove_insignificant = TRUE, previous_year = FALSE,
+#'                                      remove_insignificant = TRUE, previous_year = TRUE,
 #'                                      alpha = 0.05, aggregate_function = 'mean',
 #'                                      tidy_env_data = TRUE)
 #' example_tidy_data$plot_extreme
@@ -125,12 +125,12 @@
 #'
 #' # 2 Example with splited data for past and present
 #' example_MVA_past <- monthly_response(response = data_MVA, env_data = LJ_monthly_temperatures,
-#' method = "cor", row_names_subset = TRUE, previous_year = TRUE, remove_insignificant = FALSE,
+#' method = "cor", row_names_subset = TRUE, previous_year = TRUE, remove_insignificant = TRUE,
 #' alpha = 0.05, subset_years = c(1940, 1980), aggregate_function = 'mean')
 #'
 #' example_MVA_present <- monthly_response(response = data_MVA, env_data = LJ_monthly_temperatures,
 #'                                       method = "cor", row_names_subset = TRUE, previous_year = TRUE,
-#'                                       remove_insignificant = FALSE, alpha = 0.05,
+#'                                       remove_insignificant = TRUE, alpha = 0.05,
 #'                                       subset_years = c(1981, 2010),
 #'                                       aggregate_function = 'mean')
 #'

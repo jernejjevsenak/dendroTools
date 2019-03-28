@@ -340,8 +340,17 @@ plot_extreme <- function(result_daily_response, title = TRUE, ylimits = NULL, re
       reference_string <- paste0("\nStarting Month of Optimal Window Width: Month ",
                                  plot_column_extra)}
 
+    # Plural or singular?
+
+    if (as.numeric(row_index) == 1){
+      month_string <- " Month"
+
+    } else {
+      month_string <- " Months"
+    }
+
         optimal_window_string <- paste0("\nOptimal Window Width: ", as.numeric(row_index),
-                                    " Months")
+                                        month_string)
 
         # Here we define a data frame of months. Later
         # this dataframe will be used to describe tht optimal sequence od days

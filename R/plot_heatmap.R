@@ -213,7 +213,7 @@ plot_heatmap <- function(result_daily_response, reference_window = "start", type
     } else if (ncol(result_daily_response[[1]]) == 24){
 
 
-      months <- c("j", "f", "m", "a", "m", "j", "j", "a", "s", "o", "n", "d",
+      months <- c("J*", "F*", "M*", "A*", "M*", "J*", "J*", "A*", "S*", "O*", "N*", "D*",
                   "J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D")
 
     final_plot <- suppressWarnings(ggplot(result_daily_element1_melted,
