@@ -6,7 +6,6 @@
 * New function: monthly_response()
 * New data: Lj_monthly_temperatures
 * New data: Lj_monthly_precipitation
-* New function: monthly_response()
 
 # dendroTools 1.0.2.
 * Package version is changed to 1.0.2
