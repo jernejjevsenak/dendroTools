@@ -118,7 +118,7 @@
 #' example_tidy_data <- monthly_response(response = data_MVA, env_data = LJ_monthly_precipitation,
 #'                                      method = "cor", row_names_subset = TRUE,
 #'                                      remove_insignificant = TRUE, previous_year = TRUE,
-#'                                      alpha = 0.05, aggregate_function = 'mean',
+#'                                      alpha = 0.05, aggregate_function = 'sum',
 #'                                      tidy_env_data = TRUE)
 #' example_tidy_data$plot_extreme
 #' example_tidy_data$plot_heatmap
@@ -136,8 +136,6 @@
 #'
 #' example_MVA_past$plot_heatmap
 #' example_MVA_present$plot_heatmap
-#' example_MVA_past$plot_specific
-#' example_MVA_present$plot_specific
 #' example_MVA_past$plot_extreme
 #' example_MVA_present$plot_extreme
 #'
