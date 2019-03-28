@@ -140,7 +140,7 @@
 #' example_MVA_present$plot_extreme
 #'
 #'
-#' # 3 Example PCA
+#' # 3 Example with principal component analysis
 #' example_PCA <- monthly_response(response = example_proxies_individual,
 #'                               env_data = LJ_monthly_temperatures, method = "lm",
 #'                               row_names_subset = TRUE, remove_insignificant = TRUE,
@@ -175,7 +175,7 @@
 #'
 #' # 6 Example to test the temporal stability
 #' example_MVA_ts <- monthly_response(response = data_MVA, env_data = LJ_monthly_temperatures,
-#' method = "brnn", metric = "adj.r.squared", row_names_subset = TRUE,
+#' method = "lm", metric = "adj.r.squared", row_names_subset = TRUE,
 #' remove_insignificant = TRUE, alpha = 0.05,
 #' temporal_stability_check = "running_window", k_running_window = 10)
 #'
