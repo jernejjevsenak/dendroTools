@@ -125,14 +125,14 @@
 #'
 #' # 2 Example with splited data for past and present
 #' example_MVA_past <- monthly_response(response = data_MVA, env_data = LJ_monthly_temperatures,
-#' method = "cor", row_names_subset = TRUE, previous_year = TRUE, remove_insignificant = TRUE,
-#' alpha = 0.05, subset_years = c(1940, 1980), aggregate_function = 'mean')
+#'                                      method = "cor", row_names_subset = TRUE, previous_year = TRUE,
+#'                                      remove_insignificant = TRUE, alpha = 0.05,
+#'                                      subset_years = c(1940, 1980), aggregate_function = 'mean')
 #'
 #' example_MVA_present <- monthly_response(response = data_MVA, env_data = LJ_monthly_temperatures,
-#'                                       method = "cor", row_names_subset = TRUE, previous_year = TRUE,
-#'                                       remove_insignificant = TRUE, alpha = 0.05,
-#'                                       subset_years = c(1981, 2010),
-#'                                       aggregate_function = 'mean')
+#'                                       method = "cor", row_names_subset = TRUE, alpha = 0.05,
+#'                                       previous_year = TRUE, remove_insignificant = TRUE,
+#'                                       subset_years = c(1981, 2010), aggregate_function = 'mean')
 #'
 #' example_MVA_past$plot_heatmap
 #' example_MVA_present$plot_heatmap
@@ -154,9 +154,10 @@
 #' example_PCA$plot_extreme
 #'
 #' # 4 Example negative correlations
-#' example_neg_cor <- monthly_response(response = data_TRW_1, env_data = LJ_monthly_temperatures,
-#'                                   method = "cor", row_names_subset = TRUE,
-#'                                   remove_insignificant = TRUE, alpha = 0.05)
+#' example_neg_cor <- monthly_response(response = data_TRW_1, alpha = 0.05,
+#'                                     env_data = LJ_monthly_temperatures,
+#'                                     method = "cor", row_names_subset = TRUE,
+#'                                     remove_insignificant = TRUE)
 #'
 #' example_neg_cor$plot_heatmap
 #' example_neg_cor$plot_extreme

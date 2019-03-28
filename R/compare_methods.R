@@ -18,7 +18,7 @@
 #' columns and (optional) years as row names.
 #' @param k number of folds for cross-validation
 #' @param repeats number of cross-validation repeats. Should be equal or more
-#' than 1.
+#' than 1
 #' @param optimize if set to TRUE (default), the optimal values for the tuning
 #' parameters will be selected in a preliminary cross-validation procedure
 #' @param dataset_complete optional, a data frame with the full length of tree-ring
