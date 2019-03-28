@@ -34,7 +34,7 @@ columns and (optional) years as row names.}
 \item{k}{number of folds for cross-validation}
 
 \item{repeats}{number of cross-validation repeats. Should be equal or more
-than 1.}
+than 1}
 
 \item{optimize}{if set to TRUE (default), the optimal values for the tuning
 parameters will be selected in a preliminary cross-validation procedure}

@@ -125,8 +125,8 @@ a list with 13 elements:
  8 \tab $temporal_stability    \tab a data frame with calculations of selected metric for different temporal subsets\cr
  9\tab $cross_validation   \tab a data frame with cross validation results \cr
  10 \tab $plot_heatmap    \tab ggplot2 object: a heatmap of calculated metrics\cr
- 11 \tab $plot_extreme    \tab ggplot2 object: line plot of a row with the highest value in a matrix of calculated metrics\cr
- 12 \tab $plot_specific    \tab ggplot2 object: line plot of a row with a selected window width in a matrix of calculated metrics\cr
+ 11 \tab $plot_extreme    \tab ggplot2 object: line or bar plot of a row with the highest value in a matrix of calculated metrics\cr
+ 12 \tab $plot_specific    \tab not avaliable for monthly_response() \cr
  13 \tab $PCA_output    \tab princomp object: the result output of the PCA analysis\cr
  14 \tab $type    \tab the character string describing type of analysis: daily or monthly
 }
@@ -145,7 +145,7 @@ environmental data (column names).
 # Load the dendroTools R package
 library(dendroTools)
 
-# Load data
+# Load data used for examples
 data(data_MVA)
 data(data_TRW)
 data(data_TRW_1)
@@ -154,54 +154,48 @@ data(example_proxies_1)
 data(LJ_monthly_temperatures)
 data(LJ_monthly_precipitation)
 
-# 1 Example with fixed width
+# 1 Example with tidy precipitation data
 example_tidy_data <- monthly_response(response = data_MVA, env_data = LJ_monthly_precipitation,
                                      method = "cor", row_names_subset = TRUE,
-                                     remove_insignificant = TRUE,
-                                     alpha = 0.05, aggregate_function = 'mean',
+                                     remove_insignificant = TRUE, previous_year = TRUE,
+                                     alpha = 0.05, aggregate_function = 'sum',
                                      tidy_env_data = TRUE)
 example_tidy_data$plot_extreme
 example_tidy_data$plot_heatmap
 
-# 2 Example for past and present
+# 2 Example with splited data for past and present
 example_MVA_past <- monthly_response(response = data_MVA, env_data = LJ_monthly_temperatures,
-method = "cor", row_names_subset = TRUE, previous_year = TRUE, remove_insignificant = TRUE,
-alpha = 0.05, subset_years = c(1940, 1980), aggregate_function = 'sum')
-
-
-
-
-
-
-
-
+                                     method = "cor", row_names_subset = TRUE, previous_year = TRUE,
+                                     remove_insignificant = TRUE, alpha = 0.05,
+                                     subset_years = c(1940, 1980), aggregate_function = 'mean')
 
 example_MVA_present <- monthly_response(response = data_MVA, env_data = LJ_monthly_temperatures,
-                                      method = "cor", lower_limit = 21, upper_limit = 60,
-                                      row_names_subset = TRUE, previous_year = TRUE,
-                                      remove_insignificant = TRUE, alpha = 0.05,
-                                      plot_specific_window = 60, subset_years = c(1981, 2010),
-                                      aggregate_function = 'sum')
+                                      method = "cor", row_names_subset = TRUE, alpha = 0.05,
+                                      previous_year = TRUE, remove_insignificant = TRUE,
+                                      subset_years = c(1981, 2010), aggregate_function = 'mean')
 
 example_MVA_past$plot_heatmap
 example_MVA_present$plot_heatmap
-example_MVA_past$plot_specific
-example_MVA_present$plot_specific
+example_MVA_past$plot_extreme
+example_MVA_present$plot_extreme
 
-# 3 Example PCA
+
+# 3 Example with principal component analysis
 example_PCA <- monthly_response(response = example_proxies_individual,
                               env_data = LJ_monthly_temperatures, method = "lm",
                               row_names_subset = TRUE, remove_insignificant = TRUE,
-                              alpha = 0.01, PCA_transformation = TRUE,
+                              alpha = 0.01, PCA_transformation = TRUE, previous_year = TRUE,
                               components_selection = "manual", N_components = 2)
 
 summary(example_PCA$PCA_output)
 example_PCA$plot_heatmap
+example_PCA$plot_extreme
 
 # 4 Example negative correlations
-example_neg_cor <- monthly_response(response = data_TRW_1, env_data = LJ_monthly_temperatures,
-                                  method = "cor", row_names_subset = TRUE,
-                                  remove_insignificant = TRUE, alpha = 0.05)
+example_neg_cor <- monthly_response(response = data_TRW_1, alpha = 0.05,
+                                    env_data = LJ_monthly_temperatures,
+                                    method = "cor", row_names_subset = TRUE,
+                                    remove_insignificant = TRUE)
 
 example_neg_cor$plot_heatmap
 example_neg_cor$plot_extreme
@@ -221,7 +215,7 @@ example_multiproxy$plot_heatmap
 
 # 6 Example to test the temporal stability
 example_MVA_ts <- monthly_response(response = data_MVA, env_data = LJ_monthly_temperatures,
-method = "brnn", metric = "adj.r.squared", row_names_subset = TRUE,
+method = "lm", metric = "adj.r.squared", row_names_subset = TRUE,
 remove_insignificant = TRUE, alpha = 0.05,
 temporal_stability_check = "running_window", k_running_window = 10)
 

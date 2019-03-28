@@ -34,8 +34,9 @@ calculation is related to DOY 25.}
 A ggplot2 object containing the plot display
 }
 \description{
-Graphs a line plot of a row with the highest metric in a matrix, produced by
-\code{\link{daily_response}} function.
+Graphs a line or bar plot of a row with the highest metric in a matrix, produced by
+\code{\link{daily_response}} or \code{\link{monthly_response}} functions. Bar plot is
+drawn for monthly_response(), while for daily_response, line plot is produced.
 }
 \examples{
 \dontrun{
