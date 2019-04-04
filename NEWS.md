@@ -1,3 +1,6 @@
+# dendroTools 1.0.4.
+* New data is available for examples demonstration: swit272_monthly_temperatures
+
 # dendroTools 1.0.3.
 
 * Package version is changed to 1.0.3

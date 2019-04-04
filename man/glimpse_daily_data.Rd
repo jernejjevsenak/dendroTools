@@ -28,6 +28,7 @@ columns: "Year", "DOY", "Precipitation/Temperature/etc."}
 Visual presentation of daily data to spot missing values.
 }
 \examples{
+library(dendroTools)
 data("LJ_daily_temperatures")
 glimpse_daily_data(env_data = LJ_daily_temperatures, tidy_env_data = FALSE, na.color = "white")
 

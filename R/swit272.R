@@ -12,7 +12,7 @@
 #'
 #' @format A data frame with 273 rows and 1 variable:
 #' \describe{
-#'   \item{BLLA S}{Standardised TRW index}
+#'   \item{TRWi}{Standardised TRW index}
 #' }
 #' @source \url{https://www.ncdc.noaa.gov/paleo/study/14108}
 #' @export

@@ -15,6 +15,7 @@
 #' @param high_color colours for high end of the gradient
 #'
 #' @examples
+#' library(dendroTools)
 #' data("LJ_daily_temperatures")
 #' glimpse_daily_data(env_data = LJ_daily_temperatures, tidy_env_data = FALSE, na.color = "white")
 #'
