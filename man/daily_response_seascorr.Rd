@@ -20,14 +20,15 @@ daily_response_seascorr(response, env_data_primary, env_data_control,
   tidy_env_data_control = FALSE, reference_window = "start")
 }
 \arguments{
-\item{response}{a data frame with tree-ring proxy variables as columns and
-(optional) years as row names. Row.names should be matched with those from a
-env_data_primary data frame. If not, set row_names_subset = TRUE.}
+\item{response}{a data frame with tree-ring proxy variable and (optional)
+years as row names. Row.names should be matched with those from env_data_primary
+and env_data_control data frame. If not, set the row_names_subset argument to
+TRUE.}
 
 \item{env_data_primary}{primary data frame of daily sequences of environmental
 data as columns and years as row names. Each row represents a year and
 each column represents a day of a year. Row.names should be matched with
-those from a response data frame. If not, set the argument row_names_subset
+those from the response data frame. If not, set the argument row_names_subset
 to TRUE. Alternatively, env_data_primary could be a tidy data with three columns,
 i.e. Year, DOY and third column representing values of mean temperatures,
 sum of precipitation etc. If tidy data is passed to the function, set the argument
@@ -36,12 +37,12 @@ tidy_env_data_primary to TRUE.}
 \item{env_data_control}{a data frame of daily sequences of environmental data as
 columns and years as row names. This data is used as control for calculations of
 partial correlation coefficients. Each row represents a year and each column
-represents a day of a year. Row.names should be matched with those from a response
-data frame. If not, set the row_names_subset argument to TRUE. Alternatively,
-env_data_control could be a tidy data with three columns, i.e. Year, DOY and
-third column representing values of mean temperatures, sum of precipitation etc.
-If tidy data is passed to the function, set the argument tidy_env_data_control
-to TRUE.}
+represents a day of a year. Row.names should be matched with those from the
+response data frame. If not, set the row_names_subset argument to TRUE.
+Alternatively, env_data_control could be a tidy data with three columns,
+i.e. Year, DOY and third column representing values of mean temperatures, sum
+of precipitation etc. If tidy data is passed to the function, set the argument
+tidy_env_data_control to TRUE.}
 
 \item{lower_limit}{lower limit of window width}
 
@@ -167,8 +168,8 @@ a list with 14 elements:
 }
 \description{
 Function calculates all possible partial correlation coefficients between
-between one or more response variables and daily sequences of environmental
-data. Calculations are based on moving window which is defined with two
+tree-ring chronology and daily environmental (usually climate) data.
+Calculations are based on moving window which is defined with two
 arguments: lower_limit and upper_limit. All calculated (partial) correlation
 coeficients are stored in a matrix. The location of stored correlation
 in the matrix is indicating a window width (row names) and a location in a
