@@ -7,7 +7,8 @@
 KNMI_daily_transform(input)
 }
 \arguments{
-\item{input}{typical KNMI daily data format}
+\item{input}{typical KNMI daily data format: Data frame with two columns, first column represents date,
+second column represents variable, such as mean temperature, precipitation, etc.}
 }
 \value{
 env_data suitable for daily_response()

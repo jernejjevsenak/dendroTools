@@ -136,12 +136,13 @@
 #' data(LJ_daily_temperatures)
 #'
 #' # 1 Example with fixed width
-#' example_fixed_width <- daily_response(response = data_MVA, env_data = LJ_daily_temperatures,
+#' example_daily_response <- daily_response(response = data_MVA, env_data = LJ_daily_temperatures,
 #'                                      method = "cor", fixed_width = 0,
 #'                                      row_names_subset = TRUE, remove_insignificant = TRUE,
 #'                                      alpha = 0.05, aggregate_function = 'mean',
 #'                                      reference_window = "end")
-#' example_fixed_width$plot_extreme
+#' example_daily_response$plot_extreme
+#' example_daily_response$plot_heatmap
 #'
 #' # 2 Example for past and present
 #' example_MVA_past <- daily_response(response = data_MVA, env_data = LJ_daily_temperatures,
@@ -243,11 +244,13 @@ daily_response <- function(response, env_data, method = "lm",
  DE <- NULL
  d <- NULL
 
- # If there is a column name samp.depth in response data frame, we error msg is displayed
+ # If there is a column name samp.depth in response data frame, warning is given
  if ("samp.depth" %in% colnames(response)){
-   stop(paste0("response data frame includes samp.depth colname!",
-    " All variables in response data frame will be used as predictors of daily data.",
-    " Sample depth is not a predictor! Please remove samp.deth column from the response data frame."))
+
+   samp.depth_index <- grep("samp.depth", colnames(response))
+   response <- response[, -samp.depth_index,F]
+
+   warning("Removed the samp.depth from response data frame")
  }
 
  # If there is more than 2 columns in response data frame, give a warning

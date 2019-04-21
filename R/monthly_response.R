@@ -228,11 +228,13 @@ monthly_response <- function(response, env_data, method = "lm",
  DE <- NULL
  d <- NULL
 
- # If there is a column name samp.depth in response data frame, we error msg is displayed
+ # If there is a column name samp.depth in response data frame, warning is given
  if ("samp.depth" %in% colnames(response)){
-   stop(paste0("response data frame includes samp.depth colname!",
-    " All variables in response data frame will be used as predictors of monthly data.",
-    " Sample depth is not a predictor! Please remove samp.deth column from the response data frame."))
+
+   samp.depth_index <- grep("samp.depth", colnames(response))
+   response <- response[, -samp.depth_index,F]
+
+   warning("Removed the samp.depth from response data frame")
  }
 
  # If there is more than 2 columns in response data frame, give a warning

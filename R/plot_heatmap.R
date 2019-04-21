@@ -59,6 +59,8 @@ plot_heatmap <- function(result_daily_response, reference_window = "start", type
 
   if (result_daily_response[[2]] == 'cor'){
     method_string <- paste0("\nMethod: Pearson Correlation")
+  } else if (result_daily_response[[2]] == 'pcor') {
+    method_string <- paste0("\nMethod: Partial Pearson Correlation")
   } else if (result_daily_response[[2]] == 'lm'){
     method_string <- paste0("\nMethod: Linear Regression")
   } else if (result_daily_response[[2]] == 'brnn'){
@@ -78,11 +80,13 @@ plot_heatmap <- function(result_daily_response, reference_window = "start", type
   # Creating a nice string that will be used to generate ggplot Legend
   if (result_daily_response[[2]] == "cor"){
     temp_string <- "Correlation Coefficient"
-  } else if (result_daily_response[[3]] == "r.squared"){
+    } else if (result_daily_response[[2]] == "pcor"){
+   temp_string <- "Partial Correlation Coefficient"
+    } else if (result_daily_response[[3]] == "r.squared"){
     temp_string <- "Explained Variance"
-  } else if (result_daily_response[[3]] == "adj.r.squared"){
+    } else if (result_daily_response[[3]] == "adj.r.squared"){
     temp_string <- "Adjusted Explained Variance"
-  }
+    }
 
   # Data manipulation. The goal of this part is to prepare data for ggplot
   result_daily_element1$temp_row_names <- row.names(result_daily_element1)

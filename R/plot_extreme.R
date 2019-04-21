@@ -243,6 +243,8 @@ plot_extreme <- function(result_daily_response, title = TRUE, ylimits = NULL, re
   # in the final output list from daily_response() function
   if (result_daily_response[[2]] == "cor"){
     y_lab <- "Correlation Coefficient"
+  } else if (result_daily_response[[2]] == "pcor"){
+    y_lab <- "Partial Correlation Coefficient"
   } else if (result_daily_response[[3]] == "r.squared"){
     y_lab <- "Explained Variance"
   } else if (result_daily_response[[3]] == "adj.r.squared"){
@@ -302,6 +304,8 @@ plot_extreme <- function(result_daily_response, title = TRUE, ylimits = NULL, re
 
   if (result_daily_response[[2]] == 'cor'){
     method_string <- paste0("\nMethod: Pearson Correlation")
+  } else if (result_daily_response[[2]] == 'pcor'){
+    method_string <- paste0("\nMethod: Partial Pearson Correlation")
   } else if (result_daily_response[[2]] == 'lm'){
     method_string <- paste0("\nMethod: Linear Regression")
   } else if (result_daily_response[[2]] == 'brnn'){
