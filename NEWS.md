@@ -1,3 +1,8 @@
+# dendroTools 1.0.5.
+* Package version is changed to 1.0.5
+* daily_response output list is class "ds"
+* Using newly defined class "ds", new summary.ds function is defined
+
 # dendroTools 1.0.4.
 * New data is available for examples demonstration: swit272_monthly_temperatures
 * New function is available: daily_response_seascorr(). This function implements partial correlations in the analysis of daily response functions

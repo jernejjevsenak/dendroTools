@@ -24,7 +24,7 @@ test3 <- daily_response(response = example_proxies_1,
   env_data = LJ_daily_temperatures, method = "lm",
   metric = "adj.r.squared", lower = 250, upper = 251, previous_year = FALSE,
   row_names_subset = TRUE)
-expect_is(test3, "list")
+expect_is(test3, "ds")
 expect_is(test3[[1]], "matrix")
 expect_is(test3[[2]], "character")
 expect_is(test3[[2]], "character")
@@ -102,5 +102,5 @@ test9 <- daily_response(response = MVA_parameter_ordered,
 expect_equal(test8[[1]], test9[[1]])
 
 
-# There should be 14 elements in a list returned by daily_response()
-expect_equal(length(test8), 14)
+# There should be 15 elements in a list returned by daily_response()
+expect_equal(length(test8), 15)

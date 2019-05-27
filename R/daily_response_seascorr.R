@@ -1341,5 +1341,7 @@ for (m in 1:length(empty_list_datasets)){
                          type = "daily")
     }
 
+    class(final_list) <- "ds"
+
   return(final_list)
 }
