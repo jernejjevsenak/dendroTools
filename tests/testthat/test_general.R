@@ -24,7 +24,7 @@ test3 <- daily_response(response = example_proxies_1,
   env_data = LJ_daily_temperatures, method = "lm",
   metric = "adj.r.squared", lower = 250, upper = 251, previous_year = FALSE,
   row_names_subset = TRUE)
-expect_is(test3, "ds")
+expect_is(test3, "dmrs")
 expect_is(test3[[1]], "matrix")
 expect_is(test3[[2]], "character")
 expect_is(test3[[2]], "character")

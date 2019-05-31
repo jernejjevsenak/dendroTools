@@ -303,9 +303,11 @@ plot_extreme <- function(result_daily_response, title = TRUE, ylimits = NULL, re
   period_string <- paste0("Analysed Period: ", result_daily_response[[4]])
 
   if (result_daily_response[[2]] == 'cor'){
-    method_string <- paste0("\nMethod: Pearson Correlation")
+    method_string <- paste0("\nMethod: Correlation Coefficient (", result_daily_response[[3]], ")")
+
   } else if (result_daily_response[[2]] == 'pcor'){
-    method_string <- paste0("\nMethod: Partial Pearson Correlation")
+    method_string <- paste0("\nMethod: Partial Correlation Coefficient (", result_daily_response[[3]], ")")
+
   } else if (result_daily_response[[2]] == 'lm'){
     method_string <- paste0("\nMethod: Linear Regression")
   } else if (result_daily_response[[2]] == 'brnn'){

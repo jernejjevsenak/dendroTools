@@ -58,14 +58,17 @@ plot_heatmap <- function(result_daily_response, reference_window = "start", type
   period_string <- paste0("\nAnalysed Period: ", result_daily_response[[4]])
 
   if (result_daily_response[[2]] == 'cor'){
-    method_string <- paste0("\nMethod: Pearson Correlation")
-  } else if (result_daily_response[[2]] == 'pcor') {
-    method_string <- paste0("\nMethod: Partial Pearson Correlation")
+    method_string <- paste0("\nMethod: Correlation Coefficient (", result_daily_response[[3]], ")")
+
+  } else if (result_daily_response[[2]] == 'pcor'){
+    method_string <- paste0("\nMethod: Partial Correlation Coefficient (", result_daily_response[[3]], ")")
+
   } else if (result_daily_response[[2]] == 'lm'){
     method_string <- paste0("\nMethod: Linear Regression")
   } else if (result_daily_response[[2]] == 'brnn'){
     method_string <- paste0("\nMethod: ANN with Bayesian Regularization")
   }
+
 
   period_string <- paste0("\nAnalysed Period: ", result_daily_response[[4]])
 

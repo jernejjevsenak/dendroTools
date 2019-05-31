@@ -24,6 +24,9 @@
 #' @param metric a character string specifying which metric to use. Current
 #' possibilities are "r.squared" and "adj.r.squared". If method = "cor",
 #' metric is not relevant.
+#' @param cor_method a character string indicating which correlation
+#' coefficient is to be computed. One of "pearson" (default), "kendall", or
+#' "spearman".
 #' @param previous_year if set to TRUE, env_data and response variables will be
 #' rearranged in a way, that also previous year will be used for calculations of
 #' selected statistical metric.
@@ -80,7 +83,7 @@
 #' @param tidy_env_data if set to TRUE, env_data should be inserted as a data frame with three
 #' columns: "Year", "Month", "Precipitation/Temperature/etc."
 #'
-#' @return a list with 13 elements:
+#' @return a list with 15 elements:
 #' \tabular{rll}{
 #'  1 \tab $calculations   \tab a matrix with calculated metrics\cr
 #'  2 \tab $method \tab the character string of a method \cr
@@ -95,7 +98,8 @@
 #'  11 \tab $plot_extreme    \tab ggplot2 object: line or bar plot of a row with the highest value in a matrix of calculated metrics\cr
 #'  12 \tab $plot_specific    \tab not avaliable for monthly_response() \cr
 #'  13 \tab $PCA_output    \tab princomp object: the result output of the PCA analysis\cr
-#'  14 \tab $type    \tab the character string describing type of analysis: daily or monthly
+#'  14 \tab $type    \tab the character string describing type of analysis: daily or monthly\cr
+#'  15 \tab $reference_window \tab character string, which referece window was used for calculations
 #'}
 #'
 #' @export
@@ -119,7 +123,8 @@
 #'                                      method = "cor", row_names_subset = TRUE,
 #'                                      remove_insignificant = TRUE, previous_year = TRUE,
 #'                                      alpha = 0.05, aggregate_function = 'sum',
-#'                                      tidy_env_data = TRUE)
+#'                                      tidy_env_data = TRUE, previous_year = TRUE)
+#' summary(example_tidy_data)
 #' example_tidy_data$plot_extreme
 #' example_tidy_data$plot_heatmap
 #'
@@ -184,7 +189,7 @@
 #' }
 
 monthly_response <- function(response, env_data, method = "lm",
-                           metric = "r.squared",
+                           metric = "r.squared", cor_method = "pearson",
                            previous_year = FALSE, neurons = 1,
                            brnn_smooth = TRUE, remove_insignificant = TRUE,
                            alpha = .05, row_names_subset = FALSE,
@@ -494,7 +499,7 @@ monthly_response <- function(response, env_data, method = "lm",
         }
 
         x <- matrix(x, nrow = nrow(env_data), ncol = 1)
-        temporal_correlation <- cor(response[, 1], x[, 1])
+        temporal_correlation <- cor(response[, 1], x[, 1], method = cor_method)
 
         # Each calculation is printed. Reason: usually it takes several minutes
         # to go through all loops and therefore, users might think that R is
@@ -758,7 +763,7 @@ monthly_response <- function(response, env_data, method = "lm",
       }
 
       x <- matrix(x, nrow = nrow(env_data), ncol = 1)
-      temporal_correlation <- cor(response[, 1], x[, 1])
+      temporal_correlation <- cor(response[, 1], x[, 1], method = cor_method)
 
       if (reference_window == 'start'){
         temporal_matrix[(K - lower_limit) + 1, j + 1] <- temporal_correlation
@@ -1177,7 +1182,7 @@ monthly_response <- function(response, env_data, method = "lm",
   }
 
   if (method == "cor"){
-    optimized_result <- cor(dataf, response)
+    optimized_result <- cor(dataf, response, method = cor_method)
   }
 
   # Just give a nicer colname
@@ -1270,7 +1275,7 @@ monthly_response <- function(response, env_data, method = "lm",
     }
 
     if (method == "cor"){
-      optimized_result <- cor(dataf, response)
+      optimized_result <- cor(dataf, response, method = cor_method)
     }
 
     # Just give a nicer colname
@@ -1394,7 +1399,7 @@ monthly_response <- function(response, env_data, method = "lm",
     }
 
     if (method == "cor"){
-      optimized_result <- cor(dataf, response)
+      optimized_result <- cor(dataf, response, method = cor_method)
     }
 
     # Just give a nicer colname
@@ -1493,7 +1498,7 @@ monthly_response <- function(response, env_data, method = "lm",
 
       if (method == "cor"){
         calculation <- cor(dataset_temp[,1], dataset_temp[,2])
-        sig <- cor.test(dataset_temp[,1], dataset_temp[,2])$p.value
+        sig <- cor.test(dataset_temp[,1], dataset_temp[,2], method = cor_method)$p.value
         empty_list_significance[[m]] <- sig
         empty_list[[m]] <- calculation
         colname = "correlation"
@@ -1564,8 +1569,8 @@ monthly_response <- function(response, env_data, method = "lm",
         empty_list_period[[m]] <- paste(MIN, "-", MAKS)
 
         if (method == "cor"){
-          calculation <- cor(dataset_temp[,1], dataset_temp[,2])
-          sig <- cor.test(dataset_temp[,1], dataset_temp[,2])$p.value
+          calculation <- cor(dataset_temp[,1], dataset_temp[,2], method = cor_method)
+          sig <- cor.test(dataset_temp[,1], dataset_temp[,2], method = cor_method)$p.value
           empty_list[[m]] <- calculation
           empty_list_significance[[m]] <- sig
           colname = "correlation"
@@ -1656,8 +1661,8 @@ for (m in 1:length(empty_list_datasets)){
   dataset_temp <- empty_list_datasets[[m]]
 
   if (method == "cor"){
-    calculation <- cor(dataset_temp[,1], dataset_temp[,2])
-    sig <- cor.test(dataset_temp[,1], dataset_temp[,2])$p.value
+    calculation <- cor(dataset_temp[,1], dataset_temp[,2], method = cor_method)
+    sig <- cor.test(dataset_temp[,1], dataset_temp[,2], method = cor_method)$p.value
     empty_list[[m]] <- calculation
     empty_list_significance[[m]] <- sig
     colname = "correlation"
@@ -1867,12 +1872,13 @@ for (m in 1:length(empty_list_datasets)){
                          plot_extreme = plot_extremeA,
                          plot_specific = plot_specificA,
                          PCA_output = PCA_result,
-                         type = "monthly")
+                         type = "monthly",
+                         reference_window = reference_window)
     }
 
     if (method == "cor"){
       final_list <- list(calculations = temporal_matrix, method = method,
-                         metric = method, analysed_period = analysed_period,
+                         metric = cor_method, analysed_period = analysed_period,
                          optimized_return = dataf_full,
                          optimized_return_all = dataf_full_original,
                          transfer_function = p1, temporal_stability = temporal_stability,
@@ -1881,8 +1887,11 @@ for (m in 1:length(empty_list_datasets)){
                          plot_extreme = plot_extremeA,
                          plot_specific = plot_specificA,
                          PCA_output = PCA_result,
-                         type = "monthly")
+                         type = "monthly",
+                         reference_window = reference_window)
     }
+
+    class(final_list) <- 'dmrs'
 
   return(final_list)
 }

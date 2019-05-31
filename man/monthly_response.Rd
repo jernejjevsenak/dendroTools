@@ -5,8 +5,9 @@
 \title{monthly_response}
 \usage{
 monthly_response(response, env_data, method = "lm",
-  metric = "r.squared", previous_year = FALSE, neurons = 1,
-  brnn_smooth = TRUE, remove_insignificant = TRUE, alpha = 0.05,
+  metric = "r.squared", cor_method = "pearson",
+  previous_year = FALSE, neurons = 1, brnn_smooth = TRUE,
+  remove_insignificant = TRUE, alpha = 0.05,
   row_names_subset = FALSE, PCA_transformation = FALSE,
   log_preprocess = TRUE, components_selection = "automatic",
   eigenvalues_threshold = 1, N_components = 2,
@@ -35,6 +36,10 @@ possibilities are "cor", "lm" and "brnn".}
 \item{metric}{a character string specifying which metric to use. Current
 possibilities are "r.squared" and "adj.r.squared". If method = "cor",
 metric is not relevant.}
+
+\item{cor_method}{a character string indicating which correlation
+coefficient is to be computed. One of "pearson" (default), "kendall", or
+"spearman".}
 
 \item{previous_year}{if set to TRUE, env_data and response variables will be
 rearranged in a way, that also previous year will be used for calculations of
@@ -113,7 +118,7 @@ given in the form of: ylimits = c(0,1)}
 columns: "Year", "Month", "Precipitation/Temperature/etc."}
 }
 \value{
-a list with 13 elements:
+a list with 15 elements:
 \tabular{rll}{
  1 \tab $calculations   \tab a matrix with calculated metrics\cr
  2 \tab $method \tab the character string of a method \cr
@@ -128,7 +133,8 @@ a list with 13 elements:
  11 \tab $plot_extreme    \tab ggplot2 object: line or bar plot of a row with the highest value in a matrix of calculated metrics\cr
  12 \tab $plot_specific    \tab not avaliable for monthly_response() \cr
  13 \tab $PCA_output    \tab princomp object: the result output of the PCA analysis\cr
- 14 \tab $type    \tab the character string describing type of analysis: daily or monthly
+ 14 \tab $type    \tab the character string describing type of analysis: daily or monthly\cr
+ 15 \tab $reference_window \tab character string, which referece window was used for calculations
 }
 }
 \description{
@@ -159,7 +165,8 @@ example_tidy_data <- monthly_response(response = data_MVA, env_data = LJ_monthly
                                      method = "cor", row_names_subset = TRUE,
                                      remove_insignificant = TRUE, previous_year = TRUE,
                                      alpha = 0.05, aggregate_function = 'sum',
-                                     tidy_env_data = TRUE)
+                                     tidy_env_data = TRUE, previous_year = TRUE)
+summary(example_tidy_data)
 example_tidy_data$plot_extreme
 example_tidy_data$plot_heatmap
 

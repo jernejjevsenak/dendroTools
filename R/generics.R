@@ -1,14 +1,20 @@
-#' @method summary ds
+#' @method summary dmrs
 #' @export
 
-summary.ds <- function(object, ...){
+summary.dmrs <- function(object, ...){
+
+
 
   # A) Extracting a matrix from a list and converting it into a data frame
   result_daily_response <- object
 
+  type <- data.frame(object[[14]])
+
   result_daily_element1 <- data.frame(object[[1]])
 
   reference_window <- object[[15]]
+
+  # To keep RCMD check happy:
 
   # With the following chunk, overall_maximum and overall_minimum values of
   # result_daily_element1 matrix are calculated.
@@ -93,10 +99,21 @@ summary.ds <- function(object, ...){
   # In case of previous_year == TRUE, we calculate the day of a year
   # (plot_column), considering 366 days of previous year.
   if (nrow(temporal_vector) > 366 & plot_column > 366) {
+    previous_year = TRUE
     plot_column_extra <- plot_column %% 366
   } else {
+    previous_year = FALSE
     plot_column_extra <- plot_column
   }
+
+
+  if (nrow(temporal_vector) > 366) {
+    previous_year <- TRUE
+  } else {
+    previous_year <- FALSE
+  }
+
+
 
 
   # Here we define a data frame of dates and corresponing day of year (doi). Later
@@ -120,16 +137,13 @@ summary.ds <- function(object, ...){
 
 
   if (reference_window == "start"){
-    Optimal_string <- paste("\nOptimal Selection:",
-                            as.character(date_codes[plot_column_extra, 2]),"-",
+    Optimal_string <- paste(as.character(date_codes[plot_column_extra, 2]),"-",
                             as.character(date_codes[plot_column_extra + as.numeric(row_index) - 1, 2]))
   } else if (reference_window == "end") {
-    Optimal_string <- paste("\nOptimal Selection:",
-                            as.character(date_codes[plot_column_extra - as.numeric(row_index) + 1, 2]),"-",
+    Optimal_string <- paste(as.character(date_codes[plot_column_extra - as.numeric(row_index) + 1, 2]),"-",
                             as.character(date_codes[plot_column_extra, 2]))
   } else if (reference_window == "middle") {
-    Optimal_string <- paste("\nOptimal Selection:",
-                            as.character(date_codes[(round2((plot_column_extra - as.numeric(row_index)/2)) - adjustment_1), 2]),"-",
+    Optimal_string <- paste(as.character(date_codes[(round2((plot_column_extra - as.numeric(row_index)/2)) - adjustment_1), 2]),"-",
                             as.character(date_codes[(round2((plot_column_extra + as.numeric(row_index)/2)) - adjustment_2), 2]))
   }
 
@@ -139,77 +153,179 @@ summary.ds <- function(object, ...){
   # Here we define titles. They differ importantly among methods and arguments
   # in the final output list from daily_response() function
   if (result_daily_response[[2]] == "cor"){
-    y_lab <- "Correlation Coefficient"
+    y_lab <- NA
   } else if (result_daily_response[[2]] == "pcor"){
-    y_lab <- "Partial Correlation Coefficient"
+    y_lab <- NA
   } else if (result_daily_response[[3]] == "r.squared"){
     y_lab <- "Explained Variance"
   } else if (result_daily_response[[3]] == "adj.r.squared"){
     y_lab <- "Adjusted Explained Variance"
   }
 
-  if (nrow(temporal_vector) > 366){
-    x_lab <- "Day of Year  (Including Previous Year)"
-  } else if (nrow(temporal_vector) <= 366){
-    x_lab <- "Day of Year"
-  }
 
   if (reference_window == 'start' &&  plot_column > 366 && nrow(temporal_vector) > 366){
-    reference_string <- paste0("\nStarting Day of Optimal Window Width: Day ",
+    reference_string <- paste0("Starting Day of Optimal Window Width: Day ",
                                plot_column_extra, " of Current Year")}
 
   if (reference_window == 'start' &&  plot_column <= 366 && nrow(temporal_vector) > 366){
-    reference_string <- paste0("\nStarting Day of Optimal Window Width: Day ",
+    reference_string <- paste0("Starting Day of Optimal Window Width: Day ",
                                plot_column_extra, " of Previous Year")}
 
   if (reference_window == 'start' &&  plot_column <=  366 && nrow(temporal_vector) <=  366){
-    reference_string <- paste0("\nStarting Day of Optimal Window Width: Day ",
+    reference_string <- paste0("Starting Day of Optimal Window Width: Day ",
                                plot_column_extra)}
 
 
   if (reference_window == 'end' &&  plot_column > 366 && nrow(temporal_vector) > 366){
-    reference_string <- paste0("\nEnding Day of Optimal Window Width: Day ",
+    reference_string <- paste0("Ending Day of Optimal Window Width: Day ",
                                plot_column_extra, " of Current Year")}
 
   if (reference_window == 'end' &&  plot_column  <= 366 && nrow(temporal_vector) > 366){
-    reference_string <- paste0("\nEnding Day of Optimal Window Width: Day ",
+    reference_string <- paste0("Ending Day of Optimal Window Width: Day ",
                                plot_column_extra, " of Previous Year")}
 
   if (reference_window == 'end' &&  plot_column  <=  366 && nrow(temporal_vector) <=  366){
-    reference_string <- paste0("\nEnding Day of Optimal Window Width: Day ",
+    reference_string <- paste0("Ending Day of Optimal Window Width: Day ",
                                plot_column_extra)}
 
 
   if (reference_window == 'middle' &&  plot_column > 366 && nrow(temporal_vector) > 366){
-    reference_string <- paste0("\nMiddle Day of Optimal Window Width: Day ",
+    reference_string <- paste0("Middle Day of Optimal Window Width: Day ",
                                plot_column_extra, " of Current Year")}
 
   if (reference_window == 'middle' &&  plot_column  <= 366 && nrow(temporal_vector) > 366){
-    reference_string <- paste0("\nMiddle Day of Optimal Window Width: Day ",
+    reference_string <- paste0("Middle Day of Optimal Window Width: Day ",
                                plot_column_extra, " of Previous Year")}
 
   if (reference_window == 'middle' &&  plot_column  <=  366 && nrow(temporal_vector) <=  366){
-    reference_string <- paste0("\nMiddle Day of Optimal Window Width: Day ",
+    reference_string <- paste0("Middle Day of Optimal Window Width: Day ",
                                plot_column_extra)}
 
-  optimal_window_string <- paste0("\nOptimal Window Width: ", as.numeric(row_index),
+  optimal_window_string <- paste0("Optimal Window Width: ", as.numeric(row_index),
                                   " Days")
 
-  optimal_calculation <- paste0("\nThe Highest ", y_lab,": " , calculated_metric)
+  optimal_calculation <- paste0("The Highest ", y_lab,": " , calculated_metric)
 
   period_string <- paste0("Analysed Period: ", result_daily_response[[4]])
 
   if (result_daily_response[[2]] == 'cor'){
-    method_string <- paste0("\nMethod: Pearson Correlation")
+    method_string <- paste0("Correlation Coefficient (", result_daily_response[[3]], ")")
+
   } else if (result_daily_response[[2]] == 'pcor'){
-    method_string <- paste0("\nMethod: Partial Pearson Correlation")
+    method_string <- paste0("Partial Correlation Coefficient (", result_daily_response[[3]], ")")
+
   } else if (result_daily_response[[2]] == 'lm'){
-    method_string <- paste0("\nMethod: Linear Regression")
+    method_string <- paste0("Linear Regression")
   } else if (result_daily_response[[2]] == 'brnn'){
-    method_string <- paste0("\nMethod: ANN with Bayesian Regularization")
+    method_string <- paste0("ANN with Bayesian Regularization")
   }
 
-  cat("The highest calculated metric", calculated_metric)
+
+
+
+
+
+
+
+
+
+
+  if (type == "monthly"){
+
+    # Plural or singular?
+    if (as.numeric(row_index) == 1){
+      month_string <- " Month"
+
+    } else {
+      month_string <- " Months"
+    }
+
+    # In case of previous_year == TRUE, we calculate the day of a year
+    # (plot_column), considering 366 days of previous year.
+
+    if (ncol(result_daily_response[[1]]) == 24 & plot_column > 12) {
+      plot_column_extra <- plot_column %% 12
+    } else {
+      plot_column_extra <- plot_column
+    }
+
+
+    if (ncol(result_daily_response[[1]]) == 24) {
+      previous_year <- TRUE
+    } else {
+      previous_year <- FALSE
+    }
+
+
+
+    if (reference_window == 'start' &&  plot_column > 12 && ncol(result_daily_response[[1]]) == 24){
+      reference_string <- paste0("Starting Month of Optimal Window Width: Month ",
+                                 plot_column_extra, " of Current Year")}
+
+    if (reference_window == 'start' &&  plot_column <= 12 && ncol(result_daily_response[[1]]) == 24){
+      reference_string <- paste0("Starting Month of Optimal Window Width: Month ",
+                                 plot_column_extra, " of Previous Year")}
+
+    if (reference_window == 'start' &&  plot_column <=  12 && ncol(result_daily_response[[1]]) <=  12){
+      reference_string <- paste0("Starting Month of Optimal Window Width: Month ",
+                                 plot_column_extra)}
+
+
+
+    optimal_window_string <- paste0("Optimal Window Width: ", as.numeric(row_index),
+                                    month_string)
+
+    # Here we define a data frame of months. Later
+    # this dataframe will be used to describe tht optimal sequence od days
+
+    if (ncol(result_daily_response[[1]]) == 24){
+      date_codes <- c("Jan*", "Feb*", "Mar*", "Apr*", "May*", "Jun*", "Jul*", "Aug*", "Sep*", "Oct*", "Nov*", "Dec*",
+                      "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+
+    } else if (ncol(result_daily_response[[1]]) == 12){
+
+      date_codes <- c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+
+    }
+
+
+    if (reference_window == "start"){
+      Optimal_string <- paste(as.character(date_codes[plot_column_source]),"-",
+                              as.character(date_codes[plot_column_source + as.numeric(row_index) - 1]))
+    } else if (reference_window == "end") {
+      Optimal_string <- paste(as.character(date_codes[plot_column_source - as.numeric(row_index) + 1]),"-",
+                              as.character(date_codes[plot_column_source]))
+    } else if (reference_window == "middle") {
+      Optimal_string <- paste(as.character(date_codes[(round2((plot_column_source - as.numeric(row_index)/2)) - adjustment_1)]),"-",
+                              as.character(date_codes[(round2((plot_column_source + as.numeric(row_index)/2)) - adjustment_2)]))
+    }
+
+    if (as.numeric(row_index == 1)){
+      Optimal_string <- substr(Optimal_string, 1, nchar(Optimal_string)-6)
+    }
+
+    }
+
+  output_df <-  data.frame(Variable = c("approach",
+                                        "method",
+                                        "metric",
+                                        "analysed_years",
+                                        "maximal_calculated_metric",
+                                        "reference_window",
+                                        "analysed_previous_year",
+                                        "optimal_time_window",
+                                        "optimal_time_window_length"),
+
+                           Value = c(result_daily_response[[14]],
+                                     method_string,
+                                     y_lab,
+                                     result_daily_response[[4]],
+                                     calculated_metric,
+                                     reference_string,
+                                     previous_year,
+                                     Optimal_string,
+                                     as.numeric(row_index)))
+  return(output_df)
 
 }
 

@@ -5,9 +5,9 @@
 \title{daily_response}
 \usage{
 daily_response(response, env_data, method = "lm", metric = "r.squared",
-  lower_limit = 30, upper_limit = 90, fixed_width = 0,
-  previous_year = FALSE, neurons = 1, brnn_smooth = TRUE,
-  remove_insignificant = TRUE, alpha = 0.05,
+  cor_method = "pearson", lower_limit = 30, upper_limit = 90,
+  fixed_width = 0, previous_year = FALSE, neurons = 1,
+  brnn_smooth = TRUE, remove_insignificant = TRUE, alpha = 0.05,
   row_names_subset = FALSE, PCA_transformation = FALSE,
   log_preprocess = TRUE, components_selection = "automatic",
   eigenvalues_threshold = 1, N_components = 2,
@@ -36,6 +36,10 @@ possibilities are "cor", "lm" and "brnn".}
 \item{metric}{a character string specifying which metric to use. Current
 possibilities are "r.squared" and "adj.r.squared". If method = "cor",
 metric is not relevant.}
+
+\item{cor_method}{a character string indicating which correlation
+coefficient is to be computed. One of "pearson" (default), "kendall", or
+"spearman".}
 
 \item{lower_limit}{lower limit of window width}
 
@@ -186,12 +190,12 @@ example_daily_response <- daily_response(response = data_MVA, env_data = LJ_dail
                                      method = "cor", fixed_width = 0,
                                      row_names_subset = TRUE, remove_insignificant = TRUE,
                                      alpha = 0.05, aggregate_function = 'mean',
-                                     reference_window = "end")
+                                     reference_window = "end", previous_year = TRUE,
+                                     cor_method = "spearman")
 class(example_daily_response)
+summary(example_daily_response)
 example_daily_response$plot_extreme
 example_daily_response$plot_heatmap
-summary.ds(example_daily_response)
-summary(example_daily_response)
 
 # 2 Example for past and present
 example_MVA_past <- daily_response(response = data_MVA, env_data = LJ_daily_temperatures,
