@@ -121,7 +121,8 @@
 #'  11 \tab $plot_extreme    \tab ggplot2 object: line plot of a row with the highest value in a matrix of calculated metrics\cr
 #'  12 \tab $plot_specific    \tab ggplot2 object: line plot of a row with a selected window width in a matrix of calculated metrics\cr
 #'  13 \tab $PCA_output    \tab princomp object: the result output of the PCA analysis\cr
-#'  14 \tab $type    \tab the character string describing type of analysis: daily or monthly
+#'  14 \tab $type    \tab the character string describing type of analysis: daily or monthly\cr
+#'  15 \tab $reference_window \tab character string, which referece window was used for calculations
 #'}
 #'
 #' @export
@@ -138,22 +139,25 @@
 #' data(example_proxies_individual)
 #' data(example_proxies_1)
 #' data(LJ_daily_temperatures)
+#' data(LJ_daily_precipitation)
 #'
 #' # 1 Basic example
 #' example_basic <- daily_response_seascorr(response = data_MVA,
 #'                           env_data_primary = LJ_daily_temperatures,
 #'                           env_data_control = LJ_daily_precipitation,
-#'                           row_names_subset = TRUE,
+#'                           row_names_subset = TRUE, lower_limit = 1,
 #'                           remove_insignificant = TRUE,
-#'                           aggregate_function_env_data_primary = 'mean',
-#'                           aggregate_function_env_data_control = 'mean',
-#'                           alpha = 0.05,
+#'                           aggregate_function_env_data_primary = 'median',
+#'                           aggregate_function_env_data_control = 'median',
+#'                           alpha = 0.05, pcor_method = "spearman",
 #'                           tidy_env_data_primary = FALSE,
+#'                           previous_year = TRUE,
 #'                           tidy_env_data_control = TRUE,
 #'                           reference_window = "middle")
-#'
+#' summary(example_basic)
 #' example_basic$plot_extreme
 #' example_basic$plot_heatmap
+#' example_basic$plot_specific
 #' example_basic$optimized_return
 #' example_basic$optimized_return_all
 #'
@@ -561,7 +565,9 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
         x1 <- matrix(x1, nrow = nrow(env_data_primary), ncol = 1)
         x2 <- matrix(x2, nrow = nrow(env_data_control), ncol = 1)
 
-        temporal_correlation <- pcor.test(response[, 1], x1[, 1], x2[, 1], method = pcor_method)
+        my_temporal_data <- cbind(response[, 1], x1[, 1], x2[, 1])
+        colnames(my_temporal_data) <- c("x", "y", "z")
+        temporal_correlation <- partial.r(data=my_temporal_data, x=c("x","y"), y="z", use="pairwise",method = pcor_method)[2]
 
         # Each calculation is printed. Reason: usually it takes several minutes
         # to go through all loops and therefore, users might think that R is
@@ -633,13 +639,37 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
     for (j in 0: (ncol(env_data_primary) - K)) {
 
       if (aggregate_function_env_data_primary == 'median'){
-        x1 <- apply(env_data_primary[1:nrow(env_data_primary), (1 + j) : (j + K)],1 , median, na.rm = TRUE)
+
+        if (K == 1){
+
+          x1 <- env_data_primary[,K+j]
+
+        } else {
+
+          x1 <- apply(env_data_primary[1:nrow(env_data_primary), (1 + j) : (j + K)],1 , median, na.rm = TRUE)}
+
       } else if (aggregate_function_env_data_primary == 'sum'){
-        x1 <- apply(env_data_primary[1:nrow(env_data_primary), (1 + j) : (j + K)],1 , sum, na.rm = TRUE)
+
+        if (K == 1){
+
+          x1 <- env_data_primary[,K+j]
+
+        } else {
+
+          x1 <- apply(env_data_primary[1:nrow(env_data_primary), (1 + j) : (j + K)],1 , sum, na.rm = TRUE)}
+
         }
       else if (aggregate_function_env_data_primary == 'mean'){
-        x1 <- rowMeans(env_data_primary[1:nrow(env_data_primary), (1 + j) : (j + K)], na.rm = T)
-      } else {
+
+        if (K == 1){
+
+          x1 <- env_data_primary[,K+j]
+
+        } else {
+
+          x1 <- rowMeans(env_data_primary[1:nrow(env_data_primary), (1 + j) : (j + K)], na.rm = T)}
+
+         } else {
         stop(paste0("aggregate function for env_data_primary is ", aggregate_function_env_data_primary, ". Instead it should be mean, median or sum."))
       }
 
@@ -653,16 +683,29 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
 
       if (aggregate_function_env_data_control == 'median'){
 
-        x2 <- apply(env_data_control[1:nrow(env_data_control), (1 + j) : (j + K)],1 , median, na.rm = TRUE)
+        if (K == 1){
+          x2 <- env_data_control[,K+j]
+        } else {
+
+          x2 <- apply(env_data_control[1:nrow(env_data_control), (1 + j) : (j + K)],1 , median, na.rm = TRUE)}
 
       } else if (aggregate_function_env_data_control == 'sum'){
 
-        x2 <- apply(env_data_control[1:nrow(env_data_control), (1 + j) : (j + K)],1 , sum, na.rm = TRUE)
+
+        if (K == 1){
+          x2 <- env_data_control[,K+j]
+        } else {
+
+          x2 <- apply(env_data_control[1:nrow(env_data_control), (1 + j) : (j + K)],1 , sum, na.rm = TRUE)}
 
       }
       else if (aggregate_function_env_data_control == 'mean'){
 
-        x2 <- rowMeans(env_data_control[1:nrow(env_data_control), (1 + j) : (j + K)], na.rm = T)
+        if (K == 1){
+          x2 <- env_data_control[,K+j]
+        } else {
+
+          x2 <- rowMeans(env_data_control[1:nrow(env_data_control), (1 + j) : (j + K)], na.rm = T)}
 
       } else {
 
@@ -672,9 +715,12 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
 
       x1 <- matrix(x1, nrow = nrow(env_data_primary), ncol = 1)
 
-       x2 <- matrix(x2, nrow = nrow(env_data_primary), ncol = 1)
+      x2 <- matrix(x2, nrow = nrow(env_data_primary), ncol = 1)
 
-      temporal_correlation <- pcor.test(x = response[, 1], y = x1[, 1], z = x2[, 1],  method = pcor_method)
+
+      my_temporal_data <- cbind(response[, 1], x1[, 1], x2[, 1])
+      colnames(my_temporal_data) <- c("x", "y", "z")
+      temporal_correlation <- partial.r(data=my_temporal_data, x=c("x","y"), y="z", use="pairwise",method = pcor_method)[2]
 
       if (reference_window == 'start'){
         temporal_matrix[(K - lower_limit) + 1, j + 1] <- as.numeric(temporal_correlation)[1]
@@ -995,9 +1041,9 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
   colnames(x1_full_original) <- "Optimized_return"
   colnames(x1) <- "Optimized.rowNames"
 
-  test_calculation <- pcor.test(x1_full[,1], x1_full[,2], x1_full[,3], method = pcor_method)[1]
-
-
+  my_temporal_data <- cbind(x1_full[,1], x1_full[,2], x1_full[,3])
+  colnames(my_temporal_data) <- c("x", "y", "z")
+  test_calculation <- partial.r(data=my_temporal_data, x=c("x","y"), y="z", use="pairwise",method = pcor_method)[2]
 
   test_logical <- as.numeric(max_calculation) == as.numeric(test_calculation)
 
@@ -1279,16 +1325,12 @@ for (m in 1:length(empty_list_datasets)){
 
   if (method == "cor"){
     final_list <- list(calculations = temporal_matrix, method = "pcor",
-                       metric = "pcor", analysed_period = analysed_period,
+                       metric = pcor_method, analysed_period = analysed_period,
                        optimized_return = x1_full,
                        optimized_return_all = x1_full_original,
                        transfer_function = p1, temporal_stability = temporal_stability,
                        cross_validation = cross_validation)
   }
-
-
-    final_list[[4]]
-
 
     plot_heatmapA <- plot_heatmap(final_list, reference_window = reference_window, type = "daily")
     plot_extremeA <- plot_extreme(final_list, ylimits = ylimits, reference_window = reference_window, type = "daily")
@@ -1315,7 +1357,7 @@ for (m in 1:length(empty_list_datasets)){
     # Here, for the sake of simplicity, we create final list again
     if (method == "lm" | method == "brnn") {
       final_list <- list(calculations = temporal_matrix, method = "pcor",
-                         metric = "pcor", analysed_period = analysed_period,
+                         metric = pcor_method, analysed_period = analysed_period,
                          optimized_return = x1_full,
                          optimized_return_all = x1_full_original,
                          transfer_function = p1, temporal_stability = temporal_stability,
@@ -1324,12 +1366,13 @@ for (m in 1:length(empty_list_datasets)){
                          plot_extreme = plot_extremeA,
                          plot_specific = plot_specificA,
                          PCA_output = PCA_result,
-                         type = "daily")
+                         type = "daily",
+                         reference_window = reference_window)
     }
 
     if (method == "cor"){
       final_list <- list(calculations = temporal_matrix, method = "pcor",
-                         metric = "pcor", analysed_period = analysed_period,
+                         metric = pcor_method, analysed_period = analysed_period,
                          optimized_return = x1_full,
                          optimized_return_all = x1_full_original,
                          transfer_function = p1, temporal_stability = temporal_stability,
@@ -1338,10 +1381,11 @@ for (m in 1:length(empty_list_datasets)){
                          plot_extreme = plot_extremeA,
                          plot_specific = plot_specificA,
                          PCA_output = PCA_result,
-                         type = "daily")
+                         type = "daily",
+                         reference_window = reference_window)
     }
 
-    class(final_list) <- "ds"
+    class(final_list) <- "dmrs"
 
   return(final_list)
 }
