@@ -1,15 +1,16 @@
-Dear CRAN, as you suggested in our previous conversation, we additionally reduced the intensity of our tests and examples. Previously, we reduced the intensity of our vignettes by 25 %. So, we made vignette examples much smaller, but it is still possible we exceed the limit of vignette building on CRAN. In this case, we kindly ask CRAN to turn off vignette checks on some platforms, as we did for the previous version. Thank you very much.
-
-Best Regards,
+Dear CRAN, 
+I am resubmitting my package dendroTools. I have added three new functions that extends the functionality of my package. Please note extensive vignette examples. In previous versions we agreed to turn off vignette checks on some platforms. I believe it makes sense to keep it so. Thank you very much.
+Bests,
 Jernej 
+
 
 ##  Resubmission
 * This is a resubmission of the package dendroTools.
 
 ## Test environments
 * local OS X install, R 3.5.0
-* TRAVIS: Platform: x86_64-pc-linux-gnu (64-bit), Running under: Ubuntu Ubuntu 14.04.5 LTS, R version 3.5.3 (2017-01-27)
-* win-builder using using R version 3.5.3 (2019-03-11) and platform: x86_64-w64-mingw32 (64-bit)
+* TRAVIS: Platform: x86_64-pc-linux-gnu (64-bit), Running under: Ubuntu Ubuntu 14.04.5 LTS, R version 3.6.0 (2017-01-27)
+* win-builder using R Under development (unstable) (2019-05-30 r76623) and using R version 3.5.3 (2019-03-11)
 
 ## R CMD check results
 There were no ERRORs, WARNINGs or NOTEs

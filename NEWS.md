@@ -1,4 +1,5 @@
 # dendroTools 1.0.5.
+* new function: monthly_response_seascorr()
 * titles of plot_extreme, plot_specific and plot_heatmap are updated
 * for daily_response() and monthly_response(), it is now possible to define method for correlation coefficient: "pearson", "kendall", "spearman". To do so, use , cor_method argument
 * daily_response output list is class "dmrs"
