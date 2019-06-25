@@ -102,5 +102,5 @@ test9 <- daily_response(response = MVA_parameter_ordered,
 expect_equal(test8[[1]], test9[[1]])
 
 
-# There should be 15 elements in a list returned by daily_response()
-expect_equal(length(test8), 15)
+# There should be 17 elements in a list returned by daily_response()
+expect_equal(length(test8), 17)

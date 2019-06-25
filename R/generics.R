@@ -43,6 +43,9 @@ summary.dmrs <- function(object, ...){
     temporal_vector <- data.frame(temporal_vector)
     calculated_metric <- round(max(temporal_vector, na.rm = TRUE), 3)
 
+    lower_bound <- result_daily_response$boot_lower[max_index, as.numeric(max_result)]
+    upper_bound <- result_daily_response$boot_upper[max_index, as.numeric(max_result)]
+
     # Here we remove missing values at the end of the temporal_vector.
     # It is important to remove missing values only at the end of the
     # temporal_vector!
@@ -75,6 +78,8 @@ summary.dmrs <- function(object, ...){
     temporal_vector <- data.frame(temporal_vector)
     calculated_metric <- round(min(temporal_vector, na.rm = TRUE), 3)
 
+    lower_bound <- result_daily_response$boot_lower[min_index, as.numeric(min_result)]
+    upper_bound <- result_daily_response$boot_upper[min_index, as.numeric(min_result)]
     # Here we remove missing values
     # We remove missing values at the end of the temporal_vector.
     # It is important to remove missing values only at the end of the
@@ -311,6 +316,8 @@ summary.dmrs <- function(object, ...){
                                         "metric",
                                         "analysed_years",
                                         "maximal_calculated_metric",
+                                        "lower_ci",
+                                        "upper_ci",
                                         "reference_window",
                                         "analysed_previous_year",
                                         "optimal_time_window",
@@ -321,6 +328,8 @@ summary.dmrs <- function(object, ...){
                                      y_lab,
                                      result_daily_response[[4]],
                                      calculated_metric,
+                                     round(lower_bound, 3),
+                                     round(upper_bound, 3),
                                      reference_string,
                                      previous_year,
                                      Optimal_string,

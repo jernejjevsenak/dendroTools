@@ -82,8 +82,16 @@
 #' @param seed optional seed argument for reproducible results
 #' @param tidy_env_data if set to TRUE, env_data should be inserted as a data frame with three
 #' columns: "Year", "Month", "Precipitation/Temperature/etc."
+#' @param boot logical, if TRUE, bootstrap procedure will be used to calculate
+#' estimates correlatio coefficients, R squared or adjusted R squared metrices
+#' @param boot_n The number of bootstrap replicates
+#' @param boot_ci_type A character string representing the type of bootstrap intervals
+#' required. The value should be any subset of the values c("norm","basic", "stud",
+#' "perc", "bca").
+#' @param boot_conf_int A scalar or vector containing the confidence level(s) of
+#' the required interval(s)
 #'
-#' @return a list with 15 elements:
+#' @return a list with 17 elements:
 #' \tabular{rll}{
 #'  1 \tab $calculations   \tab a matrix with calculated metrics\cr
 #'  2 \tab $method \tab the character string of a method \cr
@@ -99,7 +107,9 @@
 #'  12 \tab $plot_specific    \tab not avaliable for monthly_response() \cr
 #'  13 \tab $PCA_output    \tab princomp object: the result output of the PCA analysis\cr
 #'  14 \tab $type    \tab the character string describing type of analysis: daily or monthly\cr
-#'  15 \tab $reference_window \tab character string, which referece window was used for calculations
+#'  15 \tab $reference_window \tab character string, which referece window was used for calculations\cr
+#'  16 \tab $boot_lower \tab matrix with lower limit of confidence intervals of bootstrap calculations \cr
+#'  17 \tab $boot_upper \tab matrix with upper limit of confidence intervals of bootstrap calculations
 #'}
 #'
 #' @export
@@ -120,10 +130,10 @@
 #'
 #' # 1 Example with tidy precipitation data
 #' example_tidy_data <- monthly_response(response = data_MVA, env_data = LJ_monthly_precipitation,
-#'                                      method = "cor", row_names_subset = TRUE,
+#'                                      method = "lm", row_names_subset = TRUE,
 #'                                      remove_insignificant = TRUE, previous_year = TRUE,
 #'                                      alpha = 0.05, aggregate_function = 'sum',
-#'                                      tidy_env_data = TRUE, previous_year = TRUE)
+#'                                      tidy_env_data = TRUE, boot = FALSE)
 #' summary(example_tidy_data)
 #' example_tidy_data$plot_extreme
 #' example_tidy_data$plot_heatmap
@@ -200,7 +210,9 @@ monthly_response <- function(response, env_data, method = "lm",
                            temporal_stability_check = "sequential", k = 2,
                            k_running_window = 30, cross_validation_type = "blocked",
                            subset_years = NULL, plot_specific_window = NULL,
-                           ylimits = NULL, seed = NULL, tidy_env_data = FALSE) {
+                           ylimits = NULL, seed = NULL, tidy_env_data = FALSE,
+                           boot = FALSE, boot_n = 1000, boot_ci_type = "norm",
+                           boot_conf_int = 0.95) {
 
 
   if (!is.null(seed)) {
@@ -233,7 +245,17 @@ monthly_response <- function(response, env_data, method = "lm",
  DE <- NULL
  d <- NULL
 
- # If there is a column name samp.depth in response data frame, warning is given
+ temporal_matrix_lower <- NULL
+ temporal_matrix_upper <- NULL
+
+ if (boot == TRUE & method != "cor"){
+
+   warning(paste0("Bootstrapping is currently available only for correlation coefficients!",
+                  "boot argument is ignored!"))
+
+ }
+
+  # If there is a column name samp.depth in response data frame, warning is given
  if ("samp.depth" %in% colnames(response)){
 
    samp.depth_index <- grep("samp.depth", colnames(response))
@@ -470,6 +492,11 @@ monthly_response <- function(response, env_data, method = "lm",
                                                    1 + fixed_width/2 ),0))
       }
 
+      # Here I create two additional temporal matrices, which will be used to store
+      # lower and upper limits of bootstrap estimates
+      temporal_matrix_lower <- temporal_matrix
+      temporal_matrix_upper <- temporal_matrix
+
       pb <- txtProgressBar(min = 0, max = (ncol(env_data) - fixed_width + 1),
                            style = 3)
 
@@ -540,6 +567,11 @@ monthly_response <- function(response, env_data, method = "lm",
                                 ncol = round2((ncol(env_data) - fixed_width +
                                                  1 + fixed_width/2 ),0))
     }
+
+    # Here I create two additional temporal matrices, which will be used to store
+    # lower and upper limits of bootstrap estimates
+    temporal_matrix_lower <- temporal_matrix
+    temporal_matrix_upper <- temporal_matrix
 
     pb <- txtProgressBar(min = 0, max = (ncol(env_data) - fixed_width + 1),
                          style = 3)
@@ -614,6 +646,11 @@ monthly_response <- function(response, env_data, method = "lm",
                                 ncol = round2((ncol(env_data) - fixed_width +
                                                  1 + fixed_width/2 ),0))
     }
+
+    # Here I create two additional temporal matrices, which will be used to store
+    # lower and upper limits of bootstrap estimates
+    temporal_matrix_lower <- temporal_matrix
+    temporal_matrix_upper <- temporal_matrix
 
     pb <- txtProgressBar(min = 0, max = (ncol(env_data) - fixed_width + 1),
                          style = 3)
@@ -716,6 +753,12 @@ monthly_response <- function(response, env_data, method = "lm",
                                                  1 + lower_limit/2 ),0))
     }
 
+    # Here I create two additional temporal matrices, which will be used to store
+    # lower and upper limits of bootstrap estimates
+    temporal_matrix_lower <- temporal_matrix
+    temporal_matrix_upper <- temporal_matrix
+
+
   # An iterating double loop: 1 outer loop) iterating from lower_limit :
   # upper_limit defines windo.width used for a moving window. 2) inner loop
   # defines the starting position of a moving window.
@@ -763,18 +806,40 @@ monthly_response <- function(response, env_data, method = "lm",
       }
 
       x <- matrix(x, nrow = nrow(env_data), ncol = 1)
-      temporal_correlation <- cor(response[, 1], x[, 1], method = cor_method)
+
+
+      if (boot == FALSE){
+        temporal_correlation <- cor(response[, 1], x[, 1], method = cor_method)
+        temporal_lower <- NA
+        temporal_upper <- NA
+      } else if (boot == TRUE){
+        temp_df_boot <- cbind(response[, 1], x[, 1])
+        calc <- boot(temp_df_boot, boot_f, fun = "cor", cor.type = cor_method, R = boot_n)
+
+        temporal_correlation <- colMeans(calc$t)[1]
+
+        ci_int <- boot.ci(calc, conf = boot_conf_int, type = boot_ci_type)
+        temporal_lower <- ci_int$norm[2]
+        temporal_upper <- ci_int$norm[3]
+      } else {
+        print(paste0("boot should be TRUE or FALSE, instead it is ", boot))
+      }
 
       if (reference_window == 'start'){
         temporal_matrix[(K - lower_limit) + 1, j + 1] <- temporal_correlation
+        temporal_matrix_lower[(K - lower_limit) + 1, j + 1] <- temporal_lower
+        temporal_matrix_upper[(K - lower_limit) + 1, j + 1] <- temporal_upper
       } else if (reference_window == 'end'){
         temporal_matrix[(K - lower_limit) + 1, j + K] <- temporal_correlation
+        temporal_matrix_lower[(K - lower_limit) + 1, j + K] <- temporal_lower
+        temporal_matrix_upper[(K - lower_limit) + 1, j + K] <- temporal_upper
       } else if (reference_window == 'middle'){
         temporal_matrix[(K - lower_limit) + 1, round2(j + 1 + K/2, 0)] <- temporal_correlation
+        temporal_matrix_lower[(K - lower_limit) + 1, round2(j + 1 + K/2, 0)] <- temporal_lower
+        temporal_matrix_upper[(K - lower_limit) + 1, round2(j + 1 + K/2, 0)] <- temporal_upper
       }
 
-
-      }
+        }
     setTxtProgressBar(pb, b)
   }
 
@@ -784,12 +849,17 @@ monthly_response <- function(response, env_data, method = "lm",
   # window width used fot calculations. Colnames represent the position of
   # moving window in a original env_data data frame.
   temporal_rownames <- as.vector(seq(from = lower_limit, to = upper_limit,
-    by = 1))
+                                     by = 1))
   row.names(temporal_matrix) <- temporal_rownames
+  row.names(temporal_matrix_lower) <- temporal_rownames
+  row.names(temporal_matrix_upper) <- temporal_rownames
+
 
   temporal_colnames <- as.vector(seq(from = 1,
-    to = ncol(temporal_matrix), by = 1))
+                                     to = ncol(temporal_matrix), by = 1))
   colnames(temporal_matrix) <- temporal_colnames
+  colnames(temporal_matrix_lower) <- temporal_colnames
+  colnames(temporal_matrix_upper) <- temporal_colnames
   }
 
   # B.2 method == "lm"
@@ -808,6 +878,10 @@ monthly_response <- function(response, env_data, method = "lm",
                                                  1 + lower_limit/2 ),0))
     }
 
+    # Here I create two additional temporal matrices, which will be used to store
+    # lower and upper limits of bootstrap estimates
+    temporal_matrix_lower <- temporal_matrix
+    temporal_matrix_upper <- temporal_matrix
 
     pb <- txtProgressBar(min = 0, max = (upper_limit - lower_limit),
                          style = 3)
@@ -902,6 +976,11 @@ monthly_response <- function(response, env_data, method = "lm",
                                 ncol = round2((ncol(env_data) - lower_limit +
                                                  1 + lower_limit/2 ),0))
     }
+
+    # Here I create two additional temporal matrices, which will be used to store
+    # lower and upper limits of bootstrap estimates
+    temporal_matrix_lower <- temporal_matrix
+    temporal_matrix_upper <- temporal_matrix
 
     pb <- txtProgressBar(min = 0, max = (upper_limit - lower_limit),
                          style = 3)
@@ -1873,7 +1952,9 @@ for (m in 1:length(empty_list_datasets)){
                          plot_specific = plot_specificA,
                          PCA_output = PCA_result,
                          type = "monthly",
-                         reference_window = reference_window)
+                         reference_window = reference_window,
+                         boot_lower = temporal_matrix_lower,
+                         boot_upper = temporal_matrix_upper)
     }
 
     if (method == "cor"){
@@ -1888,7 +1969,9 @@ for (m in 1:length(empty_list_datasets)){
                          plot_specific = plot_specificA,
                          PCA_output = PCA_result,
                          type = "monthly",
-                         reference_window = reference_window)
+                         reference_window = reference_window,
+                         boot_lower = temporal_matrix_lower,
+                         boot_upper = temporal_matrix_upper)
     }
 
     class(final_list) <- 'dmrs'

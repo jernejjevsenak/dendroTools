@@ -1,3 +1,7 @@
+# dendroTools 1.0.6.
+*Bootstrapping of correlation coefficients is introduced. To do so, use the argument boot in daily_response() and monthly_response()
+* Package version is changed to 1.0.6
+
 # dendroTools 1.0.5.
 * new function: monthly_response_seascorr()
 * titles of plot_extreme, plot_specific and plot_heatmap are updated

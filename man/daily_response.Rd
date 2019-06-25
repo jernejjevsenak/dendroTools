@@ -14,7 +14,9 @@ daily_response(response, env_data, method = "lm", metric = "r.squared",
   aggregate_function = "mean", temporal_stability_check = "sequential",
   k = 2, k_running_window = 30, cross_validation_type = "blocked",
   subset_years = NULL, plot_specific_window = NULL, ylimits = NULL,
-  seed = NULL, tidy_env_data = FALSE, reference_window = "start")
+  seed = NULL, tidy_env_data = FALSE, reference_window = "start",
+  boot = FALSE, boot_n = 1000, boot_ci_type = "norm",
+  boot_conf_int = 0.95)
 }
 \arguments{
 \item{response}{a data frame with tree-ring proxy variables as columns and
@@ -139,9 +141,21 @@ calculation is related to DOY 25.
 The optimal selection, which describes the optimal consecutive days that returns
 the highest calculated metric and is obtained by the $plot_extreme output, is the
 same for all three reference windows.}
+
+\item{boot}{logical, if TRUE, bootstrap procedure will be used to calculate
+estimates correlatio coefficients, R squared or adjusted R squared metrices}
+
+\item{boot_n}{The number of bootstrap replicates}
+
+\item{boot_ci_type}{A character string representing the type of bootstrap intervals
+required. The value should be any subset of the values c("norm","basic", "stud",
+"perc", "bca").}
+
+\item{boot_conf_int}{A scalar or vector containing the confidence level(s) of
+the required interval(s)}
 }
 \value{
-a list with 15 elements:
+a list with 17 elements:
 \tabular{rll}{
  1 \tab $calculations   \tab a matrix with calculated metrics\cr
  2 \tab $method \tab the character string of a method \cr
@@ -157,7 +171,9 @@ a list with 15 elements:
  12 \tab $plot_specific    \tab ggplot2 object: line plot of a row with a selected window width in a matrix of calculated metrics\cr
  13 \tab $PCA_output    \tab princomp object: the result output of the PCA analysis\cr
  14 \tab $type    \tab the character string describing type of analysis: daily or monthly\cr
- 15 \tab $reference_window \tab character string, which referece window was used for calculations
+ 15 \tab $reference_window \tab character string, which referece window was used for calculations\cr
+ 16 \tab $boot_lower \tab matrix with lower limit of confidence intervals of bootstrap calculations\cr
+ 17 \tab $boot_upper \tab matrix with upper limit of confidence intervals of bootstrap calculations
 }
 }
 \description{
@@ -187,15 +203,18 @@ data(LJ_daily_temperatures)
 
 # 1 Example with fixed width
 example_daily_response <- daily_response(response = data_MVA, env_data = LJ_daily_temperatures,
-                                     method = "cor", fixed_width = 0,
-                                     row_names_subset = TRUE, remove_insignificant = TRUE,
+                                     method = "lm", fixed_width = 0, lower_limit = 30,
+                                     upper_limit = 60, row_names_subset = TRUE,
+                                     remove_insignificant = TRUE,
                                      alpha = 0.05, aggregate_function = 'mean',
-                                     reference_window = "end", previous_year = TRUE,
-                                     cor_method = "spearman")
+                                     reference_window = "end", previous_year = FALSE,
+                                     cor_method = "spearman", boot = FALSE,
+                                     boot_n = 100)
 class(example_daily_response)
 summary(example_daily_response)
 example_daily_response$plot_extreme
 example_daily_response$plot_heatmap
+
 
 # 2 Example for past and present
 example_MVA_past <- daily_response(response = data_MVA, env_data = LJ_daily_temperatures,

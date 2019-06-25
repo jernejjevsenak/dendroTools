@@ -14,7 +14,8 @@ monthly_response(response, env_data, method = "lm",
   aggregate_function = "mean", temporal_stability_check = "sequential",
   k = 2, k_running_window = 30, cross_validation_type = "blocked",
   subset_years = NULL, plot_specific_window = NULL, ylimits = NULL,
-  seed = NULL, tidy_env_data = FALSE)
+  seed = NULL, tidy_env_data = FALSE, boot = FALSE, boot_n = 1000,
+  boot_ci_type = "norm", boot_conf_int = 0.95)
 }
 \arguments{
 \item{response}{a data frame with tree-ring proxy variables as columns and
@@ -116,9 +117,21 @@ given in the form of: ylimits = c(0,1)}
 
 \item{tidy_env_data}{if set to TRUE, env_data should be inserted as a data frame with three
 columns: "Year", "Month", "Precipitation/Temperature/etc."}
+
+\item{boot}{logical, if TRUE, bootstrap procedure will be used to calculate
+estimates correlatio coefficients, R squared or adjusted R squared metrices}
+
+\item{boot_n}{The number of bootstrap replicates}
+
+\item{boot_ci_type}{A character string representing the type of bootstrap intervals
+required. The value should be any subset of the values c("norm","basic", "stud",
+"perc", "bca").}
+
+\item{boot_conf_int}{A scalar or vector containing the confidence level(s) of
+the required interval(s)}
 }
 \value{
-a list with 15 elements:
+a list with 17 elements:
 \tabular{rll}{
  1 \tab $calculations   \tab a matrix with calculated metrics\cr
  2 \tab $method \tab the character string of a method \cr
@@ -134,7 +147,9 @@ a list with 15 elements:
  12 \tab $plot_specific    \tab not avaliable for monthly_response() \cr
  13 \tab $PCA_output    \tab princomp object: the result output of the PCA analysis\cr
  14 \tab $type    \tab the character string describing type of analysis: daily or monthly\cr
- 15 \tab $reference_window \tab character string, which referece window was used for calculations
+ 15 \tab $reference_window \tab character string, which referece window was used for calculations\cr
+ 16 \tab $boot_lower \tab matrix with lower limit of confidence intervals of bootstrap calculations \cr
+ 17 \tab $boot_upper \tab matrix with upper limit of confidence intervals of bootstrap calculations
 }
 }
 \description{
@@ -162,10 +177,10 @@ data(LJ_monthly_precipitation)
 
 # 1 Example with tidy precipitation data
 example_tidy_data <- monthly_response(response = data_MVA, env_data = LJ_monthly_precipitation,
-                                     method = "cor", row_names_subset = TRUE,
+                                     method = "lm", row_names_subset = TRUE,
                                      remove_insignificant = TRUE, previous_year = TRUE,
                                      alpha = 0.05, aggregate_function = 'sum',
-                                     tidy_env_data = TRUE, previous_year = TRUE)
+                                     tidy_env_data = TRUE, boot = FALSE)
 summary(example_tidy_data)
 example_tidy_data$plot_extreme
 example_tidy_data$plot_heatmap
