@@ -98,7 +98,7 @@ select the length of running window with the k_running_window argument.}
 analysis.}
 
 \item{k_running_window}{the length of running window for temporal stability check.
-Applicalbe only if temporal_stability argument is set to running window.}
+Applicable only if temporal_stability argument is set to running window.}
 
 \item{cross_validation_type}{character string, specifying, how to perform cross validation
 between the optimal selection and response variables. If the argument is set to "blocked",
@@ -119,7 +119,7 @@ given in the form of: ylimits = c(0,1)}
 columns: "Year", "Month", "Precipitation/Temperature/etc."}
 
 \item{boot}{logical, if TRUE, bootstrap procedure will be used to calculate
-estimates correlatio coefficients, R squared or adjusted R squared metrices}
+estimates correlation coefficients, R squared or adjusted R squared metrices}
 
 \item{boot_n}{The number of bootstrap replicates}
 
@@ -144,10 +144,10 @@ a list with 17 elements:
  9\tab $cross_validation   \tab a data frame with cross validation results \cr
  10 \tab $plot_heatmap    \tab ggplot2 object: a heatmap of calculated metrics\cr
  11 \tab $plot_extreme    \tab ggplot2 object: line or bar plot of a row with the highest value in a matrix of calculated metrics\cr
- 12 \tab $plot_specific    \tab not avaliable for monthly_response() \cr
+ 12 \tab $plot_specific    \tab not available for monthly_response() \cr
  13 \tab $PCA_output    \tab princomp object: the result output of the PCA analysis\cr
  14 \tab $type    \tab the character string describing type of analysis: daily or monthly\cr
- 15 \tab $reference_window \tab character string, which referece window was used for calculations\cr
+ 15 \tab $reference_window \tab character string, which reference window was used for calculations\cr
  16 \tab $boot_lower \tab matrix with lower limit of confidence intervals of bootstrap calculations \cr
  17 \tab $boot_upper \tab matrix with upper limit of confidence intervals of bootstrap calculations
 }
@@ -195,7 +195,7 @@ example_MVA_present <- monthly_response(response = data_MVA, env_data = LJ_month
                                       method = "cor", row_names_subset = TRUE, alpha = 0.05,
                                       previous_year = TRUE, remove_insignificant = TRUE,
                                       subset_years = c(1981, 2010), aggregate_function = 'mean')
-
+summary(example_MVA_present)
 example_MVA_past$plot_heatmap
 example_MVA_present$plot_heatmap
 example_MVA_past$plot_extreme
@@ -219,6 +219,7 @@ example_neg_cor <- monthly_response(response = data_TRW_1, alpha = 0.05,
                                     method = "cor", row_names_subset = TRUE,
                                     remove_insignificant = TRUE)
 
+summary(example_neg_cor)
 example_neg_cor$plot_heatmap
 example_neg_cor$plot_extreme
 example_neg_cor$temporal_stability
@@ -233,6 +234,7 @@ example_multiproxy <- monthly_response(response = example_proxies_1,
                                      row_names_subset = TRUE, previous_year = FALSE,
                                      remove_insignificant = TRUE, alpha = 0.05)
 
+summary(example_multiproxy)
 example_multiproxy$plot_heatmap
 
 # 6 Example to test the temporal stability
@@ -241,6 +243,7 @@ method = "lm", metric = "adj.r.squared", row_names_subset = TRUE,
 remove_insignificant = TRUE, alpha = 0.05,
 temporal_stability_check = "running_window", k_running_window = 10)
 
+summary(example_MVA_ts)
 example_MVA_ts$temporal_stability
 
 }

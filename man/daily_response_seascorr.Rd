@@ -108,7 +108,7 @@ select the length of running window with the k_running_window argument.}
 analysis.}
 
 \item{k_running_window}{the length of running window for temporal stability check.
-Applicalbe only if temporal_stability argument is set to running window.}
+Applicable only if temporal_stability argument is set to running window.}
 
 \item{cross_validation_type}{character string, specifying, how to perform cross validation
 between the optimal selection and response variables. If the argument is set to "blocked",
@@ -164,7 +164,7 @@ a list with 14 elements:
  12 \tab $plot_specific    \tab ggplot2 object: line plot of a row with a selected window width in a matrix of calculated metrics\cr
  13 \tab $PCA_output    \tab princomp object: the result output of the PCA analysis\cr
  14 \tab $type    \tab the character string describing type of analysis: daily or monthly\cr
- 15 \tab $reference_window \tab character string, which referece window was used for calculations
+ 15 \tab $reference_window \tab character string, which reference window was used for calculations
 }
 }
 \description{
@@ -172,7 +172,7 @@ Function calculates all possible partial correlation coefficients between
 tree-ring chronology and daily environmental (usually climate) data.
 Calculations are based on moving window which is defined with two
 arguments: lower_limit and upper_limit. All calculated (partial) correlation
-coeficients are stored in a matrix. The location of stored correlation
+coefficients are stored in a matrix. The location of stored correlation
 in the matrix is indicating a window width (row names) and a location in a
 matrix of daily sequences of environmental data (column names).
 }
@@ -194,7 +194,8 @@ data(LJ_daily_precipitation)
 example_basic <- daily_response_seascorr(response = data_MVA,
                           env_data_primary = LJ_daily_temperatures,
                           env_data_control = LJ_daily_precipitation,
-                          row_names_subset = TRUE, lower_limit = 1,
+                          row_names_subset = TRUE, lower_limit = 20,
+                          upper_limit = 45,
                           remove_insignificant = TRUE,
                           aggregate_function_env_data_primary = 'median',
                           aggregate_function_env_data_control = 'median',
@@ -224,7 +225,7 @@ example_fixed_width <- daily_response_seascorr(response = data_MVA,
                           tidy_env_data_primary = FALSE,
                           tidy_env_data_control = TRUE,
                           reference_window = "end")
-
+summary(example_fixed_width)
 example_fixed_width$plot_extreme
 example_fixed_width$plot_heatmap
 example_fixed_width$optimized_return

@@ -106,7 +106,7 @@ select the length of running window with the k_running_window argument.}
 analysis.}
 
 \item{k_running_window}{the length of running window for temporal stability check.
-Applicalbe only if temporal_stability argument is set to running window.}
+Applicable only if temporal_stability argument is set to running window.}
 
 \item{cross_validation_type}{character string, specifying, how to perform cross validation
 between the optimal selection and response variables. If the argument is set to "blocked",
@@ -143,7 +143,7 @@ the highest calculated metric and is obtained by the $plot_extreme output, is th
 same for all three reference windows.}
 
 \item{boot}{logical, if TRUE, bootstrap procedure will be used to calculate
-estimates correlatio coefficients, R squared or adjusted R squared metrices}
+estimates correlation coefficients, R squared or adjusted R squared metrices}
 
 \item{boot_n}{The number of bootstrap replicates}
 
@@ -171,7 +171,7 @@ a list with 17 elements:
  12 \tab $plot_specific    \tab ggplot2 object: line plot of a row with a selected window width in a matrix of calculated metrics\cr
  13 \tab $PCA_output    \tab princomp object: the result output of the PCA analysis\cr
  14 \tab $type    \tab the character string describing type of analysis: daily or monthly\cr
- 15 \tab $reference_window \tab character string, which referece window was used for calculations\cr
+ 15 \tab $reference_window \tab character string, which reference window was used for calculations\cr
  16 \tab $boot_lower \tab matrix with lower limit of confidence intervals of bootstrap calculations\cr
  17 \tab $boot_upper \tab matrix with upper limit of confidence intervals of bootstrap calculations
 }

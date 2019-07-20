@@ -21,8 +21,8 @@
 * There is new function introduced: KNMI_daily_transform() which transforms daily data obtained from KNMI Climate explorer into data frame suitable for daily_response(). 
 * New TRW chronology is included, swit272
 * New function: monthly_response()
-* New data: Lj_monthly_temperatures
-* New data: Lj_monthly_precipitation
+* New data: LJ_monthly_temperatures
+* New data: LJ_monthly_precipitation
 
 # dendroTools 1.0.2.
 * Package version is changed to 1.0.2

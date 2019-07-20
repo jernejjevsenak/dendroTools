@@ -7,7 +7,7 @@
 #' \describe{
 #'   \item{TRW}{Standardized tree-ring width indices from 2012 - 1961}
 #' }
-#' @source prof. dr. Tom Levanic, Slovenian Forestry Institute, Vecna pot 2,
+#' @source prof. dr. Tom Levanič, Slovenian Forestry Institute, Večna pot 2,
 #' Ljubljana, Slovenia
 #' @export
 "data_TRW_1"

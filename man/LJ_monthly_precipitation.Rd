@@ -17,7 +17,7 @@
 LJ_monthly_precipitation
 }
 \description{
-A dataset of monthly sums od precipitations in Ljubljana (Slovenia). The first row
+A dataset of monthly sums of precipitations in Ljubljana (Slovenia). The first row
 represents precipitation sum for January 1900.
 }
 \keyword{datasets}

@@ -11,7 +11,7 @@
   \item{TRW}{Tree-ring widths from 2015 - 1961}
 }}
 \source{
-prof. dr. Tom Levanic, Slovenian Forestry Institute, Vecna pot 2,
+prof. dr. Tom Levanič, Slovenian Forestry Institute, Večna pot 2,
 Ljubljana, Slovenia
 }
 \usage{

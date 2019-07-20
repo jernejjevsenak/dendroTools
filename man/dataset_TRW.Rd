@@ -3,7 +3,7 @@
 \docType{data}
 \name{dataset_TRW}
 \alias{dataset_TRW}
-\title{TRW and mean June -  JUly temperature from Albania}
+\title{TRW and mean June -  July temperature from Albania}
 \format{A data frame with 59 rows and 2 variables:
 \describe{
   \item{TRW}{Standardised tree-ring width chronology of Pinus nigra from Albania}

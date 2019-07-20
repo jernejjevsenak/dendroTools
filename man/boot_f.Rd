@@ -19,7 +19,7 @@ coefficient is to be computed. One of "pearson" (default), "kendall", or
 \item{cor.type}{a character string indicating which correlation}
 }
 \value{
-A matrix with bootstraped estimates
+A matrix with bootstrapped estimates
 }
 \description{
 Generate R bootstrap replicates of a statistic applied to data. Function is based on boot() from

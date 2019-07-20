@@ -2,7 +2,7 @@
 #'
 #' Calculates performance metrics for train and test data. Calculated
 #' performance metrics are correlation coefficient (r), root mean squared
-#' error (RMSE), root relative squared error (RSSE), index of agreement
+#' error (RMSE), root relative squared error (RRSE), index of agreement
 #' (d), reduction of error (RE), coefficient of efficiency (CE), detrended
 #' efficiency (DE) and bias.
 #'
