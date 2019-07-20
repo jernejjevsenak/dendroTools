@@ -1,5 +1,5 @@
 # dendroTools 1.0.6.
-*Bootstrapping of correlation coefficients is introduced. To do so, use the argument boot in daily_response() and monthly_response()
+* Bootstrapping of correlation coefficients is introduced. To do so, use the argument boot in daily_response() and monthly_response(). Bootstrapping is currently available only for correlation coefficients. In future version, it will also be available for model fitting. 
 * Package version is changed to 1.0.6
 
 # dendroTools 1.0.5.

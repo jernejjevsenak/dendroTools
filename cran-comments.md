@@ -1,5 +1,7 @@
 Dear CRAN, 
-I am resubmitting my package dendroTools. I have added three new functions that extends the functionality of my package. Please note extensive vignette examples. In previous versions we agreed to turn off vignette checks on some platforms. I believe it makes sense to keep it so. Thank you very much.
+I am resubmitting my package dendroTools. There is bootstrapping introduced for correlation coefficients. Therefore, there are new dependencies. I have tested new version on all platforms and all examples were finished succesfully. 
+
+Please note extensive vignette examples. In previous versions we agreed to turn off vignette checks on some platforms. I believe it makes sense to keep it so. Thank you very much.
 Bests,
 Jernej 
 

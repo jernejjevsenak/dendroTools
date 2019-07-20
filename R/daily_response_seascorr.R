@@ -145,7 +145,8 @@
 #' example_basic <- daily_response_seascorr(response = data_MVA,
 #'                           env_data_primary = LJ_daily_temperatures,
 #'                           env_data_control = LJ_daily_precipitation,
-#'                           row_names_subset = TRUE, lower_limit = 1,
+#'                           row_names_subset = TRUE, lower_limit = 20,
+#'                           upper_limit = 45,
 #'                           remove_insignificant = TRUE,
 #'                           aggregate_function_env_data_primary = 'median',
 #'                           aggregate_function_env_data_control = 'median',
@@ -175,7 +176,7 @@
 #'                           tidy_env_data_primary = FALSE,
 #'                           tidy_env_data_control = TRUE,
 #'                           reference_window = "end")
-#'
+#' summary(example_fixed_width)
 #' example_fixed_width$plot_extreme
 #' example_fixed_width$plot_heatmap
 #' example_fixed_width$optimized_return
@@ -224,6 +225,9 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
  d <- NULL
  env_data_primary_control <- NULL
  metric <- NULL
+
+ temporal_matrix_lower <- NULL
+ temporal_matrix_upper <- NULL
 
  # Here I define the method = "cor", so the fubctionality is ensured
  method = "cor"
@@ -510,6 +514,11 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
                                                    1 + fixed_width/2 ),0))
       }
 
+
+    temporal_matrix_lower <- temporal_matrix
+    temporal_matrix_upper <- temporal_matrix
+
+
       pb <- txtProgressBar(min = 0, max = (ncol(env_data_primary) - fixed_width),
                            style = 3)
 
@@ -581,6 +590,7 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
           temporal_matrix[1, round2(j + 1 + fixed_width/2, 0)] <- as.numeric(temporal_correlation)[1]
         }
 
+
         setTxtProgressBar(pb, b)
       }
       close(pb)
@@ -625,6 +635,9 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
   # lm or brnn). Calculation is stored in temporal matrix in a proper place.
   # The position of stored calculation is informative later used for
   # indiciating optimal values.
+
+    temporal_matrix_lower <- temporal_matrix
+    temporal_matrix_upper <- temporal_matrix
 
   pb <- txtProgressBar(min = 0, max = (upper_limit - lower_limit),
                        style = 3)
@@ -1367,7 +1380,9 @@ for (m in 1:length(empty_list_datasets)){
                          plot_specific = plot_specificA,
                          PCA_output = PCA_result,
                          type = "daily",
-                         reference_window = reference_window)
+                         reference_window = reference_window,
+                         boot_lower = temporal_matrix_lower,
+                         boot_upper = temporal_matrix_upper)
     }
 
     if (method == "cor"){
@@ -1382,7 +1397,9 @@ for (m in 1:length(empty_list_datasets)){
                          plot_specific = plot_specificA,
                          PCA_output = PCA_result,
                          type = "daily",
-                         reference_window = reference_window)
+                         reference_window = reference_window,
+                         boot_lower = temporal_matrix_lower,
+                         boot_upper = temporal_matrix_upper)
     }
 
     class(final_list) <- "dmrs"

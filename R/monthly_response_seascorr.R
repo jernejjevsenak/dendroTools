@@ -200,6 +200,9 @@ monthly_response_seascorr <- function(response, env_data_primary, env_data_contr
  env_data_primary_control <- NULL
  metric <- NULL
 
+ temporal_matrix_lower <- NULL
+ temporal_matrix_upper <- NULL
+
  lower_limit = 1
  upper_limit = 12
  fixed_width = 0
@@ -472,6 +475,9 @@ monthly_response_seascorr <- function(response, env_data_primary, env_data_contr
                                                    1 + fixed_width/2 ),0))
       }
 
+    temporal_matrix_lower <- temporal_matrix
+    temporal_matrix_upper <- temporal_matrix
+
       pb <- txtProgressBar(min = 0, max = (ncol(env_data_primary) - fixed_width),
                            style = 3)
 
@@ -586,6 +592,9 @@ monthly_response_seascorr <- function(response, env_data_primary, env_data_contr
   # lm or brnn). Calculation is stored in temporal matrix in a proper place.
   # The position of stored calculation is informative later used for
   # indiciating optimal values.
+
+    temporal_matrix_lower <- temporal_matrix
+    temporal_matrix_upper <- temporal_matrix
 
   pb <- txtProgressBar(min = 0, max = (upper_limit - lower_limit),
                        style = 3)
@@ -1327,7 +1336,9 @@ for (m in 1:length(empty_list_datasets)){
                          plot_specific = plot_specificA,
                          PCA_output = PCA_result,
                          type = "monthly",
-                         reference_window = reference_window)
+                         reference_window = reference_window,
+                         boot_lower = temporal_matrix_lower,
+                         boot_upper = temporal_matrix_upper)
     }
 
     if (method == "cor"){
@@ -1342,7 +1353,9 @@ for (m in 1:length(empty_list_datasets)){
                          plot_specific = plot_specificA,
                          PCA_output = PCA_result,
                          type = "monthly",
-                         reference_window = reference_window)
+                         reference_window = reference_window,
+                         boot_lower = temporal_matrix_lower,
+                         boot_upper = temporal_matrix_upper)
     }
 
     class(final_list) <- "dmrs"

@@ -148,7 +148,7 @@
 #'                                       method = "cor", row_names_subset = TRUE, alpha = 0.05,
 #'                                       previous_year = TRUE, remove_insignificant = TRUE,
 #'                                       subset_years = c(1981, 2010), aggregate_function = 'mean')
-#'
+#' summary(example_MVA_present)
 #' example_MVA_past$plot_heatmap
 #' example_MVA_present$plot_heatmap
 #' example_MVA_past$plot_extreme
@@ -172,6 +172,7 @@
 #'                                     method = "cor", row_names_subset = TRUE,
 #'                                     remove_insignificant = TRUE)
 #'
+#' summary(example_neg_cor)
 #' example_neg_cor$plot_heatmap
 #' example_neg_cor$plot_extreme
 #' example_neg_cor$temporal_stability
@@ -186,6 +187,7 @@
 #'                                      row_names_subset = TRUE, previous_year = FALSE,
 #'                                      remove_insignificant = TRUE, alpha = 0.05)
 #'
+#' summary(example_multiproxy)
 #' example_multiproxy$plot_heatmap
 #'
 #' # 6 Example to test the temporal stability
@@ -194,6 +196,7 @@
 #' remove_insignificant = TRUE, alpha = 0.05,
 #' temporal_stability_check = "running_window", k_running_window = 10)
 #'
+#' summary(example_MVA_ts)
 #' example_MVA_ts$temporal_stability
 #'
 #' }
