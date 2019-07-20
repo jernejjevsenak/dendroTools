@@ -67,7 +67,7 @@
 #' progressively add 1 split at a time and calculate selected metric. For running window,
 #' select the length of running window with the k_running_window argument.
 #' @param k_running_window the length of running window for temporal stability check.
-#' Applicalbe only if temporal_stability argument is set to running window.
+#' Applicable only if temporal_stability argument is set to running window.
 #' @param k integer, number of breaks (splits) for temporal stability and cross validation
 #' analysis.
 #' @param cross_validation_type character string, specifying, how to perform cross validation
@@ -83,7 +83,7 @@
 #' @param tidy_env_data if set to TRUE, env_data should be inserted as a data frame with three
 #' columns: "Year", "Month", "Precipitation/Temperature/etc."
 #' @param boot logical, if TRUE, bootstrap procedure will be used to calculate
-#' estimates correlatio coefficients, R squared or adjusted R squared metrices
+#' estimates correlation coefficients, R squared or adjusted R squared metrices
 #' @param boot_n The number of bootstrap replicates
 #' @param boot_ci_type A character string representing the type of bootstrap intervals
 #' required. The value should be any subset of the values c("norm","basic", "stud",
@@ -104,10 +104,10 @@
 #'  9\tab $cross_validation   \tab a data frame with cross validation results \cr
 #'  10 \tab $plot_heatmap    \tab ggplot2 object: a heatmap of calculated metrics\cr
 #'  11 \tab $plot_extreme    \tab ggplot2 object: line or bar plot of a row with the highest value in a matrix of calculated metrics\cr
-#'  12 \tab $plot_specific    \tab not avaliable for monthly_response() \cr
+#'  12 \tab $plot_specific    \tab not available for monthly_response() \cr
 #'  13 \tab $PCA_output    \tab princomp object: the result output of the PCA analysis\cr
 #'  14 \tab $type    \tab the character string describing type of analysis: daily or monthly\cr
-#'  15 \tab $reference_window \tab character string, which referece window was used for calculations\cr
+#'  15 \tab $reference_window \tab character string, which reference window was used for calculations\cr
 #'  16 \tab $boot_lower \tab matrix with lower limit of confidence intervals of bootstrap calculations \cr
 #'  17 \tab $boot_upper \tab matrix with upper limit of confidence intervals of bootstrap calculations
 #'}
@@ -380,7 +380,7 @@ monthly_response <- function(response, env_data, method = "lm",
   # If row_names_subset == TRUE, data is subseted and ordered based on matching
   # row.names. Additionally, number of characters in row.names is checked.
   # There should be at least three characters (assuming years before 100 will
-  # never be analysed, there is no such environmental data avaliable)
+  # never be analysed, there is no such environmental data available)
   if (row_names_subset == TRUE & nchar(row.names(env_data)[1]) >= 3){
 
     ncol_response <- ncol(response)
@@ -1926,7 +1926,7 @@ for (m in 1:length(empty_list_datasets)){
     width_sequence = seq(lower_limit, upper_limit)
 
     if (is.null(plot_specific_window)){
-      (plot_specificA <- "plot_specific_window is not avaliable for monthly_response function!")
+      (plot_specificA <- "plot_specific_window is not available for monthly_response function!")
     } else if (fixed_width != 0){
 
       if (fixed_width != plot_specific_window){
@@ -1940,7 +1940,7 @@ for (m in 1:length(empty_list_datasets)){
     } else if (plot_specific_window %in% width_sequence){
       plot_specificA <- plot_specific(final_list, window_width = plot_specific_window, ylimits = ylimits,
                                       reference_window = reference_window, type = "monthly")
-    } else (plot_specificA <- "Selected plot_specific_window is not avaliable. No plot_specific is made!")
+    } else (plot_specificA <- "Selected plot_specific_window is not available. No plot_specific is made!")
 
     # Here, for the sake of simplicity, we create final list again
     if (method == "lm" | method == "brnn") {

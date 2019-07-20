@@ -11,7 +11,7 @@
 #' coefficient is to be computed. One of "pearson" (default), "kendall", or
 #' "spearman".
 #'
-#' @return A matrix with bootstraped estimates
+#' @return A matrix with bootstrapped estimates
 #'
 #' @references https://www.datacamp.com/community/tutorials/bootstrap-r
 #' @keywords internal

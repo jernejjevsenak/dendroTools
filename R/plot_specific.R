@@ -67,13 +67,13 @@ plot_specific <- function(result_daily_response, window_width, title = TRUE,
   result_daily_element1 <- data.frame(result_daily_response[[1]])
 
   # warning msg in case of selected window_width not among row.names.
-  # support_string suggests, which window_widths are avaliable.
+  # support_string suggests, which window_widths are available.
   support_string <- paste(row.names(result_daily_element1), sep = "",
     collapse = ", ")
 
   if (as.character(window_width) %in% row.names(result_daily_element1)
     == FALSE) {
-    stop(paste("Selected window_width is not avaliable.",
+    stop(paste("Selected window_width is not available.",
                 "Select one among:", support_string, sep = ""))
   }
 
@@ -164,7 +164,7 @@ plot_specific <- function(result_daily_response, window_width, title = TRUE,
 
 
   # Here we define a data frame of dates and corresponing day of year (doi). Later
-  # this dataframe will be used to describe tht optimal sequence od days
+  # this dataframe will be used to describe tht optimal sequence of days
   doy <- seq(1:366)
   date <- seq(as.Date('2013-01-01'),as.Date('2013-12-31'), by = "+1 day")
   date[366] <- as.Date('2015-12-31')

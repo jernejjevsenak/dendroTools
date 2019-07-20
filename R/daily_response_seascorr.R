@@ -4,7 +4,7 @@
 #' tree-ring chronology and daily environmental (usually climate) data.
 #' Calculations are based on moving window which is defined with two
 #' arguments: lower_limit and upper_limit. All calculated (partial) correlation
-#' coeficients are stored in a matrix. The location of stored correlation
+#' coefficients are stored in a matrix. The location of stored correlation
 #' in the matrix is indicating a window width (row names) and a location in a
 #' matrix of daily sequences of environmental data (column names).
 #' @param response a data frame with tree-ring proxy variable and (optional)
@@ -73,7 +73,7 @@
 #' progressively add 1 split at a time and calculate selected metric. For running window,
 #' select the length of running window with the k_running_window argument.
 #' @param k_running_window the length of running window for temporal stability check.
-#' Applicalbe only if temporal_stability argument is set to running window.
+#' Applicable only if temporal_stability argument is set to running window.
 #' @param k integer, number of breaks (splits) for temporal stability and cross validation
 #' analysis.
 #' @param cross_validation_type character string, specifying, how to perform cross validation
@@ -122,7 +122,7 @@
 #'  12 \tab $plot_specific    \tab ggplot2 object: line plot of a row with a selected window width in a matrix of calculated metrics\cr
 #'  13 \tab $PCA_output    \tab princomp object: the result output of the PCA analysis\cr
 #'  14 \tab $type    \tab the character string describing type of analysis: daily or monthly\cr
-#'  15 \tab $reference_window \tab character string, which referece window was used for calculations
+#'  15 \tab $reference_window \tab character string, which reference window was used for calculations
 #'}
 #'
 #' @export
@@ -385,7 +385,7 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
   # If row_names_subset == TRUE, data is subseted and ordered based on matching
   # row.names. Additionally, number of characters in row.names is checked.
   # There should be at least three characters (assuming years before 100 will
-  # never be analysed, there is no such environmental data avaliable)
+  # never be analysed, there is no such environmental data available)
   if (row_names_subset == TRUE & nchar(row.names(env_data_primary)[1]) >= 3){
 
     env_data_primary$yearABC <- row.names(env_data_primary)
@@ -1351,7 +1351,7 @@ for (m in 1:length(empty_list_datasets)){
     width_sequence = seq(lower_limit, upper_limit)
 
     if (is.null(plot_specific_window)){
-      (plot_specificA <- "plot_specific_window is not avaliable. No plot_specific is made!")
+      (plot_specificA <- "plot_specific_window is not available. No plot_specific is made!")
     } else if (fixed_width != 0){
 
       if (fixed_width != plot_specific_window){
@@ -1365,7 +1365,7 @@ for (m in 1:length(empty_list_datasets)){
     } else if (plot_specific_window %in% width_sequence){
       plot_specificA <- plot_specific(final_list, window_width = plot_specific_window, ylimits = ylimits,
                                       reference_window = reference_window)
-    } else (plot_specificA <- "Selected plot_specific_window is not avaliable. No plot_specific is made!")
+    } else (plot_specificA <- "Selected plot_specific_window is not available. No plot_specific is made!")
 
     # Here, for the sake of simplicity, we create final list again
     if (method == "lm" | method == "brnn") {

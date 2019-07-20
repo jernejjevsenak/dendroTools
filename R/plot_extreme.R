@@ -179,7 +179,7 @@ plot_extreme <- function(result_daily_response, title = TRUE, ylimits = NULL, re
 
 
   # Here we define a data frame of dates and corresponing day of year (doi). Later
-  # this dataframe will be used to describe tht optimal sequence od days
+  # this dataframe will be used to describe tht optimal sequence of days
   doy <- seq(1:730)
   date <- seq(as.Date('2013-01-01'),as.Date('2014-12-31'), by = "+1 day")
   # date[366] <- as.Date('2015-12-31')
@@ -360,7 +360,7 @@ plot_extreme <- function(result_daily_response, title = TRUE, ylimits = NULL, re
                                         month_string)
 
         # Here we define a data frame of months. Later
-        # this dataframe will be used to describe tht optimal sequence od days
+        # this dataframe will be used to describe tht optimal sequence of days
 
         if (ncol(result_daily_response[[1]]) == 24){
           date_codes <- c("Jan*", "Feb*", "Mar*", "Apr*", "May*", "Jun*", "Jul*", "Aug*", "Sep*", "Oct*", "Nov*", "Dec*",

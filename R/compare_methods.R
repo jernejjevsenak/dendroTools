@@ -1936,8 +1936,8 @@ plot_2 <- ggplot(predictions, aes(x = range, y = pred, group = method, colour = 
 
   } else {
 
-  plot_1 <- "transfer functions are not avaliable for regression problems with 2 or more independent variables!"
-  plot_2 <- "Transfer functions are not avaliable for regression problems with 2 or more independent variables!"
+  plot_1 <- "transfer functions are not available for regression problems with 2 or more independent variables!"
+  plot_2 <- "Transfer functions are not available for regression problems with 2 or more independent variables!"
 
   }
 
@@ -2226,7 +2226,7 @@ dataset_central <- dplyr::arrange(dataset, desc(dataset[, -DepIndex]))[(edge_fac
 
 
 } else {
-  edge_results_t <- "No edge data is avaliable for regression problems with more than 1 independent variable."
+  edge_results_t <- "No edge data is available for regression problems with more than 1 independent variable."
 }
 
 # Here, we once again subset the data frames with preformance metrics, to exclude
@@ -2527,8 +2527,8 @@ if (numIND < 2 & edge_share > 0){
     theme_bw() +
     theme(text = element_text(size = 15), axis.title.y = element_blank())
 } else {
-  Residuals_vs_fitted_edge1 <- "No edge data is avaliable for regression problems with 2 or more independent variables."
-  Normal_QQ_edge1 <- "No edge data is avaliable for regression problems with 2 or more independent variables."
+  Residuals_vs_fitted_edge1 <- "No edge data is available for regression problems with 2 or more independent variables."
+  Normal_QQ_edge1 <- "No edge data is available for regression problems with 2 or more independent variables."
 }
 
 

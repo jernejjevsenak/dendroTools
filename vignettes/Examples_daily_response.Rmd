@@ -25,7 +25,7 @@ Please note, the examples presented here are made computationally less intensive
 
 # 2. The use of daily_response()
 
-The *daily_reponse()* works by sliding a moving window through daily environmental data and calculates statistical metrics with one or more tree ring proxies. Possible metrics are correlation coefficient, coefficient of determination (r squared) or adjusted coefficient of determination (adjusted r squared). In addition to linear regression, it is possible to use nonlinear artificial neural network with Bayesian regularization training algorithm (brnn).
+The *daily_response()* works by sliding a moving window through daily environmental data and calculates statistical metrics with one or more tree ring proxies. Possible metrics are correlation coefficient, coefficient of determination (r squared) or adjusted coefficient of determination (adjusted r squared). In addition to linear regression, it is possible to use nonlinear artificial neural network with Bayesian regularization training algorithm (brnn).
 In general, user can use a fixed or progressive window for calculations of moving averages. To use a fixed window, select its width by assigning an integer to the argument *fixed_width*. To use many different windows, define the *lower_limit* and *upper_limit* arguments. In this case, all window widths between the lower and upper limits will be considered. In the later text, window width representative of a specific day of year (DOY) is defined as the values for this particular day and number of subsequent days corresponding to window width. All calculated metrics are stored in a matrix, which is later used to find the optimal window (i.e. optimal consecutive sequence of days), that returns the highest calculated metric. This selection is later used to calculate temporal stability and cross validation.
 
 ## 2.1 Glimpse daily data
@@ -146,7 +146,7 @@ example_PCA$plot_heatmap
 ```
 ## 2.5 Example with negative correlations
 
-The *daily_reponse()* recognizes negative relationship (negative correlations) between proxy and daily climate data. Here we show a simple example with negative correlation coefficients. For the demonstration, we use data_TRW_1 and LJ_daily_temperatures.
+The *daily_response()* recognizes negative relationship (negative correlations) between proxy and daily climate data. Here we show a simple example with negative correlation coefficients. For the demonstration, we use data_TRW_1 and LJ_daily_temperatures.
 
 ```{r, results = 'hide'}
 # Load the dendroTools R package
@@ -199,7 +199,7 @@ example_reconstruction_lin <- daily_response(response = data_TRW,
 example_reconstruction_lin$plot_extreme
 ```
 
-The highest r squared was calculated for the period from May 15 to June 27. The aggregated (averaged) daily data for this perod is saved in a data frame $optimized_return. Before reconstructing the May 15 to June 27 mean temperature, we should check temporal stability, cross validation and transfer function.
+The highest r squared was calculated for the period from May 15 to June 27. The aggregated (averaged) daily data for this period is saved in a data frame $optimized_return. Before reconstructing the May 15 to June 27 mean temperature, we should check temporal stability, cross validation and transfer function.
 
 ```{r }
 example_reconstruction_lin$temporal_stability
@@ -248,7 +248,7 @@ example_reconstruction_brnn <- daily_response(response = data_TRW,
 example_reconstruction_brnn$plot_extreme
 ```
 
-The results for the *brnn* model are the same as for the linear model. The highest r squared was calculated for the period from May 15 to June 27. The aggregated (averaged) daily data for this perod is saved in a data frame $optimized_return. Before reconstructing the May 15 to June 27 mean temperature, we should check temporal stability, cross validation and transfer function.
+The results for the *brnn* model are the same as for the linear model. The highest r squared was calculated for the period from May 15 to June 27. The aggregated (averaged) daily data for this period is saved in a data frame $optimized_return. Before reconstructing the May 15 to June 27 mean temperature, we should check temporal stability, cross validation and transfer function.
 
 ```{r }
 example_reconstruction_brnn$temporal_stability
@@ -269,7 +269,7 @@ plot(row.names(data_TRW),reconstruction$predictions, type = "l", xlab = "Year",
      ylab = "Mean temperature May 15 - Jun 27 [ºC]")
 ```
 
-## 2.8 Example of using daily_reponse() with daily precipitation and daily temperature data
+## 2.8 Example of using daily_response() with daily precipitation and daily temperature data
 
 The current version of the *daily_response()* does not allow for using more than 1 daily environmental data, but the analysis with, e.g., daily temperature and precipitation data could be done separately and visualised together. In the following example, we analyse the relationship between Mean Vessel Area (MVA) chronology and daily temperature and precipitation data for the period 1960 – 2010. The period is defined with the *subset_ years* argument.
 

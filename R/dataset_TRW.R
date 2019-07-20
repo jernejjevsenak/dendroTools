@@ -1,4 +1,4 @@
-#' TRW and mean June -  JUly temperature from Albania
+#' TRW and mean June -  July temperature from Albania
 #'
 #' A dataset with a tree-ring width (TRW) chronology of Pinus nigra from Albania and mean
 #' June-July temperature. This TRW chronology has a span of 59 years (period 2009 - 1951)
