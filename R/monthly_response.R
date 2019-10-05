@@ -132,8 +132,8 @@
 #' example_tidy_data <- monthly_response(response = data_MVA, env_data = LJ_monthly_precipitation,
 #'                                      method = "lm", row_names_subset = TRUE,
 #'                                      remove_insignificant = TRUE, previous_year = TRUE,
-#'                                      alpha = 0.05, aggregate_function = 'sum',
-#'                                      tidy_env_data = TRUE, boot = FALSE)
+#'                                      alpha = 0.05, aggregate_function = 'sum', boot = TRUE,
+#'                                      tidy_env_data = TRUE, boot_n = 100000)
 #' summary(example_tidy_data)
 #' example_tidy_data$plot_extreme
 #' example_tidy_data$plot_heatmap
@@ -160,7 +160,8 @@
 #'                               env_data = LJ_monthly_temperatures, method = "lm",
 #'                               row_names_subset = TRUE, remove_insignificant = TRUE,
 #'                               alpha = 0.01, PCA_transformation = TRUE, previous_year = TRUE,
-#'                               components_selection = "manual", N_components = 2)
+#'                               components_selection = "manual", N_components = 2,
+#'                               boot = TRUE)
 #'
 #' summary(example_PCA$PCA_output)
 #' example_PCA$plot_heatmap
@@ -170,7 +171,7 @@
 #' example_neg_cor <- monthly_response(response = data_TRW_1, alpha = 0.05,
 #'                                     env_data = LJ_monthly_temperatures,
 #'                                     method = "cor", row_names_subset = TRUE,
-#'                                     remove_insignificant = TRUE)
+#'                                     remove_insignificant = TRUE, boot = TRUE)
 #'
 #' summary(example_neg_cor)
 #' example_neg_cor$plot_heatmap

@@ -158,7 +158,7 @@
 #'                                      remove_insignificant = TRUE,
 #'                                      alpha = 0.05, aggregate_function = 'mean',
 #'                                      reference_window = "end", previous_year = FALSE,
-#'                                      cor_method = "spearman", boot = FALSE,
+#'                                      cor_method = "spearman", boot = TRUE,
 #'                                      boot_n = 100)
 #' class(example_daily_response)
 #' summary(example_daily_response)
@@ -831,14 +831,22 @@ daily_response <- function(response, env_data, method = "lm",
           temporal_lower <- NA
           temporal_upper <- NA
       } else if (boot == TRUE){
-      temp_df_boot <- cbind(response[, 1], x[, 1])
-      calc <- boot(temp_df_boot, boot_f, fun = "cor", cor.type = cor_method, R = boot_n)
+        temp_df_boot <- cbind(response[, 1], x[, 1])
+        calc <- boot(temp_df_boot, boot_f, fun = "cor", cor.type = cor_method, R = boot_n)
 
-      temporal_correlation <- colMeans(calc$t)[1]
+        temporal_correlation <- colMeans(calc$t)[1]
 
-      ci_int <- boot.ci(calc, conf = boot_conf_int, type = boot_ci_type)
-      temporal_lower <- ci_int$norm[2]
-      temporal_upper <- ci_int$norm[3]
+        ci_int <- try(boot.ci(calc, conf = boot_conf_int, type = boot_ci_type), silent = TRUE)
+
+        if (class(ci_int)[[1]] == "try-error"){
+
+          temporal_lower <- NA
+          temporal_upper <- NA
+
+        } else {
+          temporal_lower <- ci_int$norm[2]
+          temporal_upper <- ci_int$norm[3]
+        }
       } else {
       print(paste0("boot should be TRUE or FALSE, instead it is ", boot))
     }
