@@ -822,9 +822,18 @@ monthly_response <- function(response, env_data, method = "lm",
 
         temporal_correlation <- colMeans(calc$t)[1]
 
-        ci_int <- boot.ci(calc, conf = boot_conf_int, type = boot_ci_type)
-        temporal_lower <- ci_int$norm[2]
-        temporal_upper <- ci_int$norm[3]
+        ci_int <- try(boot.ci(calc, conf = boot_conf_int, type = boot_ci_type), silent = TRUE)
+
+        if (class(ci_int)[[1]] == "try-error"){
+
+          temporal_lower <- NA
+          temporal_upper <- NA
+
+        } else {
+          temporal_lower <- ci_int$norm[2]
+          temporal_upper <- ci_int$norm[3]
+        }
+
       } else {
         print(paste0("boot should be TRUE or FALSE, instead it is ", boot))
       }
