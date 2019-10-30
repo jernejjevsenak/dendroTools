@@ -196,9 +196,14 @@ plot_heatmap <- function(result_daily_response, reference_window = "start", type
 
   if (type == "monthly"){
 
-    if (ncol(result_daily_response[[1]]) == 12){
 
-    months <- c("J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D")
+
+
+
+    if (ncol(result_daily_response[[1]]) <= 12){
+
+      months <- c("J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D")
+
 
     final_plot <- suppressWarnings(ggplot(result_daily_element1_melted,
                                           aes_(x = ~as.numeric(variable), y = ~as.numeric(temp_row_names),
@@ -217,7 +222,7 @@ plot_heatmap <- function(result_daily_response, reference_window = "start", type
                                      ggtitle(paste0(period_string, method_string)) +
                                      journal_theme)
 
-    } else if (ncol(result_daily_response[[1]]) == 24){
+    } else if (ncol(result_daily_response[[1]]) >= 12){
 
 
       months <- c("J*", "F*", "M*", "A*", "M*", "J*", "J*", "A*", "S*", "O*", "N*", "D*",

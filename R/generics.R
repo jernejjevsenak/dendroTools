@@ -248,14 +248,14 @@ summary.dmrs <- function(object, ...){
     # In case of previous_year == TRUE, we calculate the day of a year
     # (plot_column), considering 366 days of previous year.
 
-    if (ncol(result_daily_response[[1]]) == 24 & plot_column > 12) {
+    if (ncol(result_daily_response[[1]]) > 12 & plot_column > 12) {
       plot_column_extra <- plot_column %% 12
     } else {
       plot_column_extra <- plot_column
     }
 
 
-    if (ncol(result_daily_response[[1]]) == 24) {
+    if (ncol(result_daily_response[[1]]) > 12) {
       previous_year <- TRUE
     } else {
       previous_year <- FALSE
@@ -263,11 +263,11 @@ summary.dmrs <- function(object, ...){
 
 
 
-    if (reference_window == 'start' &&  plot_column > 12 && ncol(result_daily_response[[1]]) == 24){
+    if (reference_window == 'start' &&  plot_column > 12 && ncol(result_daily_response[[1]]) > 12){
       reference_string <- paste0("Starting Month of Optimal Window Width: Month ",
                                  plot_column_extra, " of Current Year")}
 
-    if (reference_window == 'start' &&  plot_column <= 12 && ncol(result_daily_response[[1]]) == 24){
+    if (reference_window == 'start' &&  plot_column <= 12 && ncol(result_daily_response[[1]]) > 12){
       reference_string <- paste0("Starting Month of Optimal Window Width: Month ",
                                  plot_column_extra, " of Previous Year")}
 
@@ -283,11 +283,11 @@ summary.dmrs <- function(object, ...){
     # Here we define a data frame of months. Later
     # this dataframe will be used to describe tht optimal sequence of days
 
-    if (ncol(result_daily_response[[1]]) == 24){
+    if (ncol(result_daily_response[[1]]) > 12){
       date_codes <- c("Jan*", "Feb*", "Mar*", "Apr*", "May*", "Jun*", "Jul*", "Aug*", "Sep*", "Oct*", "Nov*", "Dec*",
                       "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
 
-    } else if (ncol(result_daily_response[[1]]) == 12){
+    } else if (ncol(result_daily_response[[1]]) <= 12){
 
       date_codes <- c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
 

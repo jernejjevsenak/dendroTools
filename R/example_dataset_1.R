@@ -10,7 +10,7 @@
 #'   \item{T_aug_sep}{Mean August-September temperatures from preceding
 #'   growing season from 2012 - 1955}
 #' }
-#' @source prof. dr. Tom Levanič, Slovenian Forestry Institute, Večna pot 2,
+#' @source Jernej Jevšenak, Slovenian Forestry Institute, Večna pot 2,
 #' Ljubljana, Slovenia
 #' @export
 "example_dataset_1"

@@ -9,7 +9,7 @@
   \item{TRW}{Standardized tree-ring width indices from 2012 - 1961}
 }}
 \source{
-prof. dr. Tom Levanič, Slovenian Forestry Institute, Večna pot 2,
+Tom Levanič, Slovenian Forestry Institute, Večna pot 2,
 Ljubljana, Slovenia
 }
 \usage{

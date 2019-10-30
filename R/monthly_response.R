@@ -19,6 +19,7 @@
 #' i.e. Year, DOY (Month) and third column representing values of mean temperatures,
 #' sum of precipitation etc. If tidy data is passed to the function, set the argument
 #' tidy_env_data to TRUE.
+#' @param fixed_width fixed width used for calculations.
 #' @param method a character string specifying which method to use. Current
 #' possibilities are "cor", "lm" and "brnn".
 #' @param metric a character string specifying which metric to use. Current
@@ -92,24 +93,24 @@
 #' the required interval(s)
 #'
 #' @return a list with 17 elements:
-#' \tabular{rll}{
-#'  1 \tab $calculations   \tab a matrix with calculated metrics\cr
-#'  2 \tab $method \tab the character string of a method \cr
-#'  3 \tab $metric   \tab the character string indicating the metric used for calculations \cr
-#'  4 \tab $analysed_period    \tab the character string specifying the analysed period based on the information from row names. If there are no row names, this argument is given as NA \cr
-#'  5 \tab $optimized_return   \tab data frame with two columns, response variable and aggregated (averaged) monthly data that return the optimal results. This data.frame could be directly used to calibrate a model for climate reconstruction \cr
-#'  6 \tab $optimized_return_all    \tab a data frame with aggregated monthly data, that returned the optimal result for the entire env_data (and not only subset of analysed years) \cr
-#'  7 \tab $transfer_function    \tab a ggplot object: scatter plot of optimized return and a transfer line of the selected method \cr
-#'  8 \tab $temporal_stability    \tab a data frame with calculations of selected metric for different temporal subsets\cr
-#'  9\tab $cross_validation   \tab a data frame with cross validation results \cr
-#'  10 \tab $plot_heatmap    \tab ggplot2 object: a heatmap of calculated metrics\cr
-#'  11 \tab $plot_extreme    \tab ggplot2 object: line or bar plot of a row with the highest value in a matrix of calculated metrics\cr
-#'  12 \tab $plot_specific    \tab not available for monthly_response() \cr
-#'  13 \tab $PCA_output    \tab princomp object: the result output of the PCA analysis\cr
-#'  14 \tab $type    \tab the character string describing type of analysis: daily or monthly\cr
-#'  15 \tab $reference_window \tab character string, which reference window was used for calculations\cr
-#'  16 \tab $boot_lower \tab matrix with lower limit of confidence intervals of bootstrap calculations \cr
-#'  17 \tab $boot_upper \tab matrix with upper limit of confidence intervals of bootstrap calculations
+#' \enumerate{
+#'  \item $calculations - a matrix with calculated metrics
+#'  \item $method - the character string of a method
+#'  \item $metric - the character string indicating the metric used for calculations
+#'  \item $analysed_period - the character string specifying the analysed period based on the information from row names. If there are no row names, this argument is given as NA
+#'  \item $optimized_return - data frame with two columns, response variable and aggregated (averaged) monthly data that return the optimal results. This data.frame could be directly used to calibrate a model for climate reconstruction
+#'  \item $optimized_return_all - a data frame with aggregated monthly data, that returned the optimal result for the entire env_data (and not only subset of analysed years)
+#'  \item $transfer_function - a ggplot object: scatter plot of optimized return and a transfer line of the selected method
+#'  \item $temporal_stability - a data frame with calculations of selected metric for different temporal subsets
+#'  \item $cross_validation - a data frame with cross validation results
+#'  \item $plot_heatmap - ggplot2 object: a heatmap of calculated metrics
+#'  \item $plot_extreme - ggplot2 object: line or bar plot of a row with the highest value in a matrix of calculated metrics
+#'  \item $plot_specific - not available for monthly_response()
+#'  \item $PCA_output - princomp object: the result output of the PCA analysis
+#'  \item $type - the character string describing type of analysis: daily or monthly
+#'  \item $reference_window - character string, which reference window was used for calculations
+#'  \item $boot_lower - matrix with lower limit of confidence intervals of bootstrap calculations
+#'  \item $boot_upper - matrix with upper limit of confidence intervals of bootstrap calculations
 #'}
 #'
 #' @export
@@ -129,25 +130,30 @@
 #' data(LJ_monthly_precipitation)
 #'
 #' # 1 Example with tidy precipitation data
-#' example_tidy_data <- monthly_response(response = data_MVA, env_data = LJ_monthly_precipitation,
-#'                                      method = "lm", row_names_subset = TRUE,
-#'                                      remove_insignificant = TRUE, previous_year = TRUE,
-#'                                      alpha = 0.05, aggregate_function = 'sum', boot = TRUE,
-#'                                      tidy_env_data = TRUE, boot_n = 100000)
+#' example_tidy_data <- monthly_response(response = data_MVA,
+#'     env_data = LJ_monthly_precipitation, fixed_width = 6,
+#'     method = "cor", row_names_subset = TRUE,
+#'     remove_insignificant = FALSE, previous_year = FALSE,
+#'     alpha = 0.05, aggregate_function = 'sum', boot = TRUE,
+#'     tidy_env_data = TRUE, boot_n = 1000)
+#'
 #' summary(example_tidy_data)
 #' example_tidy_data$plot_extreme
 #' example_tidy_data$plot_heatmap
 #'
 #' # 2 Example with splited data for past and present
-#' example_MVA_past <- monthly_response(response = data_MVA, env_data = LJ_monthly_temperatures,
-#'                                      method = "cor", row_names_subset = TRUE, previous_year = TRUE,
-#'                                      remove_insignificant = TRUE, alpha = 0.05,
-#'                                      subset_years = c(1940, 1980), aggregate_function = 'mean')
+#' example_MVA_past <- monthly_response(response = data_MVA,
+#'     env_data = LJ_monthly_temperatures,
+#'     method = "cor", row_names_subset = TRUE, previous_year = TRUE,
+#'     remove_insignificant = TRUE, alpha = 0.05,
+#'     subset_years = c(1940, 1980), aggregate_function = 'mean')
 #'
-#' example_MVA_present <- monthly_response(response = data_MVA, env_data = LJ_monthly_temperatures,
-#'                                       method = "cor", row_names_subset = TRUE, alpha = 0.05,
-#'                                       previous_year = TRUE, remove_insignificant = TRUE,
-#'                                       subset_years = c(1981, 2010), aggregate_function = 'mean')
+#' example_MVA_present <- monthly_response(response = data_MVA,
+#'     env_data = LJ_monthly_temperatures,
+#'     method = "cor", row_names_subset = TRUE, alpha = 0.05,
+#'     previous_year = TRUE, remove_insignificant = TRUE,
+#'     subset_years = c(1981, 2010), aggregate_function = 'mean')
+#'
 #' summary(example_MVA_present)
 #' example_MVA_past$plot_heatmap
 #' example_MVA_present$plot_heatmap
@@ -157,11 +163,10 @@
 #'
 #' # 3 Example with principal component analysis
 #' example_PCA <- monthly_response(response = example_proxies_individual,
-#'                               env_data = LJ_monthly_temperatures, method = "lm",
-#'                               row_names_subset = TRUE, remove_insignificant = TRUE,
-#'                               alpha = 0.01, PCA_transformation = TRUE, previous_year = TRUE,
-#'                               components_selection = "manual", N_components = 2,
-#'                               boot = TRUE)
+#'    env_data = LJ_monthly_temperatures, method = "lm",
+#'    row_names_subset = TRUE, remove_insignificant = TRUE,
+#'    alpha = 0.01, PCA_transformation = TRUE, previous_year = TRUE,
+#'    components_selection = "manual", N_components = 2, boot = TRUE)
 #'
 #' summary(example_PCA$PCA_output)
 #' example_PCA$plot_heatmap
@@ -169,9 +174,9 @@
 #'
 #' # 4 Example negative correlations
 #' example_neg_cor <- monthly_response(response = data_TRW_1, alpha = 0.05,
-#'                                     env_data = LJ_monthly_temperatures,
-#'                                     method = "cor", row_names_subset = TRUE,
-#'                                     remove_insignificant = TRUE, boot = TRUE)
+#'    env_data = LJ_monthly_temperatures,
+#'    method = "cor", row_names_subset = TRUE,
+#'    remove_insignificant = TRUE, boot = TRUE)
 #'
 #' summary(example_neg_cor)
 #' example_neg_cor$plot_heatmap
@@ -183,19 +188,20 @@
 #' cor(example_proxies_1)
 #'
 #' example_multiproxy <- monthly_response(response = example_proxies_1,
-#'                                      env_data = LJ_monthly_temperatures,
-#'                                      method = "lm", metric = "adj.r.squared",
-#'                                      row_names_subset = TRUE, previous_year = FALSE,
-#'                                      remove_insignificant = TRUE, alpha = 0.05)
+#'    env_data = LJ_monthly_temperatures,
+#'    method = "lm", metric = "adj.r.squared",
+#'    row_names_subset = TRUE, previous_year = FALSE,
+#'    remove_insignificant = TRUE, alpha = 0.05)
 #'
 #' summary(example_multiproxy)
 #' example_multiproxy$plot_heatmap
 #'
 #' # 6 Example to test the temporal stability
-#' example_MVA_ts <- monthly_response(response = data_MVA, env_data = LJ_monthly_temperatures,
-#' method = "lm", metric = "adj.r.squared", row_names_subset = TRUE,
-#' remove_insignificant = TRUE, alpha = 0.05,
-#' temporal_stability_check = "running_window", k_running_window = 10)
+#' example_MVA_ts <- monthly_response(response = data_MVA,
+#'    env_data = LJ_monthly_temperatures,
+#'    method = "lm", metric = "adj.r.squared", row_names_subset = TRUE,
+#'    remove_insignificant = TRUE, alpha = 0.05,
+#'    temporal_stability_check = "running_window", k_running_window = 10)
 #'
 #' summary(example_MVA_ts)
 #' example_MVA_ts$temporal_stability
@@ -209,7 +215,7 @@ monthly_response <- function(response, env_data, method = "lm",
                            alpha = .05, row_names_subset = FALSE,
                            PCA_transformation = FALSE, log_preprocess = TRUE,
                            components_selection = 'automatic',
-                           eigenvalues_threshold = 1,
+                           eigenvalues_threshold = 1, fixed_width = 0,
                            N_components = 2, aggregate_function = 'mean',
                            temporal_stability_check = "sequential", k = 2,
                            k_running_window = 30, cross_validation_type = "blocked",
@@ -225,7 +231,14 @@ monthly_response <- function(response, env_data, method = "lm",
 
   lower_limit = 1
   upper_limit = 12
-  fixed_width = 0
+#  fixed_width = 0
+
+  if (fixed_width > 12){
+    stop(paste0("fixed_width argument must not be greater than 12! Instead, it is ", fixed_width, "!"))
+  }
+
+
+
   reference_window = 'start'
 
   if (previous_year == TRUE)
@@ -501,7 +514,7 @@ monthly_response <- function(response, env_data, method = "lm",
       temporal_matrix_lower <- temporal_matrix
       temporal_matrix_upper <- temporal_matrix
 
-      pb <- txtProgressBar(min = 0, max = (ncol(env_data) - fixed_width + 1),
+      pb <- txtProgressBar(min = 0, max = (ncol(env_data) - fixed_width),
                            style = 3)
 
       b = 0
@@ -516,21 +529,65 @@ monthly_response <- function(response, env_data, method = "lm",
         b = b + 1
 
         if (aggregate_function == 'median'){
-          x <- apply(env_data[1:nrow(env_data),
-                                 (1 + j): (j + fixed_width)],1 , median, na.rm = TRUE)
+
+          if (fixed_width == 1){
+            x <- env_data[1:nrow(env_data), (1 + j): (j + fixed_width)]
+          } else {
+            x <- apply(env_data[1:nrow(env_data),
+                                (1 + j): (j + fixed_width)],1 , median, na.rm = TRUE)
+            }
+
         } else if (aggregate_function == 'sum'){
-          x <- apply(env_data[1:nrow(env_data),
-                              (1 + j): (j + fixed_width)],1 , sum, na.rm = TRUE)
+
+          if (fixed_width == 1){
+            x <- env_data[1:nrow(env_data), (1 + j): (j + fixed_width)]
+          } else {
+            x <- apply(env_data[1:nrow(env_data),
+                                (1 + j): (j + fixed_width)],1 , sum, na.rm = TRUE)
+          }
 
         } else if (aggregate_function == 'mean'){
-          x <- rowMeans(env_data[1:nrow(env_data),
-                                 (1 + j): (j + fixed_width)], na.rm = TRUE)
+
+          if (fixed_width == 1){
+            x <- env_data[1:nrow(env_data), (1 + j): (j + fixed_width)]
+          } else {
+            x <- rowMeans(env_data[1:nrow(env_data),
+                                   (1 + j): (j + fixed_width)], na.rm = TRUE)
+          }
+
         } else {
           stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median or sum."))
         }
 
         x <- matrix(x, nrow = nrow(env_data), ncol = 1)
-        temporal_correlation <- cor(response[, 1], x[, 1], method = cor_method)
+
+        if (boot == FALSE){
+          temporal_correlation <- cor(response[, 1], x[, 1], method = cor_method)
+          temporal_lower <- NA
+          temporal_upper <- NA
+        } else if (boot == TRUE){
+          temp_df_boot <- cbind(response[, 1], x[, 1])
+          calc <- boot(temp_df_boot, boot_f, fun = "cor", cor.type = cor_method, R = boot_n)
+
+          temporal_correlation <- colMeans(calc$t)[1]
+
+          ci_int <- try(boot.ci(calc, conf = boot_conf_int, type = boot_ci_type), silent = TRUE)
+
+          if (class(ci_int)[[1]] == "try-error"){
+
+            temporal_lower <- NA
+            temporal_upper <- NA
+
+          } else {
+            temporal_lower <- ci_int$norm[2]
+            temporal_upper <- ci_int$norm[3]
+          }
+
+        } else {
+          print(paste0("boot should be TRUE or FALSE, instead it is ", boot))
+        }
+
+
 
         # Each calculation is printed. Reason: usually it takes several minutes
         # to go through all loops and therefore, users might think that R is
@@ -538,10 +595,19 @@ monthly_response <- function(response, env_data, method = "lm",
         # confident, that R is responding.
         if (reference_window == 'start'){
           temporal_matrix[1, j + 1] <- temporal_correlation
+          temporal_matrix_lower[1, j + 1] <- temporal_lower
+          temporal_matrix_upper[1, j + 1] <- temporal_upper
+
         } else if (reference_window == 'end'){
           temporal_matrix[1, j + fixed_width] <- temporal_correlation
+          temporal_matrix_lower[1, j + fixed_width] <- temporal_lower
+          temporal_matrix_upper[1, j + fixed_width] <- temporal_upper
+
         } else if (reference_window == 'middle'){
+
           temporal_matrix[1, round2(j + 1 + fixed_width/2, 0)] <- temporal_correlation
+          temporal_matrix_lower[1, round2(j + 1 + fixed_width/2, 0)] <- temporal_lower
+          temporal_matrix_upper[1, round2(j + 1 + fixed_width/2, 0)] <- temporal_upper
         }
 
         setTxtProgressBar(pb, b)
@@ -552,9 +618,14 @@ monthly_response <- function(response, env_data, method = "lm",
      # window width used fot calculations. Colnames represent the position of
      # moving window in a original env_data data frame.
      row.names(temporal_matrix) <- fixed_width
+     row.names(temporal_matrix_lower) <- fixed_width
+     row.names(temporal_matrix_upper) <- fixed_width
+
      temporal_colnames <- as.vector(seq(from = 1,
        to = ncol(temporal_matrix), by = 1))
      colnames(temporal_matrix) <- temporal_colnames
+     colnames(temporal_matrix_lower) <- temporal_colnames
+     colnames(temporal_matrix_upper) <- temporal_colnames
   }
 
   # A.2 method == "lm"
@@ -1921,7 +1992,7 @@ for (m in 1:length(empty_list_datasets)){
 
   if (method == "cor"){
     final_list <- list(calculations = temporal_matrix, method = method,
-                       metric = method, analysed_period = analysed_period,
+                       metric = cor_method, analysed_period = analysed_period,
                        optimized_return = dataf_full,
                        optimized_return_all = dataf_full_original,
                        transfer_function = p1, temporal_stability = temporal_stability,

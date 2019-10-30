@@ -183,26 +183,26 @@ and the final results will be subset based on the methods vector. Setting the
 total_reproducibility to TRUE will result in longer optimization phase as well.}
 }
 \value{
-a list with twelve elements:
-\tabular{rll}{
- 1 \tab $mean_std   \tab data frame with calculated metrics for the selected regression methods. For each regression method and each calculated metric, mean and standard deviation are given\cr
- 2 \tab $ranks \tab data frame with ranks of calculated metrics: mean rank and  share of rank_1 are given \cr
- 3 \tab $edge_results   \tab data frame with calculated performance metrics for the central-edge test. The central part of the data represents the calibration data, while the edge data, i.e. extreme values, represent the test/validation data. Different regression models are calibrated using the central data and validated for the edge (extreme) data. This test is particularly important to assess the performance of models for the predictions of the extreme data. The share of the edge (extreme) data is defined with the edge_share argument \cr
- 4 \tab $holdout_results    \tab calculated metrics for the holdout data \cr
- 5 \tab $bias_cal   \tab ggplot object of mean bias for calibration data \cr
- 6 \tab $bias_val    \tab ggplot object of mean bias for validation data \cr
- 7 \tab $transfer_functions   \tab ggplot or plotly object with transfer functions of methods \cr
- 8 \tab $transfer_functions_together    \tab ggplot or plotly object with transfer functions of methods plotted together \cr
- 9 \tab $parameter_values    \tab a data frame with specifications of parameters used for different regression methods \cr
- 10 \tab $PCA_output    \tab princomp object: the result output of the PCA analysis \cr
- 11 \tab $reconstructions    \tab ggplot object: reconstructed dependent variable based on the dataset_complete argument, facet is used to split plots by methods  \cr
- 12 \tab $reconstructions_together    \tab ggplot object: reconstructed dependent variable based on the dataset_complete argument, all reconstructions are on the same plot \cr
- 13 \tab $normal_QQ_cal    \tab normal q-q plot for calibration data \cr
- 14 \tab $normal_QQ_holdout    \tab normal q-q plot for holdout data \cr
- 15 \tab $normal_QQ_edge    \tab normal q-q plot for edge data \cr
- 16 \tab $residuals_vs_fitted_cal    \tab residuals vs fitted values plot for calibration data \cr
- 17 \tab $residuals_vs_fitted_holdout    \tab residuals vs fitted values plot for holdout data \cr
- 18 \tab $residuals_vs_fitted_edge    \tab residuals vs fitted values plot for edge data
+a list with 18 elements:
+\enumerate{
+ \item $mean_std - data frame with calculated metrics for the selected \\ regression methods. For each regression method and each calculated metric, mean and standard deviation are given
+ \item $ranks - data frame with ranks of calculated metrics: mean rank and  share of rank_1 are given
+ \item $edge_results - data frame with calculated performance metrics for the central-edge test. The central part of the data represents the calibration data, while the edge data, i.e. extreme values, represent the test/validation data. Different regression models are calibrated using the central data and validated for the edge (extreme) data. This test is particularly important to assess the performance of models for the predictions of the extreme data. The share of the edge (extreme) data is defined with the edge_share argument
+ \item $holdout_results - calculated metrics for the holdout data
+ \item $bias_cal - ggplot object of mean bias for calibration data
+ \item $bias_val - ggplot object of mean bias for validation data
+ \item $transfer_functions - ggplot or plotly object with transfer functions of methods
+ \item $transfer_functions_together - ggplot or plotly object with transfer functions of methods plotted together
+ \item $parameter_values - a data frame with specifications of parameters used for different regression methods
+ \item $PCA_output - princomp object: the result output of the PCA analysis
+ \item $reconstructions - ggplot object: reconstructed dependent variable based on the dataset_complete argument, facet is used to split plots by methods
+ \item $reconstructions_together - ggplot object: reconstructed dependent variable based on the dataset_complete argument, all reconstructions are on the same plot
+ \item $normal_QQ_cal - normal q-q plot for calibration data
+ \item $normal_QQ_holdout - normal q-q plot for holdout data
+ \item $normal_QQ_edge- normal q-q plot for edge data
+ \item $residuals_vs_fitted_cal - residuals vs fitted values plot for calibration data
+ \item $residuals_vs_fitted_holdout - residuals vs fitted values plot for holdout data
+ \item $residuals_vs_fitted_edge - residuals vs fitted values plot for edge data
 }
 }
 \description{

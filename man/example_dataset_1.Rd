@@ -12,7 +12,7 @@
   growing season from 2012 - 1955}
 }}
 \source{
-prof. dr. Tom Levanič, Slovenian Forestry Institute, Večna pot 2,
+Jernej Jevšenak, Slovenian Forestry Institute, Večna pot 2,
 Ljubljana, Slovenia
 }
 \usage{

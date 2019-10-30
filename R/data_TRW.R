@@ -8,7 +8,9 @@
 #' \describe{
 #'   \item{TRW}{residual TRW indices from 1981 - 1757}
 #' }
-#' @source Schweingruber, F.H., 1981. Vrsic Krajnska Gora - PCAB - ITRDB YUGO001.
-#' https://www.ncdc.noaa.gov/paleo/study/4728.
+#' @source
+#' \itemize{
+#'    \item Schweingruber, F.H., 1981. Vrsic Krajnska Gora - PCAB - ITRDB YUGO001.
+#'    \item https://www.ncdc.noaa.gov/paleo/study/4728.}
 #' @export
 "data_TRW"

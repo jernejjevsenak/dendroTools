@@ -335,18 +335,18 @@ plot_extreme <- function(result_daily_response, title = TRUE, ylimits = NULL, re
     # In case of previous_year == TRUE, we calculate the day of a year
     # (plot_column), considering 366 days of previous year.
 
-    if (ncol(result_daily_response[[1]]) == 24 & plot_column > 12) {
+    if (ncol(result_daily_response[[1]]) >= 12 & plot_column > 12) {
       plot_column_extra <- plot_column %% 12
     } else {
       plot_column_extra <- plot_column
     }
 
 
-    if (reference_window == 'start' &&  plot_column > 12 && ncol(result_daily_response[[1]]) == 24){
+    if (reference_window == 'start' &&  plot_column > 12 && ncol(result_daily_response[[1]]) <= 24){
       reference_string <- paste0("\nStarting Month of Optimal Window Width: Month ",
                                  plot_column_extra, " of Current Year")}
 
-    if (reference_window == 'start' &&  plot_column <= 12 && ncol(result_daily_response[[1]]) == 24){
+    if (reference_window == 'start' &&  plot_column <= 12 && ncol(result_daily_response[[1]]) <= 24){
       reference_string <- paste0("\nStarting Month of Optimal Window Width: Month ",
                                  plot_column_extra, " of Previous Year")}
 
@@ -362,11 +362,11 @@ plot_extreme <- function(result_daily_response, title = TRUE, ylimits = NULL, re
         # Here we define a data frame of months. Later
         # this dataframe will be used to describe tht optimal sequence of days
 
-        if (ncol(result_daily_response[[1]]) == 24){
+        if (ncol(result_daily_response[[1]]) > 12){
           date_codes <- c("Jan*", "Feb*", "Mar*", "Apr*", "May*", "Jun*", "Jul*", "Aug*", "Sep*", "Oct*", "Nov*", "Dec*",
                           "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
 
-        } else if (ncol(result_daily_response[[1]]) == 12){
+        } else if (ncol(result_daily_response[[1]]) <= 12){
 
           date_codes <- c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
 
@@ -402,7 +402,7 @@ plot_extreme <- function(result_daily_response, title = TRUE, ylimits = NULL, re
 
 
 
-    if (ncol(result_daily_response[[1]]) == 12){
+    if (ncol(result_daily_response[[1]]) <= 12){
 
       window_widths <- seq(1, length(temporal_vector))
 
@@ -438,7 +438,7 @@ plot_extreme <- function(result_daily_response, title = TRUE, ylimits = NULL, re
         journal_theme)
 
 
-    } else if (ncol(result_daily_response[[1]]) == 24){
+    } else if (ncol(result_daily_response[[1]]) > 12){
 
       months <- c("J*", "F*", "M*", "A*", "M*", "J*", "J*", "A*", "S*", "O*", "N*", "D*",
                   "J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D")

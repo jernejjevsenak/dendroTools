@@ -17,7 +17,7 @@
 #'   \item{MVA_9}{Mean vessel area chronology for tree 9 [mm^2]}
 #'   \item{MVA_10}{Mean vessel area chronology for tree 10 [mm^2]}
 #' }
-#' @source prof. dr. Tom Levanič, Slovenian Forestry Institute, Večna pot 2,
+#' @source Slovenian Forestry Institute, Večna pot 2,
 #' Ljubljana, Slovenia
 #' @export
 "dataset_MVA_individual"
