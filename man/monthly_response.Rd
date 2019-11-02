@@ -6,11 +6,12 @@
 \usage{
 monthly_response(response, env_data, method = "lm",
   metric = "r.squared", cor_method = "pearson",
-  previous_year = FALSE, neurons = 1, brnn_smooth = TRUE,
+  previous_year = FALSE, neurons = 1, lower_limit = 1,
+  upper_limit = 12, fixed_width = 0, brnn_smooth = TRUE,
   remove_insignificant = TRUE, alpha = 0.05,
   row_names_subset = FALSE, PCA_transformation = FALSE,
   log_preprocess = TRUE, components_selection = "automatic",
-  eigenvalues_threshold = 1, fixed_width = 0, N_components = 2,
+  eigenvalues_threshold = 1, N_components = 2,
   aggregate_function = "mean", temporal_stability_check = "sequential",
   k = 2, k_running_window = 30, cross_validation_type = "blocked",
   subset_years = NULL, plot_specific_window = NULL, ylimits = NULL,
@@ -49,6 +50,15 @@ selected statistical metric.}
 \item{neurons}{positive integer that indicates the number of neurons used
 for brnn method}
 
+\item{lower_limit}{lower limit of window width (i.e. number of consecutive months
+to be used for calculations)}
+
+\item{upper_limit}{upper limit of window width (i.e. number of consecutive months
+to be used for calculations)}
+
+\item{fixed_width}{fixed width used for calculations (i.e. number of consecutive
+months to be used for calculations)}
+
 \item{brnn_smooth}{if set to TRUE, a smoothing algorithm is applied that
 removes unrealistic calculations which are a result of neural net failure.}
 
@@ -80,8 +90,6 @@ selection is set to "plot_selection", Scree plot will be shown and a user must
 manually enter the number of components to be used as predictors.}
 
 \item{eigenvalues_threshold}{threshold for automatic selection of Principal Components}
-
-\item{fixed_width}{fixed width used for calculations.}
 
 \item{N_components}{number of Principal Components used as predictors}
 
@@ -179,11 +187,12 @@ data(LJ_monthly_precipitation)
 
 # 1 Example with tidy precipitation data
 example_tidy_data <- monthly_response(response = data_MVA,
-    env_data = LJ_monthly_precipitation, fixed_width = 6,
-    method = "cor", row_names_subset = TRUE,
-    remove_insignificant = FALSE, previous_year = FALSE,
+    lower_limit = 1, upper = 12,
+    env_data = LJ_monthly_precipitation, fixed_width = 0,
+    method = "cor", row_names_subset = TRUE, metric = "adj.r.squared",
+    remove_insignificant = TRUE, previous_year = FALSE,
     alpha = 0.05, aggregate_function = 'sum', boot = TRUE,
-    tidy_env_data = TRUE, boot_n = 1000)
+    tidy_env_data = TRUE, boot_n = 100)
 
 summary(example_tidy_data)
 example_tidy_data$plot_extreme

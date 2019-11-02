@@ -1,7 +1,6 @@
-#' boot_f
+#' boot_f_cor
 #'
-#' Generate R bootstrap replicates of a statistic applied to data. Function is based on boot() from
-#' boot R package
+#' Generate R bootstrap replicates of a statistic applied to data.
 #'
 #' @param data The data as a vector, matrix or data frame. If it is a matrix or data frame then each
 #' row is considered as one multivariate observation.
@@ -11,21 +10,19 @@
 #' coefficient is to be computed. One of "pearson" (default), "kendall", or
 #' "spearman".
 #'
-#' @return A matrix with bootstrapped estimates
+#' @return A matrix with bootstrapped estimates of correlation coefficients
 #'
 #' @references https://www.datacamp.com/community/tutorials/bootstrap-r
 #' @keywords internal
 #'
-boot_f <- function(data, indices, fun, cor.type){
+boot_f_cor <- function(data, indices, cor.type){
   dt <- data[indices,]
-  if (fun == "cor"){
     c(
       cor(dt[,1], dt[,2], method = cor.type),
       median(dt[,1]),
       median(dt[,2])
     )
 
-    }
   }
 
 

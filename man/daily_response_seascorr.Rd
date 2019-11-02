@@ -17,7 +17,9 @@ daily_response_seascorr(response, env_data_primary, env_data_control,
   k_running_window = 30, cross_validation_type = "blocked",
   subset_years = NULL, plot_specific_window = NULL, ylimits = NULL,
   seed = NULL, tidy_env_data_primary = FALSE,
-  tidy_env_data_control = FALSE, reference_window = "start")
+  tidy_env_data_control = FALSE, reference_window = "start",
+  boot = FALSE, boot_n = 1000, boot_ci_type = "norm",
+  boot_conf_int = 0.95)
 }
 \arguments{
 \item{response}{a data frame with tree-ring proxy variable and (optional)
@@ -146,6 +148,18 @@ calculation is related to DOY 25.
 The optimal selection, which describes the optimal consecutive days that returns
 the highest calculated metric and is obtained by the $plot_extreme output, is the
 same for all three reference windows.}
+
+\item{boot}{logical, if TRUE, bootstrap procedure will be used to calculate
+partial correlation coefficients}
+
+\item{boot_n}{The number of bootstrap replicates}
+
+\item{boot_ci_type}{A character string representing the type of bootstrap intervals
+required. The value should be any subset of the values c("norm","basic", "stud",
+"perc", "bca").}
+
+\item{boot_conf_int}{A scalar or vector containing the confidence level(s) of
+the required interval(s)}
 }
 \value{
 a list with 15 elements:
@@ -194,16 +208,16 @@ data(LJ_daily_precipitation)
 example_basic <- daily_response_seascorr(response = data_MVA,
                           env_data_primary = LJ_daily_temperatures,
                           env_data_control = LJ_daily_precipitation,
-                          row_names_subset = TRUE, lower_limit = 20,
-                          upper_limit = 45,
+                          row_names_subset = TRUE, fixed_width = 2,
+                          lower_limit = 35, upper_limit = 45,
                           remove_insignificant = TRUE,
                           aggregate_function_env_data_primary = 'median',
                           aggregate_function_env_data_control = 'median',
                           alpha = 0.05, pcor_method = "spearman",
                           tidy_env_data_primary = FALSE,
-                          previous_year = TRUE,
-                          tidy_env_data_control = TRUE,
-                          reference_window = "middle")
+                          previous_year = FALSE, boot = TRUE,
+                          tidy_env_data_control = TRUE, boot_n = 10,
+                          reference_window = "end")
 summary(example_basic)
 example_basic$plot_extreme
 example_basic$plot_heatmap

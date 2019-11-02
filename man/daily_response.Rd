@@ -204,17 +204,17 @@ data(LJ_daily_temperatures)
 # 1 Example with fixed width
 example_daily_response <- daily_response(response = data_MVA,
     env_data = LJ_daily_temperatures,
-    method = "cor", fixed_width = 30,
-    row_names_subset = TRUE,
+    method = "cor", fixed_width = 0, lower_limit = 30, upper_limit = 150,
+    row_names_subset = TRUE, metric = "adj.r.squared", neurons = 5,
     remove_insignificant = TRUE,
     alpha = 0.05, aggregate_function = 'mean',
-    reference_window = "end", previous_year = FALSE,
-    cor_method = "spearman", boot = TRUE,
-    boot_n = 100)
+    reference_window = "start", previous_year = TRUE, boot = FALSE,
+    boot_n = 100, tidy_env_data = FALSE)
 
 class(example_daily_response)
 summary(example_daily_response)
 example_daily_response$plot_extreme
+example_daily_response$transfer_function
 example_daily_response$plot_heatmap
 
 
@@ -253,11 +253,12 @@ example_PCA$plot_heatmap
 
 # 4 Example negative correlations
 example_neg_cor <- daily_response(response = data_TRW_1,
-    env_data = LJ_daily_temperatures,
-    method = "cor", lower_limit = 21, upper_limit = 180,
+    env_data = LJ_daily_temperatures, previous_year = TRUE,
+    method = "cor", lower_limit = 21, upper_limit = 90,
     row_names_subset = TRUE, remove_insignificant = TRUE,
     alpha = 0.05)
 
+summary(example_neg_cor)
 example_neg_cor$plot_heatmap
 example_neg_cor$plot_extreme
 example_neg_cor$temporal_stability

@@ -151,17 +151,17 @@
 #' # 1 Example with fixed width
 #' example_daily_response <- daily_response(response = data_MVA,
 #'     env_data = LJ_daily_temperatures,
-#'     method = "cor", fixed_width = 30,
-#'     row_names_subset = TRUE,
+#'     method = "cor", fixed_width = 0, lower_limit = 30, upper_limit = 150,
+#'     row_names_subset = TRUE, metric = "adj.r.squared", neurons = 5,
 #'     remove_insignificant = TRUE,
 #'     alpha = 0.05, aggregate_function = 'mean',
-#'     reference_window = "end", previous_year = FALSE,
-#'     cor_method = "spearman", boot = TRUE,
-#'     boot_n = 100)
+#'     reference_window = "start", previous_year = TRUE, boot = FALSE,
+#'     boot_n = 100, tidy_env_data = FALSE)
 #'
 #' class(example_daily_response)
 #' summary(example_daily_response)
 #' example_daily_response$plot_extreme
+#' example_daily_response$transfer_function
 #' example_daily_response$plot_heatmap
 #'
 #'
@@ -200,11 +200,12 @@
 #'
 #' # 4 Example negative correlations
 #' example_neg_cor <- daily_response(response = data_TRW_1,
-#'     env_data = LJ_daily_temperatures,
-#'     method = "cor", lower_limit = 21, upper_limit = 180,
+#'     env_data = LJ_daily_temperatures, previous_year = TRUE,
+#'     method = "cor", lower_limit = 21, upper_limit = 90,
 #'     row_names_subset = TRUE, remove_insignificant = TRUE,
 #'     alpha = 0.05)
 #'
+#' summary(example_neg_cor)
 #' example_neg_cor$plot_heatmap
 #' example_neg_cor$plot_extreme
 #' example_neg_cor$temporal_stability
@@ -258,6 +259,11 @@ daily_response <- function(response, env_data, method = "lm",
                            boot_ci_type = "norm", boot_conf_int = 0.95) {
 
 
+  if (fixed_width != 0){
+    lower_limit = 30
+    upper_limit = 200
+  }
+
   if (!is.null(seed)) {
     set.seed(seed)
   }
@@ -278,19 +284,8 @@ daily_response <- function(response, env_data, method = "lm",
  DE <- NULL
  d <- NULL
 
-
-
    temporal_matrix_lower <- NULL
    temporal_matrix_upper <- NULL
-
-
-   if (boot == TRUE & method != "cor"){
-
-     warning(paste0("Bootstrapping is currently available only for correlation coefficients!",
-             "boot argument is ignored!"))
-
-   }
-
 
  # If there is a column name samp.depth in response data frame, warning is given
  if ("samp.depth" %in% colnames(response)){
@@ -554,15 +549,30 @@ daily_response <- function(response, env_data, method = "lm",
         b = b + 1
 
         if (aggregate_function == 'median'){
-          x <- apply(env_data[1:nrow(env_data),
-                                 (1 + j): (j + fixed_width)],1 , median, na.rm = TRUE)
-        } else if (aggregate_function == 'sum'){
-          x <- apply(env_data[1:nrow(env_data),
-                              (1 + j): (j + fixed_width)],1 , sum, na.rm = TRUE)
 
+          if (fixed_width == 1){
+            x <- env_data[1:nrow(env_data), (1 + j): (j + fixed_width)]
+          } else {
+
+          x <- apply(data.frame(env_data[1:nrow(env_data),
+                                 (1 + j): (j + fixed_width)]),1 , median, na.rm = TRUE)
+          }
+        } else if (aggregate_function == 'sum'){
+
+          if (fixed_width == 1){
+            x <- env_data[1:nrow(env_data), (1 + j): (j + fixed_width)]
+          } else {
+          x <- apply(data.frame(env_data[1:nrow(env_data),
+                              (1 + j): (j + fixed_width)]),1 , sum, na.rm = TRUE)
+}
         } else if (aggregate_function == 'mean'){
-          x <- rowMeans(env_data[1:nrow(env_data),
-                                 (1 + j): (j + fixed_width)], na.rm = TRUE)
+
+          if (fixed_width == 1){
+            x <- env_data[1:nrow(env_data), (1 + j): (j + fixed_width)]
+          } else {
+          x <- rowMeans(data.frame(env_data[1:nrow(env_data),
+                                 (1 + j): (j + fixed_width)]), na.rm = TRUE)
+          }
         } else {
           stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median or sum."))
         }
@@ -578,7 +588,7 @@ daily_response <- function(response, env_data, method = "lm",
         } else if (boot == TRUE){
 
           temp_df_boot <- cbind(response[, 1], x[, 1])
-          calc <- boot(temp_df_boot, boot_f, fun = "cor", cor.type = cor_method, R = boot_n)
+          calc <- boot(temp_df_boot, boot_f_cor, cor.type = cor_method, R = boot_n)
 
           temporal_correlation <- colMeans(calc$t)[1]
 
@@ -665,53 +675,141 @@ daily_response <- function(response, env_data, method = "lm",
       b = b + 1
 
       if (aggregate_function == 'median'){
+
+        if (fixed_width == 1){
+          x <- env_data[1:nrow(env_data), (1 + j): (j + fixed_width)]
+        } else {
+
         x <- apply(env_data[1:nrow(env_data),
                                (1 + j) : (j + fixed_width)],1 , median, na.rm = TRUE)
+        }
       } else if (aggregate_function == 'sum'){
+
+        if (fixed_width == 1){
+          x <- env_data[1:nrow(env_data), (1 + j): (j + fixed_width)]
+        } else {
         x <- apply(env_data[1:nrow(env_data),
                             (1 + j) : (j + fixed_width)],1 , median, na.rm = TRUE)
+        }
       } else if (aggregate_function == 'mean'){
+
+        if (fixed_width == 1){
+          x <- env_data[1:nrow(env_data), (1 + j): (j + fixed_width)]
+        } else {
+
         x <- rowMeans(env_data[1:nrow(env_data),
                                (1 + j) : (j + fixed_width)], na.rm = TRUE)
+        }
       } else {
         stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median or sum."))
       }
 
       x <- matrix(x, nrow = nrow(env_data), ncol = 1)
-      temporal_df <- data.frame(cbind(x, response))
-      temporal_model <- lm(x ~ ., data = temporal_df)
-      temporal_summary <- summary(temporal_model)
-      temporal_r_squared <- temporal_summary$r.squared
-      temporal_adj_r_squared <- temporal_summary$adj.r.squared
+
+      if (boot == FALSE){
+
+        temporal_df <- data.frame(cbind(x, response))
+        temporal_model <- lm(x ~ ., data = temporal_df)
+        temporal_summary <- summary(temporal_model)
+        temporal_r_squared <- temporal_summary$r.squared
+        temporal_adj_r_squared <- temporal_summary$adj.r.squared
+
+        temporal_r_squared_lower<- NA
+        temporal_r_squared_upper<- NA
+        temporal_adj_r_squared_lower <- NA
+        temporal_adj_r_squared_upper <- NA
+
+      } else if (boot == TRUE){
+
+        temporal_df <- data.frame(cbind(x, response))
+        calc <- boot(data = temporal_df, statistic = boot_f_lm, R = boot_n, lm.formula = "x ~ .")
+
+        temporal_r_squared <- colMeans(calc$t)[1]
+        temporal_adj_r_squared <- colMeans(calc$t)[2]
+
+        ci_int_r_squared <- try(boot.ci(calc, conf = boot_conf_int, type = boot_ci_type, index = 1), silent = TRUE)
+        ci_int_adj_r_squared <- try(boot.ci(calc, conf = boot_conf_int, type = boot_ci_type, index = 2), silent = TRUE)
+
+
+        if (class(ci_int_r_squared)[[1]] == "try-error"){
+
+          temporal_r_squared_lower<- NA
+          temporal_r_squared_upper<- NA
+          temporal_adj_r_squared_lower <- NA
+          temporal_adj_r_squared_upper <- NA
+
+        } else {
+
+          temporal_r_squared_lower <- ci_int_r_squared$norm[2]
+          temporal_r_squared_upper <- ci_int_r_squared$norm[3]
+          temporal_adj_r_squared_lower <- ci_int_adj_r_squared$norm[2]
+          temporal_adj_r_squared_upper <- ci_int_adj_r_squared$norm[3]
+
+       }
+
+      } else {
+        stop(paste0("boot should be TRUE or FALSE, instead it is ", boot))
+      }
 
       if (metric == "r.squared"){
 
         if (reference_window == 'start'){
+
           temporal_matrix[1, j + 1]  <- temporal_r_squared
+          temporal_matrix_lower[1, j + 1]  <- temporal_r_squared_lower
+          temporal_matrix_upper[1, j + 1]  <- temporal_r_squared_upper
+
           } else if (reference_window == 'end') {
-              temporal_matrix[1, j + fixed_width] <- temporal_r_squared
-          } else if (reference_window == 'middle'){
+
+            temporal_matrix[1, j + fixed_width] <- temporal_r_squared
+            temporal_matrix_lower[1, j + fixed_width] <- temporal_r_squared_lower
+            temporal_matrix_upper[1, j + fixed_width] <- temporal_r_squared_upper
+
+         } else if (reference_window == 'middle'){
+
             temporal_matrix[1, round2(j + 1 + fixed_width/2, 0)] <- temporal_r_squared
+            temporal_matrix_lower[1, round2(j + 1 + fixed_width/2, 0)] <- temporal_r_squared_lower
+            temporal_matrix_upper[1, round2(j + 1 + fixed_width/2, 0)] <- temporal_r_squared_upper
+
           }
       }
 
       if (metric == "adj.r.squared"){
         if (reference_window == 'start'){
+
           temporal_matrix[1, j + 1]  <- temporal_adj_r_squared
-        } else if (reference_window == 'end'){
+          temporal_matrix_lower[1, j + 1]  <- temporal_adj_r_squared_lower
+          temporal_matrix_upper[1, j + 1]  <- temporal_adj_r_squared_upper
+
+           } else if (reference_window == 'end'){
+
           temporal_matrix[1, j + fixed_width] <- temporal_adj_r_squared
-        } else if (reference_window == 'middle'){
+          temporal_matrix_lower[1, j + fixed_width] <- temporal_adj_r_squared_lower
+          temporal_matrix_upper[1, j + fixed_width] <- temporal_adj_r_squared_upper
+
+             } else if (reference_window == 'middle'){
+
           temporal_matrix[1, round2(j + 1 + fixed_width/2, 0)] <- temporal_adj_r_squared
+          temporal_matrix_lower[1, round2(j + 1 + fixed_width/2, 0)] <- temporal_adj_r_squared_lower
+          temporal_matrix_upper[1, round2(j + 1 + fixed_width/2, 0)] <- temporal_adj_r_squared_upper
         }
       }
-      setTxtProgressBar(pb, b)
+
+
+
+     setTxtProgressBar(pb, b)
     }
     close(pb)
 
     row.names(temporal_matrix) <- fixed_width
+    row.names(temporal_matrix_lower) <- fixed_width
+    row.names(temporal_matrix_upper) <- fixed_width
+
     temporal_colnames <- as.vector(seq(from = 1,
       to = ncol(temporal_matrix), by = 1))
     colnames(temporal_matrix) <- temporal_colnames
+    colnames(temporal_matrix_lower) <- temporal_colnames
+    colnames(temporal_matrix_upper) <- temporal_colnames
   }
 
   # A.3 method == "brnn"
@@ -744,74 +842,161 @@ daily_response <- function(response, env_data, method = "lm",
        b = b + 1
 
         if (aggregate_function == 'median'){
-         x <- apply(env_data[1:nrow(env_data),
+
+          if (fixed_width == 1){
+            x <- env_data[1:nrow(env_data), (1 + j): (j + fixed_width)]
+          } else {
+          x <- apply(env_data[1:nrow(env_data),
                                 (1 + j): (j + fixed_width)],1 , median, na.rm = TRUE)
+          }
         } else if (aggregate_function == 'sum'){
+          if (fixed_width == 1){
+            x <- env_data[1:nrow(env_data), (1 + j): (j + fixed_width)]
+          } else {
           x <- apply(env_data[1:nrow(env_data),
                               (1 + j): (j + fixed_width)],1 , sum, na.rm = TRUE)
-
+}
        } else if (aggregate_function == 'mean') {
+         if (fixed_width == 1){
+           x <- env_data[1:nrow(env_data), (1 + j): (j + fixed_width)]
+         } else {
+
          x <- rowMeans(env_data[1:nrow(env_data),
                                 (1 + j): (j + fixed_width)], na.rm = TRUE)
+         }
        } else {
          stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median or sum."))
        }
 
       x <- matrix(x, nrow = nrow(env_data), ncol = 1)
-      temporal_df <- data.frame(cbind(x, response))
-      capture.output(temporal_model <- try(brnn(x ~ ., data = temporal_df,
-                                 neurons = neurons, tol = 1e-6),
-                            silent = TRUE))
-      temporal_predictions <- try(predict.brnn(temporal_model, temporal_df),
-                                  silent = TRUE)
+
+      if (boot == FALSE){
+
+        temporal_df <- data.frame(cbind(x, response))
+
+        capture.output(temporal_model <- try(brnn(x ~ ., data = temporal_df,
+                                                  neurons = neurons, tol = 1e-6),
+                                             silent = TRUE))
+
+        temporal_predictions <- try(predict.brnn(temporal_model, temporal_df),
+                                    silent = TRUE)
 
 
-      if (class(temporal_model)[[1]] != "try-error"){
+        if (class(temporal_model)[[1]] != "try-error"){
 
-        temporal_r_squared <- 1 - (sum((x[, 1] - temporal_predictions) ^ 2) /
-                                     sum((x[, 1] - mean(x[, 1])) ^ 2))
-        temporal_adj_r_squared <- 1 - ((1 - temporal_r_squared) *
-                                         ((nrow(x) - 1)) /
-                                         (nrow(x) -
-                                            ncol(as.data.frame(response[, 1]))
-                                          -  1))
+          temporal_r_squared <- 1 - (sum((x[, 1] - temporal_predictions) ^ 2) /
+                                       sum((x[, 1] - mean(x[, 1])) ^ 2))
+          temporal_adj_r_squared <- 1 - ((1 - temporal_r_squared) *
+                                           ((nrow(x) - 1)) /
+                                           (nrow(x) -
+                                              ncol(as.data.frame(temporal_df))
+                                            -  1 + 1))
 
-        if (metric == "r.squared"){
 
-          if (reference_window == 'start'){
-            temporal_matrix[1, j + 1]  <- temporal_r_squared
-          } else if (reference_window == 'end') {
-           temporal_matrix[1, j + fixed_width] <- temporal_r_squared
-          } else if (reference_window == 'middle'){
-            temporal_matrix[1, round2(j + 1 + fixed_width/2, 0)] <- temporal_r_squared
-          }
+      }
+
+        temporal_r_squared_lower <- NA
+        temporal_r_squared_upper <- NA
+
+        temporal_adj_r_squared_lower <- NA
+        temporal_adj_r_squared_upper <- NA
+
+      } else if (boot == TRUE){
+
+
+        temporal_df <- data.frame(cbind(x, response))
+        calc <- boot(data = temporal_df, statistic = boot_f_brnn, R = boot_n, brnn.formula = "x ~ .", neurons = neurons)
+
+        temporal_r_squared <- colMeans(calc$t)[1]
+        temporal_adj_r_squared <- colMeans(calc$t)[2]
+
+        ci_int_r_squared <- try(boot.ci(calc, conf = boot_conf_int, type = boot_ci_type, index = 1), silent = TRUE)
+        ci_int_adj_r_squared <- try(boot.ci(calc, conf = boot_conf_int, type = boot_ci_type, index = 2), silent = TRUE)
+
+        if (class(ci_int_r_squared)[[1]] == "try-error"){
+
+          temporal_r_squared_lower<- NA
+          temporal_r_squared_upper<- NA
+          temporal_adj_r_squared_lower <- NA
+          temporal_adj_r_squared_upper <- NA
+
+        } else {
+
+          temporal_r_squared_lower <- ci_int_r_squared$norm[2]
+          temporal_r_squared_upper <- ci_int_r_squared$norm[3]
+
+          temporal_adj_r_squared_lower <- ci_int_adj_r_squared$norm[2]
+          temporal_adj_r_squared_upper <- ci_int_adj_r_squared$norm[3]
+
         }
 
-        if (metric == "adj.r.squared"){
-          if (reference_window == 'start'){
-            temporal_matrix[1, j + 1]  <- temporal_adj_r_squared
-          } else if (reference_window == 'end'){
-            temporal_matrix[1, j + fixed_width] <- temporal_adj_r_squared
-          } else if (reference_window == 'middle'){
-            temporal_matrix[1, round2(j + 1 + fixed_width/2, 0)] <- temporal_adj_r_squared
+      } else {
+
+        stop(paste0("boot should be TRUE or FALSE, instead it is ", boot))
+
+  }
+
+
+
+      if (metric == "r.squared"){
+
+        if (reference_window == 'start'){
+
+          temporal_matrix[1, j + 1]  <- temporal_r_squared
+          temporal_matrix_lower[1, j + 1]  <- temporal_r_squared_lower
+          temporal_matrix_upper[1, j + 1]  <- temporal_r_squared_upper
+
+        } else if (reference_window == 'end') {
+
+          temporal_matrix[1, j + fixed_width] <- temporal_r_squared
+          temporal_matrix_lower[1, j + fixed_width] <- temporal_r_squared_lower
+          temporal_matrix_upper[1, j + fixed_width] <- temporal_r_squared_upper
+
+        } else if (reference_window == 'middle'){
+
+          temporal_matrix[1, round2(j + 1 + fixed_width/2, 0)] <- temporal_r_squared
+          temporal_matrix_lower[1, round2(j + 1 + fixed_width/2, 0)] <- temporal_r_squared_lower
+          temporal_matrix_upper[1, round2(j + 1 + fixed_width/2, 0)] <- temporal_r_squared_upper
+
         }
       }
-      } else if (reference_window == 'start'){
-        temporal_matrix[(K - lower_limit) + 1, j + 1] <- NA
-      } else if (reference_window == 'end') {
-        temporal_matrix[(K - lower_limit) + 1, j + K] <- NA
-      } else if (reference_window == 'middle'){
-        temporal_matrix[(K - lower_limit) + 1, round2(j + 1 + K/2, 0)] <- NA
+
+      if (metric == "adj.r.squared"){
+        if (reference_window == 'start'){
+
+          temporal_matrix[1, j + 1]  <- temporal_adj_r_squared
+          temporal_matrix_lower[1, j + 1]  <- temporal_adj_r_squared_lower
+          temporal_matrix_upper[1, j + 1]  <- temporal_adj_r_squared_upper
+
+        } else if (reference_window == 'end'){
+
+          temporal_matrix[1, j + fixed_width] <- temporal_adj_r_squared
+          temporal_matrix_lower[1, j + fixed_width] <- temporal_adj_r_squared_lower
+          temporal_matrix_upper[1, j + fixed_width] <- temporal_adj_r_squared_upper
+
+        } else if (reference_window == 'middle'){
+
+          temporal_matrix[1, round2(j + 1 + fixed_width/2, 0)] <- temporal_adj_r_squared
+          temporal_matrix_lower[1, round2(j + 1 + fixed_width/2, 0)] <- temporal_adj_r_squared_lower
+          temporal_matrix_upper[1, round2(j + 1 + fixed_width/2, 0)] <- temporal_adj_r_squared_upper
+        }
       }
+
+
       setTxtProgressBar(pb, b)
      }
 
     close(pb)
 
     row.names(temporal_matrix) <- fixed_width
+    row.names(temporal_matrix_lower) <- fixed_width
+    row.names(temporal_matrix_upper) <- fixed_width
+
     temporal_colnames <- as.vector(seq(from = 1,
-      to = ncol(temporal_matrix), by = 1))
+                                       to = ncol(temporal_matrix), by = 1))
     colnames(temporal_matrix) <- temporal_colnames
+    colnames(temporal_matrix_lower) <- temporal_colnames
+    colnames(temporal_matrix_upper) <- temporal_colnames
   }
 
   # B fixed_width == 0, in this case, lower_limit and upper_limit arguments
@@ -863,11 +1048,11 @@ daily_response <- function(response, env_data, method = "lm",
     for (j in 0: (ncol(env_data) - K)) {
 
       if (aggregate_function == 'median'){
-        x <- apply(env_data[1:nrow(env_data), (1 + j) : (j + K)],1 , median, na.rm = TRUE)
+        x <- apply(data.frame(env_data[1:nrow(env_data), (1 + j) : (j + K)]),1 , median, na.rm = TRUE)
       } else if (aggregate_function == 'sum'){
-        x <- apply(env_data[1:nrow(env_data), (1 + j) : (j + K)],1 , sum, na.rm = TRUE)}
+        x <- apply(data.frame(env_data[1:nrow(env_data), (1 + j) : (j + K)]),1 , sum, na.rm = TRUE)}
       else if (aggregate_function == 'mean'){
-        x <- rowMeans(env_data[1:nrow(env_data), (1 + j) : (j + K)], na.rm = T)
+        x <- rowMeans(data.frame(env_data[1:nrow(env_data), (1 + j) : (j + K)]), na.rm = T)
       } else {
         stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median or sum."))
       }
@@ -884,7 +1069,7 @@ daily_response <- function(response, env_data, method = "lm",
       } else if (boot == TRUE){
 
         temp_df_boot <- cbind(response[, 1], x[, 1])
-        calc <- boot(temp_df_boot, boot_f, fun = "cor", cor.type = cor_method, R = boot_n)
+        calc <- boot(temp_df_boot, boot_f_cor, cor.type = cor_method, R = boot_n)
 
         temporal_correlation <- colMeans(calc$t)[1]
 
@@ -973,60 +1158,122 @@ daily_response <- function(response, env_data, method = "lm",
 
       for (j in 0: (ncol(env_data) - K)) {
         if (aggregate_function == 'median'){
-          x <- apply(env_data[1:nrow(env_data), (1 + j) : (j + K)],1 , median, na.rm = TRUE)
+          x <- apply(data.frame(env_data[1:nrow(env_data), (1 + j) : (j + K)]),1 , median, na.rm = TRUE)
         } else if(aggregate_function == 'sum'){
-          x <- apply(env_data[1:nrow(env_data), (1 + j) : (j + K)],1 , sum, na.rm = TRUE)
+          x <- apply(data.frame(env_data[1:nrow(env_data), (1 + j) : (j + K)]),1 , sum, na.rm = TRUE)
         } else if (aggregate_function == 'mean'){
-          x <- rowMeans(env_data[1:nrow(env_data), (1 + j) : (j + K)], na.rm = T)
+          x <- rowMeans(data.frame(env_data[1:nrow(env_data), (1 + j) : (j + K)]), na.rm = T)
         } else {
           stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median or sum."))
         }
 
-          x <- matrix(x, nrow = nrow(env_data), ncol = 1)
+        x <- matrix(x, nrow = nrow(env_data), ncol = 1)
+
+        if (boot == FALSE){
+
           temporal_df <- data.frame(cbind(x, response))
           temporal_model <- lm(x ~ ., data = temporal_df)
           temporal_summary <- summary(temporal_model)
           temporal_r_squared <- temporal_summary$r.squared
           temporal_adj_r_squared <- temporal_summary$adj.r.squared
 
-          temporal_lower <- NA
-          temporal_upper <- NA
+          temporal_r_squared_lower<- NA
+          temporal_r_squared_upper<- NA
+          temporal_adj_r_squared_lower <- NA
+          temporal_adj_r_squared_upper <- NA
+
+        } else if (boot == TRUE){
+
+          temporal_df <- data.frame(cbind(x, response))
+          calc <- boot(data = temporal_df, statistic = boot_f_lm, R = boot_n, lm.formula = "x ~ .")
+
+          temporal_r_squared <- colMeans(calc$t)[1]
+          temporal_adj_r_squared <- colMeans(calc$t)[2]
+
+          ci_int_r_squared <- try(boot.ci(calc, conf = boot_conf_int, type = boot_ci_type, index = 1), silent = TRUE)
+          ci_int_adj_r_squared <- try(boot.ci(calc, conf = boot_conf_int, type = boot_ci_type, index = 2), silent = TRUE)
+
+
+          if (class(ci_int_r_squared)[[1]] == "try-error"){
+
+            temporal_r_squared_lower<- NA
+            temporal_r_squared_upper<- NA
+            temporal_adj_r_squared_lower <- NA
+            temporal_adj_r_squared_upper <- NA
+
+          } else {
+
+            temporal_r_squared_lower <- ci_int_r_squared$norm[2]
+            temporal_r_squared_upper <- ci_int_r_squared$norm[3]
+            temporal_adj_r_squared_lower <- ci_int_adj_r_squared$norm[2]
+            temporal_adj_r_squared_upper <- ci_int_adj_r_squared$norm[3]
+
+          }
+
+        } else {
+          stop(paste0("boot should be TRUE or FALSE, instead it is ", boot))
+        }
 
         if (metric == "r.squared"){
 
           if (reference_window == 'start'){
-          temporal_matrix[(K - lower_limit) + 1, j + 1]  <-
-            temporal_r_squared
+          temporal_matrix[(K - lower_limit) + 1, j + 1]  <-  temporal_r_squared
+          temporal_matrix_lower[(K - lower_limit) + 1, j + 1]  <-  temporal_r_squared_lower
+          temporal_matrix_upper[(K - lower_limit) + 1, j + 1]  <-  temporal_r_squared_upper
+
           } else if (reference_window == 'end') {
+
               temporal_matrix[(K - lower_limit) + 1, j + K] <- temporal_r_squared
-          } else if (reference_window == 'middle'){
+              temporal_matrix_lower[(K - lower_limit) + 1, j + K] <- temporal_r_squared_lower
+              temporal_matrix_upper[(K - lower_limit) + 1, j + K] <- temporal_r_squared_upper
+
+              } else if (reference_window == 'middle'){
+
             temporal_matrix[(K - lower_limit) + 1, round2(j + 1 + K/2, 0)] <- temporal_r_squared
+            temporal_matrix_lower[(K - lower_limit) + 1, round2(j + 1 + K/2, 0)] <- temporal_r_squared_lower
+            temporal_matrix_upper[(K - lower_limit) + 1, round2(j + 1 + K/2, 0)] <- temporal_r_squared_upper
           }
 
         }
 
         if (metric == "adj.r.squared"){
+
+
           if (reference_window == 'start'){
-          temporal_matrix[(K - lower_limit) + 1, j + 1]  <-
-            temporal_adj_r_squared
-          } else if (reference_window == 'end'){
-              temporal_matrix[(K - lower_limit) + 1, j + K] <- temporal_adj_r_squared
+            temporal_matrix[(K - lower_limit) + 1, j + 1]  <-  temporal_adj_r_squared
+            temporal_matrix_lower[(K - lower_limit) + 1, j + 1]  <-  temporal_adj_r_squared_lower
+            temporal_matrix_upper[(K - lower_limit) + 1, j + 1]  <-  temporal_adj_r_squared_upper
+
+          } else if (reference_window == 'end') {
+
+            temporal_matrix[(K - lower_limit) + 1, j + K] <- temporal_adj_r_squared
+            temporal_matrix_lower[(K - lower_limit) + 1, j + K] <- temporal_adj_r_squared_lower
+            temporal_matrix_upper[(K - lower_limit) + 1, j + K] <- temporal_adj_r_squared_upper
+
           } else if (reference_window == 'middle'){
-              temporal_matrix[(K - lower_limit) + 1, round2(j + 1 + K/2, 0)] <- temporal_adj_r_squared
+
+            temporal_matrix[(K - lower_limit) + 1, round2(j + 1 + K/2, 0)] <- temporal_adj_r_squared
+            temporal_matrix_lower[(K - lower_limit) + 1, round2(j + 1 + K/2, 0)] <- temporal_adj_r_squared_lower
+            temporal_matrix_upper[(K - lower_limit) + 1, round2(j + 1 + K/2, 0)] <- temporal_adj_r_squared_upper
           }
-        }
+
+          }
       }
       setTxtProgressBar(pb, b)
     }
 
     close(pb)
-    temporal_rownames <- as.vector(seq(from = lower_limit, to = upper_limit,
-      by = 1))
-    row.names(temporal_matrix) <- temporal_rownames
 
-    temporal_colnames <- as.vector(seq(from = 1,
-      to = ncol(temporal_matrix), by = 1))
+    temporal_rownames <- as.vector(seq(from = lower_limit, to = upper_limit, by = 1))
+    row.names(temporal_matrix) <- temporal_rownames
+    row.names(temporal_matrix_lower) <- temporal_rownames
+    row.names(temporal_matrix_upper) <- temporal_rownames
+
+    temporal_colnames <- as.vector(seq(from = 1, to = ncol(temporal_matrix), by = 1))
     colnames(temporal_matrix) <- temporal_colnames
+    colnames(temporal_matrix_lower) <- temporal_colnames
+    colnames(temporal_matrix_upper) <- temporal_colnames
+
   }
 
   # B.3 method == "brnn"
@@ -1061,75 +1308,147 @@ daily_response <- function(response, env_data, method = "lm",
       for (j in 0: (ncol(env_data) - K)) {
 
         if (aggregate_function == 'median'){
-          x <- apply(env_data[1:nrow(env_data), (1 + j) : (j + K)],1 , median, na.rm = TRUE)
+          x <- apply(data.frame(env_data[1:nrow(env_data), (1 + j) : (j + K)]),1 , median, na.rm = TRUE)
         } else if (aggregate_function == 'sum'){
-          x <- apply(env_data[1:nrow(env_data), (1 + j) : (j + K)],1 , sum, na.rm = TRUE)
+          x <- apply(data.frame(env_data[1:nrow(env_data), (1 + j) : (j + K)]),1 , sum, na.rm = TRUE)
         } else if (aggregate_function == 'mean'){
-          x <- rowMeans(env_data[1:nrow(env_data), (1 + j) : (j + K)], na.rm = T)
+          x <- rowMeans(data.frame(env_data[1:nrow(env_data), (1 + j) : (j + K)]), na.rm = T)
         } else {
           stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median or sum."))
         }
 
         x <- matrix(x, nrow = nrow(env_data), ncol = 1)
-        temporal_df <- data.frame(cbind(x, response))
-        capture.output(temporal_model <- try(brnn(x ~ ., data = temporal_df, neurons = neurons,
-                                   tol = 1e-6), silent = TRUE))
-        temporal_predictions <- try(predict.brnn(temporal_model, temporal_df),
-                                    silent = TRUE)
 
-        if (class(temporal_model)[[1]] != "try-error"){
+        if (boot == FALSE){
 
-          temporal_r_squared <- 1 - (sum((x[, 1] - temporal_predictions) ^ 2) /
-                                       sum((x[, 1] - mean(x[, 1])) ^ 2))
-          temporal_adj_r_squared <- 1 - ((1 - temporal_r_squared) *
-                                           ((nrow(x) - 1)) /
-                                           (nrow(x) -
-                                              ncol(as.data.frame(response[, 1]))
-                                            - 1))
+          temporal_df <- data.frame(cbind(x, response))
 
-          if (metric == "r.squared"){
+          capture.output(temporal_model <- try(brnn(x ~ ., data = temporal_df,
+                                                    neurons = neurons, tol = 1e-6),
+                                               silent = TRUE))
 
-            if (reference_window == 'start'){
-              temporal_matrix[(K - lower_limit) + 1, j + 1]  <-
-                temporal_r_squared
-            } else if (reference_window == 'end') {
-              temporal_matrix[(K - lower_limit) + 1, j + K] <- temporal_r_squared
-            } else if (reference_window == 'middle'){
-              temporal_matrix[(K - lower_limit) + 1, round2(j + 1 + K/2, 0)] <- temporal_r_squared
-            }
+          temporal_predictions <- try(predict.brnn(temporal_model, temporal_df),
+                                      silent = TRUE)
+
+
+          if (class(temporal_model)[[1]] != "try-error"){
+
+            temporal_r_squared <- 1 - (sum((x[, 1] - temporal_predictions) ^ 2) /
+                                         sum((x[, 1] - mean(x[, 1])) ^ 2))
+            temporal_adj_r_squared <- 1 - ((1 - temporal_r_squared) *
+                                             ((nrow(x) - 1)) /
+                                             (nrow(x) -
+                                                ncol(as.data.frame(temporal_df))
+                                              -  1 + 1))
+
+
+          } else {
+            temporal_r_squared <- NA
+            temporal_adj_r_squared <- NA
+          }
+
+          temporal_r_squared_lower <- NA
+          temporal_r_squared_upper <- NA
+
+          temporal_adj_r_squared_lower <- NA
+          temporal_adj_r_squared_upper <- NA
+
+
+        } else if (boot == TRUE){
+
+          temporal_df <- data.frame(cbind(x, response))
+          calc <- boot(data = temporal_df, statistic = boot_f_brnn, R = boot_n, brnn.formula = "x ~ .", neurons = neurons)
+
+          temporal_r_squared <- colMeans(calc$t)[1]
+          temporal_adj_r_squared <- colMeans(calc$t)[2]
+
+          ci_int_r_squared <- try(boot.ci(calc, conf = boot_conf_int, type = boot_ci_type, index = 1), silent = TRUE)
+          ci_int_adj_r_squared <- try(boot.ci(calc, conf = boot_conf_int, type = boot_ci_type, index = 2), silent = TRUE)
+
+          if (class(ci_int_r_squared)[[1]] == "try-error"){
+
+            temporal_r_squared_lower<- NA
+            temporal_r_squared_upper<- NA
+            temporal_adj_r_squared_lower <- NA
+            temporal_adj_r_squared_upper <- NA
+
+          } else {
+
+            temporal_r_squared_lower <- ci_int_r_squared$norm[2]
+            temporal_r_squared_upper <- ci_int_r_squared$norm[3]
+
+            temporal_adj_r_squared_lower <- ci_int_adj_r_squared$norm[2]
+            temporal_adj_r_squared_upper <- ci_int_adj_r_squared$norm[3]
 
           }
 
-          if (metric == "adj.r.squared"){
-            if (reference_window == 'start'){
-              temporal_matrix[(K - lower_limit) + 1, j + 1]  <-
-                temporal_adj_r_squared
-            } else if (reference_window == 'end'){
-              temporal_matrix[(K - lower_limit) + 1, j + K] <- temporal_adj_r_squared
-            } else if (reference_window == 'middle'){
-              temporal_matrix[(K - lower_limit) + 1, round2(j + 1 + K/2, 0)] <- temporal_adj_r_squared
-            }
+        } else {
+
+          stop(paste0("boot should be TRUE or FALSE, instead it is ", boot))
+
+        }
+
+        if (metric == "r.squared"){
+
+          if (reference_window == 'start'){
+            temporal_matrix[(K - lower_limit) + 1, j + 1]  <-  temporal_r_squared
+            temporal_matrix_lower[(K - lower_limit) + 1, j + 1]  <-  temporal_r_squared_lower
+            temporal_matrix_upper[(K - lower_limit) + 1, j + 1]  <-  temporal_r_squared_upper
+
+          } else if (reference_window == 'end') {
+
+            temporal_matrix[(K - lower_limit) + 1, j + K] <- temporal_r_squared
+            temporal_matrix_lower[(K - lower_limit) + 1, j + K] <- temporal_r_squared_lower
+            temporal_matrix_upper[(K - lower_limit) + 1, j + K] <- temporal_r_squared_upper
+
+          } else if (reference_window == 'middle'){
+
+            temporal_matrix[(K - lower_limit) + 1, round2(j + 1 + K/2, 0)] <- temporal_r_squared
+            temporal_matrix_lower[(K - lower_limit) + 1, round2(j + 1 + K/2, 0)] <- temporal_r_squared_lower
+            temporal_matrix_upper[(K - lower_limit) + 1, round2(j + 1 + K/2, 0)] <- temporal_r_squared_upper
           }
 
-        } else if (reference_window == 'start'){
-          temporal_matrix[(K - lower_limit) + 1, j + 1] <- NA
-        } else if (reference_window == 'end') {
-          temporal_matrix[(K - lower_limit) + 1, j + K] <- NA
-        } else if (reference_window == 'middle'){
-          temporal_matrix[(K - lower_limit) + 1, round2(j + 1 + K/2, 0)] <- NA
         }
+
+        if (metric == "adj.r.squared"){
+
+
+          if (reference_window == 'start'){
+            temporal_matrix[(K - lower_limit) + 1, j + 1]  <-  temporal_adj_r_squared
+            temporal_matrix_lower[(K - lower_limit) + 1, j + 1]  <-  temporal_adj_r_squared_lower
+            temporal_matrix_upper[(K - lower_limit) + 1, j + 1]  <-  temporal_adj_r_squared_upper
+
+          } else if (reference_window == 'end') {
+
+            temporal_matrix[(K - lower_limit) + 1, j + K] <- temporal_adj_r_squared
+            temporal_matrix_lower[(K - lower_limit) + 1, j + K] <- temporal_adj_r_squared_lower
+            temporal_matrix_upper[(K - lower_limit) + 1, j + K] <- temporal_adj_r_squared_upper
+
+          } else if (reference_window == 'middle'){
+
+            temporal_matrix[(K - lower_limit) + 1, round2(j + 1 + K/2, 0)] <- temporal_adj_r_squared
+            temporal_matrix_lower[(K - lower_limit) + 1, round2(j + 1 + K/2, 0)] <- temporal_adj_r_squared_lower
+            temporal_matrix_upper[(K - lower_limit) + 1, round2(j + 1 + K/2, 0)] <- temporal_adj_r_squared_upper
+          }
+
         }
+
+      }
       setTxtProgressBar(pb, b)
     }
 
     close(pb)
-    temporal_rownames <- as.vector(seq(from = lower_limit, to = upper_limit,
-      by = 1))
-    row.names(temporal_matrix) <- temporal_rownames
 
-    temporal_colnames <- as.vector(seq(from = 1,
-      to = ncol(temporal_matrix), by = 1))
+    temporal_rownames <- as.vector(seq(from = lower_limit, to = upper_limit, by = 1))
+    row.names(temporal_matrix) <- temporal_rownames
+    row.names(temporal_matrix_lower) <- temporal_rownames
+    row.names(temporal_matrix_upper) <- temporal_rownames
+
+    temporal_colnames <- as.vector(seq(from = 1, to = ncol(temporal_matrix), by = 1))
     colnames(temporal_matrix) <- temporal_colnames
+    colnames(temporal_matrix_lower) <- temporal_colnames
+    colnames(temporal_matrix_upper) <- temporal_colnames
+
   }
 
   # PART 3: smoothing function, if brnn method is used. It turnes out, that
@@ -1220,19 +1539,19 @@ daily_response <- function(response, env_data, method = "lm",
 
 
   if (aggregate_function == 'median'){
-    dataf <- data.frame(apply(env_data[, as.numeric(plot_column):
+    dataf <- data.frame(apply(data.frame(env_data[, as.numeric(plot_column):
                                             (as.numeric(plot_column) +
-                                               as.numeric(row_index) - 1)],1 , median, na.rm = TRUE))
+                                               as.numeric(row_index) - 1)]),1 , median, na.rm = TRUE))
 
   } else if (aggregate_function == 'sum'){
-    dataf <- data.frame(apply(env_data[, as.numeric(plot_column):
+    dataf <- data.frame(apply(data.frame(env_data[, as.numeric(plot_column):
                                          (as.numeric(plot_column) +
-                                            as.numeric(row_index) - 1)],1 , sum, na.rm = TRUE))
+                                            as.numeric(row_index) - 1)]),1 , sum, na.rm = TRUE))
 
   } else if (aggregate_function == 'mean'){
-    dataf <- data.frame(rowMeans(env_data[, as.numeric(plot_column):
+    dataf <- data.frame(rowMeans(data.frame(env_data[, as.numeric(plot_column):
                                             (as.numeric(plot_column) +
-                                               as.numeric(row_index) - 1)],
+                                               as.numeric(row_index) - 1)]),
                                  na.rm = TRUE))
   } else {
     stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median or sum."))
@@ -1246,17 +1565,17 @@ daily_response <- function(response, env_data, method = "lm",
   # for the analysed period.
 
   if (aggregate_function == 'median'){
-    dataf_original <- data.frame(apply(env_data_original[, as.numeric(plot_column):
+    dataf_original <- data.frame(apply(data.frame(env_data_original[, as.numeric(plot_column):
                                          (as.numeric(plot_column) +
-                                            as.numeric(row_index) - 1)],1 , median, na.rm = TRUE))
+                                            as.numeric(row_index) - 1)]),1 , median, na.rm = TRUE))
   } else if (aggregate_function == 'sum'){
-    dataf_original <- data.frame(apply(env_data_original[, as.numeric(plot_column):
+    dataf_original <- data.frame(apply(data.frame(env_data_original[, as.numeric(plot_column):
                                                            (as.numeric(plot_column) +
-                                                              as.numeric(row_index) - 1)],1 , sum, na.rm = TRUE))
+                                                              as.numeric(row_index) - 1)]),1 , sum, na.rm = TRUE))
   } else if (aggregate_function == 'mean'){
-    dataf_original <- data.frame(rowMeans(env_data_original[, as.numeric(plot_column):
+    dataf_original <- data.frame(rowMeans(data.frame(env_data_original[, as.numeric(plot_column):
                                             (as.numeric(plot_column) +
-                                               as.numeric(row_index) - 1)],
+                                               as.numeric(row_index) - 1)]),
                                  na.rm = TRUE))
   } else {
     stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median or sum."))

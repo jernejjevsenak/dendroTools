@@ -6,17 +6,18 @@
 \usage{
 monthly_response_seascorr(response, env_data_primary, env_data_control,
   previous_year = FALSE, pcor_method = "pearson",
-  remove_insignificant = TRUE, alpha = 0.05,
-  row_names_subset = FALSE, PCA_transformation = FALSE,
-  log_preprocess = TRUE, components_selection = "automatic",
-  eigenvalues_threshold = 1, N_components = 2,
-  aggregate_function_env_data_primary = "mean",
+  remove_insignificant = TRUE, lower_limit = 1, upper_limit = 12,
+  fixed_width = 0, alpha = 0.05, row_names_subset = FALSE,
+  PCA_transformation = FALSE, log_preprocess = TRUE,
+  components_selection = "automatic", eigenvalues_threshold = 1,
+  N_components = 2, aggregate_function_env_data_primary = "mean",
   aggregate_function_env_data_control = "mean",
   temporal_stability_check = "sequential", k = 2,
   k_running_window = 30, cross_validation_type = "blocked",
   subset_years = NULL, plot_specific_window = NULL, ylimits = NULL,
   seed = NULL, tidy_env_data_primary = FALSE,
-  tidy_env_data_control = FALSE)
+  tidy_env_data_control = FALSE, boot = FALSE, boot_n = 1000,
+  boot_ci_type = "norm", boot_conf_int = 0.95)
 }
 \arguments{
 \item{response}{a data frame with tree-ring proxy variable and (optional)
@@ -53,6 +54,15 @@ coefficient is to be computed. One of "pearson" (default), "kendall", or
 
 \item{remove_insignificant}{if set to TRUE, removes all correlations bellow
 the significant threshold level, based on a selected alpha.}
+
+\item{lower_limit}{lower limit of window width (i.e. number of consecutive months
+to be used for calculations)}
+
+\item{upper_limit}{upper limit of window width (i.e. number of consecutive months
+to be used for calculations)}
+
+\item{fixed_width}{fixed width used for calculations (i.e. number of consecutive
+months to be used for calculations)}
 
 \item{alpha}{significance level used to remove insignificant calculations.}
 
@@ -122,6 +132,18 @@ data frame with three columns: "Year", "Month", "Precipitation/Temperature/etc."
 
 \item{tidy_env_data_control}{if set to TRUE, env_data_control should be inserted as a
 data frame with three columns: "Year", "Month", "Precipitation/Temperature/etc."}
+
+\item{boot}{logical, if TRUE, bootstrap procedure will be used to calculate
+partial correlation coefficients}
+
+\item{boot_n}{The number of bootstrap replicates}
+
+\item{boot_ci_type}{A character string representing the type of bootstrap intervals
+required. The value should be any subset of the values c("norm","basic", "stud",
+"perc", "bca").}
+
+\item{boot_conf_int}{A scalar or vector containing the confidence level(s) of
+the required interval(s)}
 }
 \value{
 a list with 15 elements:
@@ -167,6 +189,7 @@ data(LJ_monthly_precipitation)
 
 # 1 Basic example
 example_basic <- monthly_response_seascorr(response = data_MVA,
+   fixed_width = 11,
    env_data_primary = LJ_monthly_temperatures,
    env_data_control = LJ_monthly_precipitation,
    row_names_subset = TRUE,
