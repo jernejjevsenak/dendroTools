@@ -225,16 +225,6 @@ summary.dmrs <- function(object, ...){
     method_string <- paste0("ANN with Bayesian Regularization")
   }
 
-
-
-
-
-
-
-
-
-
-
   if (type == "monthly"){
 
     # Plural or singular?
