@@ -1,0 +1,79 @@
+#' daily_transform
+#'
+#' Transforms daily data with two columns (date and variable) into data frame suitable for daily or
+#' monthly analysis with dendroTools.
+#'
+#' @param input typical daily data format: Data frame with two columns, first column represents date,
+#' second column represents variable, such as mean temperature, precipitation, etc. Date should be in
+#' format Year-Month-Day (e.g. "2019-05-15")
+#' @param format character string indicating the desired output format. Should be "daily" or "monthly".
+#' Daily format returns a data frame with 366 columns (days), while monthly format returns data frame
+#' with 12 columns (months). Years are indicated as row names.
+#' @param monthly_aggregate_function character string indicating, how to aggregate daily into monthly
+#' data. It can be "mean" or "sum". Third option is "auto" (default). In this case function will try
+#' to guess whether input is temperature or precipitation data. For temperature, it will use "mean",
+#' for precipitation "sum".
+#'
+#' @return env_data suitable for daily or monthly analysis with dendroTools.
+#'
+#' @examples
+#' data(swit272_daily_temperatures)
+#' proper_daily_data <- daily_transform(swit272_daily_temperatures, format = "daily")
+#' proper_monthly_data <- daily_transform(swit272_daily_temperatures, format = "monthly")
+#'
+#' data(swit272_daily_precipitation)
+#' proper_daily_data <- daily_transform(swit272_daily_precipitation, format = "daily")
+#' proper_monthly_data <- daily_transform(swit272_daily_precipitation, format = "monthly")
+
+daily_transform <- function(input, format = "daily", monthly_aggregate_function = "auto"){
+
+  colnames(input) <- c("date", "variable")
+  input$date <- ymd(input[,"date"])
+  input$year <- year(input$date)
+
+  if (monthly_aggregate_function == "auto"){
+    share_na <- sum(input$variable == 0)/length(input$variable)
+
+    if (share_na > 0.1){
+
+      monthly_aggregate_function <- "sum"
+
+    } else {
+
+      monthly_aggregate_function <- "mean"
+
+    }
+
+  }
+
+  if (format == "daily"){
+
+    input$doy <- yday(input$date)
+    input$date <- NULL
+    daily_matrix <- dcast(year ~ doy, data = input, value.var = "variable")
+    row.names(daily_matrix) <- daily_matrix$year
+    daily_matrix$year <- NULL
+
+  } else if (format == "monthly") {
+
+    input$month <- month(input$date)
+    input$date <- NULL
+    colnames(input)[1] <- "value"
+
+    if (monthly_aggregate_function == "mean"){
+      daily_matrix <- dcast(year ~ month, data = input, value.var = "value", fun.aggregate = mean, na.rm = TRUE)
+    } else if (monthly_aggregate_function == "sum") {
+      daily_matrix <- dcast(year ~ month, data = input, value.var = "value", fun.aggregate = sum, na.rm = TRUE)
+    } else {
+      stop(paste0("monthly_aggregate_function argument should be 'mean' or 'sum'! It is ", monthly_aggregate_function))
+    }
+
+    row.names(daily_matrix) <- daily_matrix$year
+    daily_matrix$year <- NULL
+
+  } else {
+    stop(paste0("format argument should be 'daily' or 'monthly'! It is ", format))
+    }
+
+  daily_matrix
+}

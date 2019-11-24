@@ -135,10 +135,9 @@ plot_heatmap <- function(result_daily_response, reference_window = "start", type
     aes_(x = ~as.numeric(variable), y = ~as.numeric(temp_row_names),
     fill = ~Value)) +
     geom_tile() +
-      scale_fill_gradient2(temp_string,
-                           low = "red", mid = "white",
-                           high = "blue", midpoint = 0, space = "rgb",
-                           na.value = "white") +
+    scale_fill_gradientn(temp_string, na.value = "white",
+      colours = c("#67001F", "#B2182B", "#D6604D", "#F4A582", "#FDDBC7",
+                  "#F7F7F7", "#D1E5F0", "#92C5DE", "#4393C3", "#2166AC", "#053061")) +
     xlab("Day of Year") +
     ylab("Window Width") +
     scale_x_continuous(expand = c(0, 0), breaks = sort(c(seq(0, nlevels(result_daily_element1_melted$variable), 50)),
@@ -208,11 +207,9 @@ plot_heatmap <- function(result_daily_response, reference_window = "start", type
                                           aes_(x = ~as.numeric(variable), y = ~as.numeric(temp_row_names),
                                                fill = ~Value)) +
                                      geom_tile() +
-                                     scale_fill_gradient2(temp_string,
-                                                          high = "blue", low = "red", midpoint = 0, space = "rgb",
-                                                          na.value = "white"
-                                                           ) +
-
+                                    scale_fill_gradientn(temp_string, na.value = "white",
+                                                colours = c("#67001F", "#B2182B", "#D6604D", "#F4A582", "#FDDBC7",
+                                                "#F7F7F7", "#D1E5F0", "#92C5DE", "#4393C3", "#2166AC", "#05306")) +
                                      ylab("Number of Consecutive Months") +
                                      xlab("Starting Month of Calculation") +
                                      scale_x_continuous(expand = c(0, 0), breaks = seq(1,12, by = 1),
@@ -231,10 +228,11 @@ plot_heatmap <- function(result_daily_response, reference_window = "start", type
                                           aes_(x = ~as.numeric(variable), y = ~as.numeric(temp_row_names),
                                                fill = ~Value)) +
                                      geom_tile() +
-                                     scale_fill_gradient2(temp_string,
-                                                          low = "red", mid = "white",
-                                                          high = "blue", midpoint = 0, space = "rgb",
-                                                          na.value = "white") +
+                                     scale_fill_gradientn(temp_string, na.value = "white",
+                                                          colours = c("#67001F", "#B2182B", "#D6604D",
+                                                                      "#F4A582", "#FDDBC7", "#F7F7F7",
+                                                                      "#D1E5F0", "#92C5DE", "#4393C3",
+                                                                      "#2166AC", "#05306")) +
                                      ylab("Number of Consecutive Months") +
                                      xlab("Starting Month of Calculation (Including Previous Year)") +
                                      scale_x_continuous(expand = c(0, 0), breaks = seq(1,24, by = 1),

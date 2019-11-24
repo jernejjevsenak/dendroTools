@@ -1,17 +1,17 @@
-#' Daily temperatures for swit272 chronology
+#' Daily precipitation for swit272 chronology
 #'
-#' Mean daily temperature in Celsius for the period 1950 - 2019.
+#' Sum of daily precipitation in millimeters for the period 1950 - 2019.
 #' This gridded E-OBS data on 0.1° regular grid, version 20e.
 #' Extracted data is for the grid point with lon = 9.75 and lat = 46.45.
 #'
 #' @format A data frame with 25414 rows and 2 variables:
 #' \describe{
 #'   \item{date}{character string describing date}
-#'   \item{t_avg}{mean temperature}
+#'   \item{p_sum}{mean temperature}
 #' }
 #' @source \url{https://www.ecad.eu/download/ensembles/download.php}
 #'
 #' @details We acknowledge the E-OBS dataset from the EU-FP6 project UERRA (http://www.uerra.eu) and the Copernicus Climate Change Service, and the data providers in the ECA&D project (https://www.ecad.eu). Cornes, R., G. van der Schrier, E.J.M. van den Besselaar, and P.D. Jones. 2018: An Ensemble Version of the E-OBS Temperature and Precipitation Datasets, J. Geophys. Res. Atmos., 123. doi:10.1029/2017JD028200
 #'
 #' @export
-"swit272_daily_temperatures"
+"swit272_daily_precipitation"

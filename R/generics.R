@@ -254,14 +254,11 @@ summary.dmrs <- function(object, ...){
       plot_column_extra <- plot_column
     }
 
-
     if (ncol(result_daily_response[[1]]) > 12) {
       previous_year <- TRUE
     } else {
       previous_year <- FALSE
     }
-
-
 
     if (reference_window == 'start' &&  plot_column > 12 && ncol(result_daily_response[[1]]) > 12){
       reference_string <- paste0("Starting Month of Optimal Window Width: Month ",

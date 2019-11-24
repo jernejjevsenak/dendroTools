@@ -148,15 +148,14 @@
 #' data(example_proxies_1)
 #' data(LJ_daily_temperatures)
 #'
-#' # 1 Example with fixed width
+#' # 1 Example with fixed width. Lower and upper limits are ignored.
 #' example_daily_response <- daily_response(response = data_MVA,
 #'     env_data = LJ_daily_temperatures,
-#'     method = "cor", fixed_width = 0, lower_limit = 30, upper_limit = 150,
-#'     row_names_subset = TRUE, metric = "adj.r.squared", neurons = 5,
+#'     method = "cor", fixed_width = 30,
+#'     row_names_subset = TRUE, previous_year = TRUE,
 #'     remove_insignificant = TRUE,
 #'     alpha = 0.05, aggregate_function = 'mean',
-#'     reference_window = "start", previous_year = TRUE, boot = FALSE,
-#'     boot_n = 100, tidy_env_data = FALSE)
+#'     reference_window = "start")
 #'
 #' class(example_daily_response)
 #' summary(example_daily_response)
@@ -165,7 +164,7 @@
 #' example_daily_response$plot_heatmap
 #'
 #'
-#' # 2 Example for past and present
+#' # 2 Example for past and present. Use subset_years argument.
 #' example_MVA_past <- daily_response(response = data_MVA,
 #'     env_data = LJ_daily_temperatures,
 #'     method = "cor", lower_limit = 21, upper_limit = 180,
@@ -196,6 +195,7 @@
 #'     components_selection = "manual", N_components = 2)
 #'
 #' summary(example_PCA$PCA_output)
+#' summary(example_PCA)
 #' example_PCA$plot_heatmap
 #'
 #' # 4 Example negative correlations
