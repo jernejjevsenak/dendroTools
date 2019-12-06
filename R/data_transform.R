@@ -1,4 +1,4 @@
-#' daily_transform
+#' data_transform
 #'
 #' Transforms daily data with two columns (date and variable) into data frame suitable for daily or
 #' monthly analysis with dendroTools.
@@ -13,23 +13,48 @@
 #' data. It can be "mean" or "sum". Third option is "auto" (default). In this case function will try
 #' to guess whether input is temperature or precipitation data. For temperature, it will use "mean",
 #' for precipitation "sum".
+#' @param date_format Describe the format of date. It should be one of "ymd", "ydm", "myd", "mdy",
+#' "dmy", "dym".
 #'
 #' @return env_data suitable for daily or monthly analysis with dendroTools.
 #'
 #' @examples
 #' data(swit272_daily_temperatures)
-#' proper_daily_data <- daily_transform(swit272_daily_temperatures, format = "daily")
-#' proper_monthly_data <- daily_transform(swit272_daily_temperatures, format = "monthly")
+#' proper_daily_data <- data_transform(swit272_daily_temperatures, format = "daily",
+#'    date_format = "ymd")
+#'
+#' proper_monthly_data <- data_transform(swit272_daily_temperatures, format = "monthly",
+#'    date_format = "ymd")
 #'
 #' data(swit272_daily_precipitation)
-#' proper_daily_data <- daily_transform(swit272_daily_precipitation, format = "daily")
-#' proper_monthly_data <- daily_transform(swit272_daily_precipitation, format = "monthly")
+#' proper_daily_data <- data_transform(swit272_daily_precipitation, format = "daily",
+#'    date_format = "ymd")
+#'
+#' proper_monthly_data <- data_transform(swit272_daily_precipitation, format = "monthly",
+#'    date_format = "ymd")
 
-daily_transform <- function(input, format = "daily", monthly_aggregate_function = "auto"){
+data_transform <- function(input, format = "daily", monthly_aggregate_function = "auto",
+                            date_format = "ymd"){
 
   colnames(input) <- c("date", "variable")
-  input$date <- ymd(input[,"date"])
-  input$year <- year(input$date)
+
+  if (date_format == "ymd"){
+    input$date <- ymd(input[,"date"])
+  } else if ( date_format == "ydm"){
+    input$date <- ydm(input[,"date"])
+  } else if (date_format == "mdy"){
+    input$date <- mdy(input[,"date"])
+  } else if ( date_format == "myd"){
+    input$date <- myd(input[,"date"])
+  } else if ( date_format == "dmy"){
+    input$date <- dmy(input[,"date"])
+  } else if ( date_format == "dym"){
+    input$date <- dym(input[,"date"])
+  } else {
+    stop(paste("The argument date_format is not in one of ydm, ymd, mdy, myd, dym, dmy!"))
+  }
+
+    input$year <- year(input$date)
 
   if (monthly_aggregate_function == "auto"){
     share_na <- sum(input$variable == 0)/length(input$variable)
@@ -41,9 +66,7 @@ daily_transform <- function(input, format = "daily", monthly_aggregate_function 
     } else {
 
       monthly_aggregate_function <- "mean"
-
     }
-
   }
 
   if (format == "daily"){

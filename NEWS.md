@@ -3,7 +3,7 @@
 * Seacorr is now available also for monthly data, including bootstrapping
 * swit272 daily precipitation dataset is added
 * swit272 monthly temperature dataset is removed
-* KNMI_daily_transform() is now called daily_transform(). The entire function is updated and now also enables transformation of daily data into monthly.
+* KNMI_daily_transform() is now called data_transform(). The entire function is updated and now also enables transformation of daily data into monthly.
 
 # dendroTools 1.0.6.
 * Bootstrapping of correlation coefficients is introduced. To do so, use the argument boot in daily_response() and monthly_response(). Bootstrapping is currently available only for correlation coefficients. In future version, it will also be available for model fitting. 
