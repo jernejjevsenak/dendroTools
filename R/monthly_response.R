@@ -214,7 +214,7 @@
 #'
 #' }
 
-monthly_response <- function(response, env_data, method = "lm",
+monthly_response <- function(response, env_data, method = "cor",
                            metric = "r.squared", cor_method = "pearson",
                            previous_year = FALSE, neurons = 1,
                            lower_limit = 1, upper_limit = 12,
