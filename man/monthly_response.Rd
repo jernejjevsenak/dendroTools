@@ -4,7 +4,7 @@
 \alias{monthly_response}
 \title{monthly_response}
 \usage{
-monthly_response(response, env_data, method = "lm",
+monthly_response(response, env_data, method = "cor",
   metric = "r.squared", cor_method = "pearson",
   previous_year = FALSE, neurons = 1, lower_limit = 1,
   upper_limit = 12, fixed_width = 0, brnn_smooth = TRUE,
@@ -195,6 +195,7 @@ example_tidy_data <- monthly_response(response = data_MVA,
     tidy_env_data = TRUE, boot_n = 100)
 
 summary(example_tidy_data)
+plot(example_tidy_data)
 example_tidy_data$plot_extreme
 example_tidy_data$plot_heatmap
 

@@ -144,6 +144,7 @@
 #'     tidy_env_data = TRUE, boot_n = 100)
 #'
 #' summary(example_tidy_data)
+#' plot(example_tidy_data, type = 2)
 #' example_tidy_data$plot_extreme
 #' example_tidy_data$plot_heatmap
 #'
