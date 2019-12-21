@@ -1,5 +1,5 @@
 Dear CRAN, 
-I am resubmitting my package dendroTools. There is bootstrapping introduced for correlation coefficients. Therefore, there are new dependencies. I have tested new version on all platforms and all examples were finished successfully. 
+I am resubmitting my package dendroTools. I have tested new version on all platforms and all examples were finished successfully. 
 
 Please note extensive vignette examples. In previous versions we agreed to turn off vignette checks on some platforms. I believe it makes sense to keep it so. Thank you very much.
 Bests,
@@ -11,8 +11,10 @@ Jernej
 
 ## Test environments
 * local OS X install, R 3.5.0
-* TRAVIS: R version 3.6.0 (2017-01-27), Platform: x86_64-pc-linux-gnu (64-bit), Running under: Ubuntu 14.04.5 LTS
-* win-builder using R version 3.6.1 (2019-07-05) and platform: x86_64-w64-mingw32 (64-bit)
+* TRAVIS: R version 3.6.1 (2017-01-27), Platform: x86_64-pc-linux-gnu (64-bit), Running under: Ubuntu 14.04.6 LTS
+* win-check oldrelease
+* win-check release
+* win-check devel
 
 ## R CMD check results
 There were no ERRORs, WARNINGs or NOTEs
