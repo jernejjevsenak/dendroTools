@@ -21,6 +21,7 @@ export(daily_response_seascorr)
 export(monthly_response_seascorr)
 
 S3method(summary, "dmrs")
+S3method(plot, "dmrs")
 
 import(ggplot2)
 import(viridis)

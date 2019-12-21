@@ -195,9 +195,8 @@ example_tidy_data <- monthly_response(response = data_MVA,
     tidy_env_data = TRUE, boot_n = 100)
 
 summary(example_tidy_data)
-plot(example_tidy_data)
-example_tidy_data$plot_extreme
-example_tidy_data$plot_heatmap
+plot(example_tidy_data, type = 1)
+plot(example_tidy_data, type = 2)
 
 # 2 Example with splited data for past and present
 example_MVA_past <- monthly_response(response = data_MVA,
@@ -213,10 +212,10 @@ example_MVA_present <- monthly_response(response = data_MVA,
     subset_years = c(1981, 2010), aggregate_function = 'mean')
 
 summary(example_MVA_present)
-example_MVA_past$plot_heatmap
-example_MVA_present$plot_heatmap
-example_MVA_past$plot_extreme
-example_MVA_present$plot_extreme
+plot(example_MVA_past, type = 1)
+plot(example_MVA_present, type = 1)
+plot(example_MVA_past, type = 2)
+plot(example_MVA_present, type = 2)
 
 
 # 3 Example with principal component analysis
@@ -227,8 +226,8 @@ example_PCA <- monthly_response(response = example_proxies_individual,
    components_selection = "manual", N_components = 2, boot = TRUE)
 
 summary(example_PCA$PCA_output)
-example_PCA$plot_heatmap
-example_PCA$plot_extreme
+plot(example_PCA, type = 1)
+plot(example_PCA, type = 2)
 
 # 4 Example negative correlations
 example_neg_cor <- monthly_response(response = data_TRW_1, alpha = 0.05,
@@ -237,8 +236,8 @@ example_neg_cor <- monthly_response(response = data_TRW_1, alpha = 0.05,
    remove_insignificant = TRUE, boot = TRUE)
 
 summary(example_neg_cor)
-example_neg_cor$plot_heatmap
-example_neg_cor$plot_extreme
+plot(example_neg_cor, type = 1)
+plot(example_neg_cor, type = 2)
 example_neg_cor$temporal_stability
 
 # 5 Example of multiproxy analysis
@@ -252,7 +251,7 @@ example_multiproxy <- monthly_response(response = example_proxies_1,
    remove_insignificant = TRUE, alpha = 0.05)
 
 summary(example_multiproxy)
-example_multiproxy$plot_heatmap
+plot(example_multiproxy, type = 1)
 
 # 6 Example to test the temporal stability
 example_MVA_ts <- monthly_response(response = data_MVA,

@@ -151,9 +151,9 @@
 #'    previous_year = TRUE)
 #'
 #' summary(example_basic)
-#' example_basic$plot_extreme
-#' example_basic$plot_heatmap
-#' example_basic$plot_specific
+#' plot(example_basic, type = 1)
+#' plot(example_basic, type = 2)
+#' plot(example_basic, type = 3)
 #' example_basic$optimized_return
 #' example_basic$optimized_return_all
 #'
@@ -170,10 +170,11 @@
 #'    tidy_env_data_primary = FALSE,
 #'    tidy_env_data_control = TRUE)
 #'
-#' example_extended$plot_extreme
-#' example_extended$plot_heatmap
-#' example_extended$optimized_return
-#' example_extended$optimized_return_all
+#' summary(example_fixed_width)
+#' plot(example_fixed_width, type = 1)
+#' plot(example_fixed_width, type = 2)
+#' example_fixed_width$optimized_return
+#' example_fixed_width$optimized_return_all
 #'
 #' }
 

@@ -430,7 +430,7 @@ plot_extreme <- function(result_daily_response, title = TRUE, ylimits = NULL, re
         scale_y_continuous(limits = ylimits) +
         annotate("label", label = as.character(calculated_metric),
                  y = calculated_metric, x = plot_column) +
-        xlab(paste0("Starting Month of Calculation and ",as.character(as.numeric(row_index)) ," Conecutive", month_string)) +
+        xlab(paste0("Starting Month of Calculation and ",as.character(as.numeric(row_index)) ," Consecutive", month_string)) +
         ylab(y_lab) +
         ggtitle(paste0(period_string, method_string, optimal_calculation,
                        optimal_window_string, reference_string, Optimal_string)) +
@@ -462,7 +462,7 @@ plot_extreme <- function(result_daily_response, title = TRUE, ylimits = NULL, re
                            labels = months) +
                   annotate("label", label = as.character(calculated_metric), y = calculated_metric, x = plot_column) +
                     xlab(paste0("Starting Month of Calculation (Including Previous Year) and ",as.character(as.numeric(row_index)) ,
-                         " Conecutive", month_string)) +
+                         " Consecutive", month_string)) +
                     ylab(y_lab) +
           scale_fill_discrete(guide=FALSE) +
                     geom_hline(yintercept = 0) +

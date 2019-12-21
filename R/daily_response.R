@@ -159,10 +159,9 @@
 #'
 #' class(example_daily_response)
 #' summary(example_daily_response)
-#' example_daily_response$plot_extreme
-#' example_daily_response$transfer_function
-#' example_daily_response$plot_heatmap
-#'
+#' plot(example_daily_response, type = 1)
+#' plot(example_daily_response, type = 2)
+#' plot(example_daily_response, type = 3)
 #'
 #' # 2 Example for past and present. Use subset_years argument.
 #' example_MVA_past <- daily_response(response = data_MVA,
@@ -181,10 +180,10 @@
 #'     plot_specific_window = 60, subset_years = c(1981, 2010),
 #'     aggregate_function = 'sum')
 #'
-#' example_MVA_past$plot_heatmap
-#' example_MVA_present$plot_heatmap
-#' example_MVA_past$plot_specific
-#' example_MVA_present$plot_specific
+#' plot(example_MVA_past, type = 1)
+#' plot(example_MVA_present, type = 1)
+#' plot(example_MVA_past, type = 2)
+#' plot(example_MVA_present, type = 2)
 #'
 #' # 3 Example PCA
 #' example_PCA <- daily_response(response = example_proxies_individual,
@@ -196,7 +195,7 @@
 #'
 #' summary(example_PCA$PCA_output)
 #' summary(example_PCA)
-#' example_PCA$plot_heatmap
+#' plot(example_PCA, type = 2)
 #'
 #' # 4 Example negative correlations
 #' example_neg_cor <- daily_response(response = data_TRW_1,
@@ -206,8 +205,8 @@
 #'     alpha = 0.05)
 #'
 #' summary(example_neg_cor)
-#' example_neg_cor$plot_heatmap
-#' example_neg_cor$plot_extreme
+#' plot(example_neg_cor, type = 1)
+#' plot(example_neg_cor, type = 2)
 #' example_neg_cor$temporal_stability
 #'
 #' # 5 Example of multiproxy analysis
@@ -221,7 +220,7 @@
 #'    row_names_subset = TRUE, previous_year = FALSE,
 #'    remove_insignificant = TRUE, alpha = 0.05)
 #'
-#' example_multiproxy$plot_heatmap
+#' plot(example_multiproxy, type = 1)
 #'
 #' # 6 Example to test the temporal stability
 #' example_MVA_ts <- daily_response(response = data_MVA,
@@ -236,9 +235,9 @@
 #' example_brnn <- daily_response(response = data_MVA,
 #'    env_data = LJ_daily_temperatures, method = "brnn", boot = TRUE,
 #'    lower_limit = 100, metric = "adj.r.squared", upper_limit = 101,
-#'    row_names_subset = TRUE, remove_insignificant = TRUE)
+#'    row_names_subset = TRUE, remove_insignificant = TRUE, boot_n = 10)
 #'
-#'    summary(example_brnn)
+#' summary(example_brnn)
 #' }
 
 daily_response <- function(response, env_data, method = "lm",

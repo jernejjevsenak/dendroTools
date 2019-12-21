@@ -219,9 +219,9 @@ example_basic <- daily_response_seascorr(response = data_MVA,
                           tidy_env_data_control = TRUE, boot_n = 10,
                           reference_window = "end")
 summary(example_basic)
-example_basic$plot_extreme
-example_basic$plot_heatmap
-example_basic$plot_specific
+plot(example_basic, type = 1)
+plot(example_basic, type = 2)
+plot(example_basic, type = 3)
 example_basic$optimized_return
 example_basic$optimized_return_all
 
@@ -240,8 +240,8 @@ example_fixed_width <- daily_response_seascorr(response = data_MVA,
                           tidy_env_data_control = TRUE,
                           reference_window = "end")
 summary(example_fixed_width)
-example_fixed_width$plot_extreme
-example_fixed_width$plot_heatmap
+plot(example_fixed_width, type = 1)
+plot(example_fixed_width, type = 2)
 example_fixed_width$optimized_return
 example_fixed_width$optimized_return_all
 
