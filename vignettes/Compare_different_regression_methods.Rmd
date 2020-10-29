@@ -1,10 +1,10 @@
 ---
-title: "compare_methods Vignette"
+title: "Compare different regression methods"
 author: "Jernej Jevsenak"
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{compare_methods vignette}
+  %\VignetteIndexEntry{Compare_different_regression_methods}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---

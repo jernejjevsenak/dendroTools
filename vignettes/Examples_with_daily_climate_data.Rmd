@@ -1,12 +1,12 @@
 ---
-title: "Examples of the daily_response()"
+title: "Examples with daily climate data"
 author: "Jernej Jevšenak"
 date: "`r Sys.Date()`"
 output: rmarkdown::html_document
 fig_caption: yes
         
 vignette: >
-  %\VignetteIndexEntry{Examples of the daily_response}
+  %\VignetteIndexEntry{Examples_with_daily_climate_data}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---

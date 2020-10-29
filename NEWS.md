@@ -1,3 +1,8 @@
+#dendroTools 1.0.8
+* Minor corrections after new publication
+* Sys.setlocale("LC_TIME", "C") is now added, so optimal dates will always show in English language
+* The vignette titles are changed
+
 # dendroTools 1.0.7.
 * Bootstrapping is now available for all metrics, monthly and daily functions
 * Seacorr is now available also for monthly data, including bootstrapping
