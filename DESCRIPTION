@@ -13,8 +13,8 @@ Description: Provides novel dendroclimatological methods, primarily used by the
     The last core function is compare_methods(), which effectively compares several 
     linear and nonlinear regression algorithms on the task of climate reconstruction.   
 License: GPL-3
-URL: http://github.com/jernejjevsenak/dendroTools
-BugReports: http://github.com/jernejjevsenak/dendroTools/issues
+URL: https://github.com/jernejjevsenak/dendroTools
+BugReports: https://github.com/jernejjevsenak/dendroTools/issues
 Encoding: UTF-8
 LazyData: true
 Suggests: testthat, dplR, rmarkdown

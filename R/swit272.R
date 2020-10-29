@@ -14,6 +14,6 @@
 #' \describe{
 #'   \item{TRWi}{Standardised TRW index}
 #' }
-#' @source \url{https://www.ncdc.noaa.gov/paleo/study/14108}
+#' @source \url{https://www.ncdc.noaa.gov/paleo-search/study/14108}
 #' @export
 "swit272"

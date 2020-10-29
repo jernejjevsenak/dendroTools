@@ -10,8 +10,9 @@ Jernej
 * This is a resubmission of the package dendroTools.
 
 ## Test environments
-* local OS X install, R 3.5.0
+* local OS X install, R 3.6.2
 * TRAVIS: R version 3.6.1 (2017-01-27), Platform: x86_64-pc-linux-gnu (64-bit), Running under: Ubuntu 14.04.6 LTS
+* rhub
 * win-check oldrelease
 * win-check release
 * win-check devel
