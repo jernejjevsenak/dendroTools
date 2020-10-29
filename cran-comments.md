@@ -12,7 +12,7 @@ Jernej
 ## Test environments
 * local OS X install, R 3.6.2
 * TRAVIS
-* rhub
+* rhub (I get NOTE related to DOI of my publication, but I have triple checked it and everything is correct)
 * win-check oldrelease
 * win-check release
 * win-check devel
