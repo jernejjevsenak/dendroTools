@@ -4,13 +4,15 @@
 \name{example_dataset_1}
 \alias{example_dataset_1}
 \title{Example of dataset as required for compare_methods()}
-\format{A data frame with 58 rows and 3 columns :
+\format{
+A data frame with 58 rows and 3 columns :
 \describe{
   \item{MVA}{Mean Vessel Area measurements from 2012 - 1955}
   \item{T_APR}{Mean April temperatures from 2012 - 1955}
   \item{T_aug_sep}{Mean August-September temperatures from preceding
   growing season from 2012 - 1955}
-}}
+}
+}
 \source{
 Jernej Jevšenak, Slovenian Forestry Institute, Večna pot 2,
 Ljubljana, Slovenia

@@ -4,8 +4,13 @@
 \alias{glimpse_daily_data}
 \title{glimpse_daily_data}
 \usage{
-glimpse_daily_data(env_data, na.color = "red", low_color = "blue",
-  high_color = "green", tidy_env_data = FALSE)
+glimpse_daily_data(
+  env_data,
+  na.color = "red",
+  low_color = "blue",
+  high_color = "green",
+  tidy_env_data = FALSE
+)
 }
 \arguments{
 \item{env_data}{a data frame of daily sequences of environmental data as

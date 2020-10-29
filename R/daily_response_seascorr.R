@@ -1246,7 +1246,7 @@ analysed_period
 
       if (method == "cor"){
         calculation <- cor(dataset_temp[,1], dataset_temp[,2])
-        sig <- cor.test(dataset_temp[,1], dataset_temp[,2])$p.value
+        sig <- cor.test(dataset_temp[,1], dataset_temp[,2], method = pcor_method, exact = FALSE)$p.value
         empty_list_significance[[m]] <- sig
         empty_list[[m]] <- calculation
         colname = "correlation"
@@ -1278,7 +1278,7 @@ analysed_period
 
         if (method == "cor"){
           calculation <- cor(dataset_temp[,1], dataset_temp[,2])
-          sig <- cor.test(dataset_temp[,1], dataset_temp[,2])$p.value
+          sig <- cor.test(dataset_temp[,1], dataset_temp[,2], method = pcor_method, exact = FALSE)$p.value
           empty_list[[m]] <- calculation
           empty_list_significance[[m]] <- sig
           colname = "correlation"
@@ -1329,7 +1329,7 @@ for (m in 1:length(empty_list_datasets)){
 
   if (method == "cor"){
     calculation <- cor(dataset_temp[,1], dataset_temp[,2])
-    sig <- cor.test(dataset_temp[,1], dataset_temp[,2])$p.value
+    sig <- cor.test(dataset_temp[,1], dataset_temp[,2], method = pcor_method, exact = FALSE)$p.value
     empty_list[[m]] <- calculation
     empty_list_significance[[m]] <- sig
     colname = "correlation"

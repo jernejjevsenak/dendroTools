@@ -4,19 +4,42 @@
 \alias{daily_response}
 \title{daily_response}
 \usage{
-daily_response(response, env_data, method = "lm", metric = "r.squared",
-  cor_method = "pearson", lower_limit = 30, upper_limit = 90,
-  fixed_width = 0, previous_year = FALSE, neurons = 1,
-  brnn_smooth = TRUE, remove_insignificant = TRUE, alpha = 0.05,
-  row_names_subset = FALSE, PCA_transformation = FALSE,
-  log_preprocess = TRUE, components_selection = "automatic",
-  eigenvalues_threshold = 1, N_components = 2,
-  aggregate_function = "mean", temporal_stability_check = "sequential",
-  k = 2, k_running_window = 30, cross_validation_type = "blocked",
-  subset_years = NULL, plot_specific_window = NULL, ylimits = NULL,
-  seed = NULL, tidy_env_data = FALSE, reference_window = "start",
-  boot = FALSE, boot_n = 1000, boot_ci_type = "norm",
-  boot_conf_int = 0.95)
+daily_response(
+  response,
+  env_data,
+  method = "lm",
+  metric = "r.squared",
+  cor_method = "pearson",
+  lower_limit = 30,
+  upper_limit = 90,
+  fixed_width = 0,
+  previous_year = FALSE,
+  neurons = 1,
+  brnn_smooth = TRUE,
+  remove_insignificant = TRUE,
+  alpha = 0.05,
+  row_names_subset = FALSE,
+  PCA_transformation = FALSE,
+  log_preprocess = TRUE,
+  components_selection = "automatic",
+  eigenvalues_threshold = 1,
+  N_components = 2,
+  aggregate_function = "mean",
+  temporal_stability_check = "sequential",
+  k = 2,
+  k_running_window = 30,
+  cross_validation_type = "blocked",
+  subset_years = NULL,
+  plot_specific_window = NULL,
+  ylimits = NULL,
+  seed = NULL,
+  tidy_env_data = FALSE,
+  reference_window = "start",
+  boot = FALSE,
+  boot_n = 1000,
+  boot_ci_type = "norm",
+  boot_conf_int = 0.95
+)
 }
 \arguments{
 \item{response}{a data frame with tree-ring proxy variables as columns and
@@ -204,7 +227,7 @@ data(LJ_daily_temperatures)
 # 1 Example with fixed width. Lower and upper limits are ignored.
 example_daily_response <- daily_response(response = data_MVA,
     env_data = LJ_daily_temperatures,
-    method = "cor", fixed_width = 30,
+    method = "cor", fixed_width = 30, cor_method = "spearman",
     row_names_subset = TRUE, previous_year = TRUE,
     remove_insignificant = TRUE,
     alpha = 0.05, aggregate_function = 'mean',
@@ -218,8 +241,8 @@ plot(example_daily_response, type = 3)
 
 # 2 Example for past and present. Use subset_years argument.
 example_MVA_past <- daily_response(response = data_MVA,
-    env_data = LJ_daily_temperatures,
-    method = "cor", lower_limit = 21, upper_limit = 180,
+    env_data = LJ_daily_temperatures, cor_method = "kendall",
+    method = "cor", lower_limit = 21, upper_limit = 90,
     row_names_subset = TRUE, previous_year = TRUE,
     remove_insignificant = TRUE, alpha = 0.05,
     plot_specific_window = 60, subset_years = c(1940, 1980),

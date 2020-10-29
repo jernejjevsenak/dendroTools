@@ -4,12 +4,14 @@
 \name{LJ_monthly_precipitation}
 \alias{LJ_monthly_precipitation}
 \title{Monthly sums of precipitation for Ljubljana from 2018 - 1900. Tidy format.}
-\format{A data frame with 1417 rows and 3 variables:
+\format{
+A data frame with 1417 rows and 3 variables:
 \describe{
   \item{Year}{year}
   \item{Month}{Month}
   \item{Precipitation}{Sum of precipitation}
-}}
+}
+}
 \source{
 \url{http://climexp.knmi.nl/start.cgi}
 }

@@ -4,11 +4,13 @@
 \name{swit272_daily_temperatures}
 \alias{swit272_daily_temperatures}
 \title{Daily temperatures for swit272 chronology}
-\format{A data frame with 25414 rows and 2 variables:
+\format{
+A data frame with 25414 rows and 2 variables:
 \describe{
   \item{date}{character string describing date}
   \item{t_avg}{mean temperature}
-}}
+}
+}
 \source{
 \url{https://www.ecad.eu/download/ensembles/download.php}
 }

@@ -4,10 +4,12 @@
 \name{swit272}
 \alias{swit272}
 \title{Standardised tree-ring width chronology swit272, Larix decidua Mill.}
-\format{A data frame with 273 rows and 1 variable:
+\format{
+A data frame with 273 rows and 1 variable:
 \describe{
   \item{TRWi}{Standardised TRW index}
-}}
+}
+}
 \source{
 \url{https://www.ncdc.noaa.gov/paleo/study/14108}
 }

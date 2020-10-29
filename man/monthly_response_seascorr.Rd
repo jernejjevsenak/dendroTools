@@ -4,20 +4,40 @@
 \alias{monthly_response_seascorr}
 \title{monthly_response_seascorr}
 \usage{
-monthly_response_seascorr(response, env_data_primary, env_data_control,
-  previous_year = FALSE, pcor_method = "pearson",
-  remove_insignificant = TRUE, lower_limit = 1, upper_limit = 12,
-  fixed_width = 0, alpha = 0.05, row_names_subset = FALSE,
-  PCA_transformation = FALSE, log_preprocess = TRUE,
-  components_selection = "automatic", eigenvalues_threshold = 1,
-  N_components = 2, aggregate_function_env_data_primary = "mean",
+monthly_response_seascorr(
+  response,
+  env_data_primary,
+  env_data_control,
+  previous_year = FALSE,
+  pcor_method = "pearson",
+  remove_insignificant = TRUE,
+  lower_limit = 1,
+  upper_limit = 12,
+  fixed_width = 0,
+  alpha = 0.05,
+  row_names_subset = FALSE,
+  PCA_transformation = FALSE,
+  log_preprocess = TRUE,
+  components_selection = "automatic",
+  eigenvalues_threshold = 1,
+  N_components = 2,
+  aggregate_function_env_data_primary = "mean",
   aggregate_function_env_data_control = "mean",
-  temporal_stability_check = "sequential", k = 2,
-  k_running_window = 30, cross_validation_type = "blocked",
-  subset_years = NULL, plot_specific_window = NULL, ylimits = NULL,
-  seed = NULL, tidy_env_data_primary = FALSE,
-  tidy_env_data_control = FALSE, boot = FALSE, boot_n = 1000,
-  boot_ci_type = "norm", boot_conf_int = 0.95)
+  temporal_stability_check = "sequential",
+  k = 2,
+  k_running_window = 30,
+  cross_validation_type = "blocked",
+  subset_years = NULL,
+  plot_specific_window = NULL,
+  ylimits = NULL,
+  seed = NULL,
+  tidy_env_data_primary = FALSE,
+  tidy_env_data_control = FALSE,
+  boot = FALSE,
+  boot_n = 1000,
+  boot_ci_type = "norm",
+  boot_conf_int = 0.95
+)
 }
 \arguments{
 \item{response}{a data frame with tree-ring proxy variable and (optional)

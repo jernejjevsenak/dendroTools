@@ -4,10 +4,12 @@
 \name{data_MVA}
 \alias{data_MVA}
 \title{Mean vessel area example proxy from 2012 - 1940}
-\format{A data frame with 73 rows and 1 variable:
+\format{
+A data frame with 73 rows and 1 variable:
 \describe{
   \item{MVA}{Mean vessel area [mm^2] indices from 2012 - 1940}
-}}
+}
+}
 \source{
 Jernej Jevšenak, Slovenian Forestry Institute, Večna pot 2,
 Ljubljana, Slovenia

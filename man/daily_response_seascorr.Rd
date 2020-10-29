@@ -4,22 +4,41 @@
 \alias{daily_response_seascorr}
 \title{daily_response_seascorr}
 \usage{
-daily_response_seascorr(response, env_data_primary, env_data_control,
-  lower_limit = 30, upper_limit = 90, fixed_width = 0,
-  previous_year = FALSE, pcor_method = "pearson",
-  remove_insignificant = TRUE, alpha = 0.05,
-  row_names_subset = FALSE, PCA_transformation = FALSE,
-  log_preprocess = TRUE, components_selection = "automatic",
-  eigenvalues_threshold = 1, N_components = 2,
+daily_response_seascorr(
+  response,
+  env_data_primary,
+  env_data_control,
+  lower_limit = 30,
+  upper_limit = 90,
+  fixed_width = 0,
+  previous_year = FALSE,
+  pcor_method = "pearson",
+  remove_insignificant = TRUE,
+  alpha = 0.05,
+  row_names_subset = FALSE,
+  PCA_transformation = FALSE,
+  log_preprocess = TRUE,
+  components_selection = "automatic",
+  eigenvalues_threshold = 1,
+  N_components = 2,
   aggregate_function_env_data_primary = "mean",
   aggregate_function_env_data_control = "mean",
-  temporal_stability_check = "sequential", k = 2,
-  k_running_window = 30, cross_validation_type = "blocked",
-  subset_years = NULL, plot_specific_window = NULL, ylimits = NULL,
-  seed = NULL, tidy_env_data_primary = FALSE,
-  tidy_env_data_control = FALSE, reference_window = "start",
-  boot = FALSE, boot_n = 1000, boot_ci_type = "norm",
-  boot_conf_int = 0.95)
+  temporal_stability_check = "sequential",
+  k = 2,
+  k_running_window = 30,
+  cross_validation_type = "blocked",
+  subset_years = NULL,
+  plot_specific_window = NULL,
+  ylimits = NULL,
+  seed = NULL,
+  tidy_env_data_primary = FALSE,
+  tidy_env_data_control = FALSE,
+  reference_window = "start",
+  boot = FALSE,
+  boot_n = 1000,
+  boot_ci_type = "norm",
+  boot_conf_int = 0.95
+)
 }
 \arguments{
 \item{response}{a data frame with tree-ring proxy variable and (optional)

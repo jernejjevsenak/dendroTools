@@ -4,7 +4,8 @@
 \name{example_proxies_individual}
 \alias{example_proxies_individual}
 \title{Example of dataset with individual chronologies of MVA.}
-\format{A data frame with 56 rows and 54 columns :
+\format{
+A data frame with 56 rows and 54 columns :
 \describe{
   \item{MVA_1}{Mean vessel area chronology for tree 1}
   \item{MVA_2}{Mean vessel area chronology for tree 2}
@@ -16,7 +17,8 @@
   \item{MVA_8}{Mean vessel area chronology for tree 8}
   \item{MVA_9}{Mean vessel area chronology for tree 9}
   \item{MVA_10}{Mean vessel area chronology for tree 10}
-}}
+}
+}
 \source{
 Jernej Jevšenak, Slovenian Forestry Institute, Večna pot 2,
 Ljubljana, Slovenia

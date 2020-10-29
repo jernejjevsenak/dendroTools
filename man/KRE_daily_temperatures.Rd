@@ -4,7 +4,8 @@
 \name{KRE_daily_temperatures}
 \alias{KRE_daily_temperatures}
 \title{Daily mean temperatures for Kredarica (Alps in Slovenia) from 2017 - 1955}
-\format{A data frame with 63 rows and 366 variables:
+\format{
+A data frame with 63 rows and 366 variables:
 \describe{
   \item{X1}{Temperatures on the day 1 of a year}
   \item{X2}{Temperatures on the day 2 of a year}
@@ -372,7 +373,8 @@
   \item{X364}{Temperatures on the day 364 of a year}
   \item{X365}{Temperatures on the day 365 of a year}
   \item{X366}{Temperatures on the day 366 of a year}
-}}
+}
+}
 \source{
 \url{http://meteo.arso.gov.si/met/sl/archive/}
 }

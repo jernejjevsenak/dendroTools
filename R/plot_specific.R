@@ -63,6 +63,9 @@ plot_specific <- function(result_daily_response, window_width, title = TRUE,
   # In case of there are more than 366 columns (days), xlabs are properly
   # labeled
 
+  # This needs to be set to provide results in English language
+  Sys.setlocale("LC_TIME", "C")
+
   # A) Extracting a matrix from a list and converting it into a data frame
   result_daily_element1 <- data.frame(result_daily_response[[1]])
 

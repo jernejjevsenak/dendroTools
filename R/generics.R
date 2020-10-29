@@ -3,7 +3,8 @@
 
 summary.dmrs <- function(object, ...){
 
-
+  # This needs to be set to provide results in English language
+  Sys.setlocale("LC_TIME", "C")
 
   # A) Extracting a matrix from a list and converting it into a data frame
   result_daily_response <- object

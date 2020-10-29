@@ -4,8 +4,15 @@
 \alias{calculate_metrics}
 \title{calculate_metrics}
 \usage{
-calculate_metrics(train_predicted, test_predicted, train_observed,
-  test_observed, digits = 4, formula, test)
+calculate_metrics(
+  train_predicted,
+  test_predicted,
+  train_observed,
+  test_observed,
+  digits = 4,
+  formula,
+  test
+)
 }
 \arguments{
 \item{train_predicted}{a vector indicating predicted data for training set}

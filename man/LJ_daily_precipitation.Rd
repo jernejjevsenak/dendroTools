@@ -4,12 +4,14 @@
 \name{LJ_daily_precipitation}
 \alias{LJ_daily_precipitation}
 \title{Daily precipitation for Ljubljana from 2017 - 1900}
-\format{A data frame with 43067 rows and 3 variables:
+\format{
+A data frame with 43067 rows and 3 variables:
 \describe{
   \item{Year}{year}
   \item{DOY}{day of year}
   \item{Precipitation}{Sum of precipitation in mm}
-}}
+}
+}
 \source{
 \url{http://climexp.knmi.nl/start.cgi}
 }

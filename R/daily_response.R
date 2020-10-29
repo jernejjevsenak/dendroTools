@@ -151,7 +151,7 @@
 #' # 1 Example with fixed width. Lower and upper limits are ignored.
 #' example_daily_response <- daily_response(response = data_MVA,
 #'     env_data = LJ_daily_temperatures,
-#'     method = "cor", fixed_width = 30,
+#'     method = "cor", fixed_width = 30, cor_method = "spearman",
 #'     row_names_subset = TRUE, previous_year = TRUE,
 #'     remove_insignificant = TRUE,
 #'     alpha = 0.05, aggregate_function = 'mean',
@@ -165,8 +165,8 @@
 #'
 #' # 2 Example for past and present. Use subset_years argument.
 #' example_MVA_past <- daily_response(response = data_MVA,
-#'     env_data = LJ_daily_temperatures,
-#'     method = "cor", lower_limit = 21, upper_limit = 180,
+#'     env_data = LJ_daily_temperatures, cor_method = "kendall",
+#'     method = "cor", lower_limit = 21, upper_limit = 90,
 #'     row_names_subset = TRUE, previous_year = TRUE,
 #'     remove_insignificant = TRUE, alpha = 0.05,
 #'     plot_specific_window = 60, subset_years = c(1940, 1980),
@@ -1947,7 +1947,7 @@ analysed_period
 
       if (method == "cor"){
         calculation <- cor(dataset_temp[,1], dataset_temp[,2], method = cor_method)
-        sig <- cor.test(dataset_temp[,1], dataset_temp[,2], method = cor_method)$p.value
+        sig <- cor.test(dataset_temp[,1], dataset_temp[,2], method = cor_method, exact=F)$p.value
         empty_list_significance[[m]] <- sig
         empty_list[[m]] <- calculation
         colname = "correlation"
@@ -2019,7 +2019,7 @@ analysed_period
 
         if (method == "cor"){
           calculation <- cor(dataset_temp[,1], dataset_temp[,2], method = cor_method)
-          sig <- cor.test(dataset_temp[,1], dataset_temp[,2], method = cor_method)$p.value
+          sig <- cor.test(dataset_temp[,1], dataset_temp[,2], method = cor_method, exact=F)$p.value
           empty_list[[m]] <- calculation
           empty_list_significance[[m]] <- sig
           colname = "correlation"
@@ -2111,7 +2111,7 @@ for (m in 1:length(empty_list_datasets)){
 
   if (method == "cor"){
     calculation <- cor(dataset_temp[,1], dataset_temp[,2], method = cor_method)
-    sig <- cor.test(dataset_temp[,1], dataset_temp[,2], method = cor_method)$p.value
+    sig <- cor.test(dataset_temp[,1], dataset_temp[,2], method = cor_method, exact=F)$p.value
     empty_list[[m]] <- calculation
     empty_list_significance[[m]] <- sig
     colname = "correlation"

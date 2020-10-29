@@ -4,8 +4,13 @@
 \alias{plot_extreme}
 \title{plot_extreme}
 \usage{
-plot_extreme(result_daily_response, title = TRUE, ylimits = NULL,
-  reference_window = "start", type = "daily")
+plot_extreme(
+  result_daily_response,
+  title = TRUE,
+  ylimits = NULL,
+  reference_window = "start",
+  type = "daily"
+)
 }
 \arguments{
 \item{result_daily_response}{a list with three objects as produced by

@@ -4,11 +4,13 @@
 \name{dataset_TRW}
 \alias{dataset_TRW}
 \title{TRW and mean June -  July temperature from Albania}
-\format{A data frame with 59 rows and 2 variables:
+\format{
+A data frame with 59 rows and 2 variables:
 \describe{
   \item{TRW}{Standardised tree-ring width chronology of Pinus nigra from Albania}
   \item{T_Jun_Jul}{Mean June - July temperature for Albania downloaded from KNMI Climate Explorer}
-}}
+}
+}
 \source{
 Levanič, T., Poljanšek, S., Toromani, E., 2015. Early summer temperatures reconstructed from
 black pine (Pinus nigra Arnold) tree-ring widths from Albania. The Holocene 25, 469-481.

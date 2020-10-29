@@ -4,10 +4,12 @@
 \name{dataset_TRW_complete}
 \alias{dataset_TRW_complete}
 \title{The complete dataset of standardized tree-ring chronology from Albania}
-\format{A data frame with 551 rows and 1 variable:
+\format{
+A data frame with 551 rows and 1 variable:
 \describe{
   \item{TRW}{Standardised tree-ring width chronology of Pinus nigra from Albania}
-}}
+}
+}
 \source{
 Levanič, T., Poljanšek, S., Toromani, E., 2015. Early summer temperatures reconstructed from
 black pine (Pinus nigra Arnold) tree-ring widths from Albania. The Holocene 25, 469-481.

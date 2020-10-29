@@ -1,4 +1,21 @@
-citHeader("To cite dendroTools in publications use:")
+citHeader("To cite dendroTools in publications, please use:")
+
+citEntry(entry = "Article",
+title        = "New features in the {dendroTools} R package: Bootstrapped and partial correlation coefficients for monthly and daily climate data",
+author       = personList(as.person("Jevšenak J.")),
+journal      = "Dendrochronologia",
+volume       = "63",
+pages        = "125753",
+year         = "2020",
+doi          = "doi.org/10.1016/j.dendro.2020.125753",
+
+textVersion  =
+paste("Jevšenak J., 2020.",
+    "New features in the dendroTools R package: Bootstrapped and partial correlation coefficients for monthly and daily climate data.",
+    "Dendrochronologia, 63, 125753.",
+    "doi.org/10.1016/j.dendro.2020.125753")
+)
+
 
 citEntry(entry = "Article",
 title        = "{dendroTools}: R package for studying linear and nonlinear responses between tree-rings and daily environmental data",

@@ -4,11 +4,13 @@
 \name{swit272_daily_precipitation}
 \alias{swit272_daily_precipitation}
 \title{Daily precipitation for swit272 chronology}
-\format{A data frame with 25414 rows and 2 variables:
+\format{
+A data frame with 25414 rows and 2 variables:
 \describe{
   \item{date}{character string describing date}
   \item{p_sum}{mean temperature}
-}}
+}
+}
 \source{
 \url{https://www.ecad.eu/download/ensembles/download.php}
 }

@@ -67,6 +67,9 @@ plot_extreme <- function(result_daily_response, title = TRUE, ylimits = NULL, re
   # starting day of the highest (absolute) metric (column names of the matrix).
   # - draws a ggplot line plot.
 
+  # This needs to be set to provide results in English language
+  Sys.setlocale("LC_TIME", "C")
+
   # A) Extracting a matrix from a list and converting it into a data frame
   result_daily_element1 <- data.frame(result_daily_response[[1]])
 

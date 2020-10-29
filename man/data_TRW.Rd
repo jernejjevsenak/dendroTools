@@ -4,10 +4,12 @@
 \name{data_TRW}
 \alias{data_TRW}
 \title{Tree-ring width (TRW) example proxy from 1981 - 1757}
-\format{A data frame with 225 rows and 1 variable:
+\format{
+A data frame with 225 rows and 1 variable:
 \describe{
   \item{TRW}{residual TRW indices from 1981 - 1757}
-}}
+}
+}
 \source{
 \itemize{
    \item Schweingruber, F.H., 1981. Vrsic Krajnska Gora - PCAB - ITRDB YUGO001.

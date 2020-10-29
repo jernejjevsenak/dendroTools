@@ -4,12 +4,14 @@
 \name{example_proxies_1}
 \alias{example_proxies_1}
 \title{Tree-ring example proxies 1 from 2015 - 1961}
-\format{A data frame with 55 rows and 3 variables:
+\format{
+A data frame with 55 rows and 3 variables:
 \describe{
   \item{MVA}{Mean vessel area [mm^2] indices from 2015 - 1961}
   \item{O18}{Scaled Stable oxygen isotope ratios from 2015 - 1961}
   \item{TRW}{Tree-ring widths from 2015 - 1961}
-}}
+}
+}
 \source{
 Jernej Jevšenak, Slovenian Forestry Institute, Večna pot 2,
 Ljubljana, Slovenia

@@ -4,11 +4,13 @@
 \name{dataset_MVA}
 \alias{dataset_MVA}
 \title{MVA and mean April temperature}
-\format{A data frame with 79 rows and 2 variables:
+\format{
+A data frame with 79 rows and 2 variables:
 \describe{
   \item{MVA}{Mean vessel area measurements from 2012 - 1934}
   \item{T_Apr}{Mean April temperature for the meteorological station Maribor from 2012 - 1934}
-}}
+}
+}
 \source{
 Jevšenak J., Levanič T. 2015. Dendrochronological and wood-anatomical features of
 differently vital pedunculate oak (Quercus robur L.) stands and their response to climate.

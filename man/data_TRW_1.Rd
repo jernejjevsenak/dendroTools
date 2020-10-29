@@ -4,10 +4,12 @@
 \name{data_TRW_1}
 \alias{data_TRW_1}
 \title{Tree-ring width (TRW) data from 2012 - 1961}
-\format{A data frame with 52 rows and 1 variable:
+\format{
+A data frame with 52 rows and 1 variable:
 \describe{
   \item{TRW}{Standardized tree-ring width indices from 2012 - 1961}
-}}
+}
+}
 \source{
 Tom Levanič, Slovenian Forestry Institute, Večna pot 2,
 Ljubljana, Slovenia

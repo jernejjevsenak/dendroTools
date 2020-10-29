@@ -4,8 +4,7 @@
 \alias{plot_heatmap}
 \title{plot_heatmap}
 \usage{
-plot_heatmap(result_daily_response, reference_window = "start",
-  type = "daily")
+plot_heatmap(result_daily_response, reference_window = "start", type = "daily")
 }
 \arguments{
 \item{result_daily_response}{a list with three objects as produced by

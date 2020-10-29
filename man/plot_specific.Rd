@@ -4,8 +4,14 @@
 \alias{plot_specific}
 \title{plot_specific}
 \usage{
-plot_specific(result_daily_response, window_width, title = TRUE,
-  ylimits = NULL, reference_window = "start", type = "daily")
+plot_specific(
+  result_daily_response,
+  window_width,
+  title = TRUE,
+  ylimits = NULL,
+  reference_window = "start",
+  type = "daily"
+)
 }
 \arguments{
 \item{result_daily_response}{a list with three objects as produced by

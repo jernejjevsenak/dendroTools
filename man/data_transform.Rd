@@ -4,8 +4,12 @@
 \alias{data_transform}
 \title{data_transform}
 \usage{
-data_transform(input, format = "daily",
-  monthly_aggregate_function = "auto", date_format = "ymd")
+data_transform(
+  input,
+  format = "daily",
+  monthly_aggregate_function = "auto",
+  date_format = "ymd"
+)
 }
 \arguments{
 \item{input}{typical daily data format: Data frame with two columns, first column represents date,
