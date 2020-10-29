@@ -11,7 +11,7 @@ A data frame with 273 rows and 1 variable:
 }
 }
 \source{
-\url{https://www.ncdc.noaa.gov/paleo/study/14108}
+\url{https://www.ncdc.noaa.gov/paleo-search/study/14108}
 }
 \usage{
 swit272

@@ -13,7 +13,7 @@ A data frame with 225 rows and 1 variable:
 \source{
 \itemize{
    \item Schweingruber, F.H., 1981. Vrsic Krajnska Gora - PCAB - ITRDB YUGO001.
-   \item https://www.ncdc.noaa.gov/paleo/study/4728.}
+   \item https://www.ncdc.noaa.gov/paleo-search/study/14108.}
 }
 \usage{
 data_TRW
