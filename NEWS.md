@@ -1,6 +1,7 @@
-# dendroTools 1.1.0
-* dendroTools version is changed to 1.1.0
-* Correctcions realted to testhat changes. 
+# dendroTools 1.1.1
+* dendroTools version is changed to 1.1.1
+* Correctcions realted to testhat changes.
+* imports is updated: oce(>= 1.2-0)
 
 # dendroTools 1.0.8
 * Minor corrections after new publication
