@@ -1,4 +1,8 @@
-#dendroTools 1.0.8
+# dendroTools 1.1.0
+* dendroTools version is changed to 1.1.0
+* Correctcions realted to testhat changes. 
+
+# dendroTools 1.0.8
 * Minor corrections after new publication
 * Sys.setlocale("LC_TIME", "C") is now added, so optimal dates will always show in English language
 * The vignette titles are changed

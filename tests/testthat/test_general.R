@@ -16,7 +16,7 @@ test2 <- daily_response(response = MVA_parameter,
                         env_data = LJ_daily_temperatures, method = "lm",
                         lower = 270, upper = 272, row_names_subset = TRUE, seed = 1234)
 
-expect_equal(test1, test2)
+expect_equal(test1, test2, check.environment=FALSE)
 
 
 # daily_response function should return a list with matrix and two characters
@@ -54,7 +54,7 @@ test5 <- daily_response(response = MVA_parameter,
                         env_data = LJ_daily_temperatures, method = "lm",
                         lower = 150, upper = 152, previous_year = FALSE,
                         row_names_subset = TRUE)
-expect_equal(max(test4[[1]], na.rm = TRUE) ^ 2, max(test5[[1]], na.rm = TRUE))
+expect_equal(max(test4[[1]], na.rm = TRUE) ^ 2, max(test5[[1]], na.rm = TRUE), check.environment=FALSE)
 
 
 # A test for critical R
@@ -62,13 +62,13 @@ expect_equal(max(test4[[1]], na.rm = TRUE) ^ 2, max(test5[[1]], na.rm = TRUE))
 # threshold for statistical significance
 t1 <- critical_r(100, alpha = 0.05)
 t2 <- critical_r(100, alpha = 0.01)
-expect_equal(t2 > t1, TRUE)
+expect_equal(t2 > t1, TRUE, check.environment=FALSE)
 
 # when the same alpha is used and number of observations is reduced, higher
 # threshold for statistical significance is expected
 t1 <- critical_r(100, alpha = 0.05)
 t2 <- critical_r(80, alpha = 0.05)
-expect_equal(t2 > t1, TRUE)
+expect_equal(t2 > t1, TRUE, check.environment=FALSE)
 
 # If row.names of env_data and response do not match, error should be given
 example_proxies_1_temporal <- example_proxies_1
@@ -99,8 +99,8 @@ test9 <- daily_response(response = MVA_parameter_ordered,
                            env_data = LJ_daily_temperatures, method = "lm",
                         metric = "r.squared", lower_limit = 78,
                         upper_limit = 80, row_names_subset = TRUE)
-expect_equal(test8[[1]], test9[[1]])
+expect_equal(test8[[1]], test9[[1]], check.environment=FALSE)
 
 
 # There should be 17 elements in a list returned by daily_response()
-expect_equal(length(test8), 17)
+expect_equal(length(test8), 17, check.environment=FALSE)
