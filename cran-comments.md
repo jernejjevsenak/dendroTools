@@ -16,12 +16,12 @@ Jernej
 ## Test environments
 * local OS X install, R 3.6.2
 * rhub platforms:  	
-  - Windows Server 2008 R2 SP1, R-devel, 32/64 bit (https://builder.r-hub.io/status/original/dendroTools_1.1.0.tar.gz-c3753a4ad64248e3a2f2f77f968e7104)
-  - Ubuntu Linux 16.04 LTS, R-release, GCC (https://builder.r-hub.io/status/original/dendroTools_1.1.0.tar.gz-e1e430758d1e4d1f8192e7baf02802e0)
-  - Fedora Linux, R-devel, clang, gfortran (https://builder.r-hub.io/status/original/dendroTools_1.1.0.tar.gz-b12498b92aed45838cb685270fdd5834)
-* win-check oldrelease (https://win-builder.r-project.org/78aJ4Sy402lW)
-* win-check release (https://win-builder.r-project.org/RQnYife9AjO0)
-* win-check devel (https://win-builder.r-project.org/Sv2zV7bQdY8I)
+  - Windows Server 2008 R2 SP1, R-devel, 32/64 bit (https://builder.r-hub.io/status/original/dendroTools_1.1.1.tar.gz-5876aaab93524986a528c2d245b938bd)
+  - Ubuntu Linux 16.04 LTS, R-release, GCC (https://builder.r-hub.io/status/original/dendroTools_1.1.1.tar.gz-e8ae635759454daa858dec5d07209fe7)
+  - Fedora Linux, R-devel, clang, gfortran (https://builder.r-hub.io/status/original/dendroTools_1.1.1.tar.gz-e5c50c64648241f5814a0a63e54697c5)
+* win-check oldrelease (https://win-builder.r-project.org/Fhz8ZbccmYwk/00check.log)
+* win-check release (https://win-builder.r-project.org/9mgN44lls6ZT/00check.log)
+* win-check devel (https://win-builder.r-project.org/o0I8S8PLF5eC/00check.log)
 
 ## R CMD check results
 There were no ERRORs, WARNINGs or NOTEs
