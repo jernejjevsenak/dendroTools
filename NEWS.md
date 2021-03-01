@@ -1,3 +1,7 @@
+# dendroTools 1.1.2
+* a bug corrected in the data_transform()
+* minor bug is removed which happened in a case of nonsignificant calculations or only one significant correlation
+
 # dendroTools 1.1.1
 * dendroTools version is changed to 1.1.1
 * Correctcions realted to testhat changes.

@@ -120,7 +120,7 @@ plot_specific <- function(result_daily_response, window_width, title = TRUE,
 
   # absolute vales of overall_maximum and overall_minimum are compared and
   # one of the following two if functions is used
-  if ((abs(overall_max) > abs(overall_min)) == TRUE) {
+  if ((abs(overall_max) >= abs(overall_min)) == TRUE) {
 
     # maximum value is calculated and index of column is stored as index
     # index represent the starting day (location) in the matrix, which gives

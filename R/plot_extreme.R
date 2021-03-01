@@ -91,7 +91,7 @@ plot_extreme <- function(result_daily_response, title = TRUE, ylimits = NULL, re
     # Based on the answer on the StackOverlow site:
     # https://stackoverflow.com/questions/24282550/no-non-missing-arguments-warning-when-using-min-or-max-in-reshape2
     # Those Warnings could be easily ignored
-  if ((abs(overall_max) > abs(overall_min)) == TRUE) {
+  if ((abs(overall_max) >= abs(overall_min)) == TRUE) {
 
     # maximum value is located. Row indeces are needed to query information
     # about the window width used to calculate the maximum. Column name is

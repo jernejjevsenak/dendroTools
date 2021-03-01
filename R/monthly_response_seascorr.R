@@ -842,18 +842,22 @@ monthly_response_seascorr <- function(response, env_data_primary, env_data_contr
     critical_threshold_cor <- critical_r(nrow(response), alpha = alpha)
     critical_threshold_cor2 <- critical_threshold_cor ^ 2
 
-    if(is.finite(mean(temporal_matrix, na.rm = TRUE)) == FALSE){
-      stop("All calculations are insignificant!")
-    }
-
   # 1 Method is correlation
    if (method == "cor") {
      temporal_matrix[abs(temporal_matrix) < abs(critical_threshold_cor)] <- NA
   # 2 lm and brnn method
       } else if (method == "lm" | method == "brnn") {
     temporal_matrix[abs(temporal_matrix) < abs(critical_threshold_cor2)] <- NA
-     }
+      }
+
+    if(is.finite(mean(temporal_matrix, na.rm = TRUE)) == FALSE){
+      stop("All calculations are insignificant! Please change the alpha argument.")
+    }
+
   }
+
+
+
 
   ########################################################################
   # PART 4: Final list is being created and returned as a function output#
@@ -879,7 +883,7 @@ monthly_response_seascorr <- function(response, env_data_primary, env_data_contr
   # There are unimportant warnings produced:
   # no non-missing arguments to max; returning -Inf
 
-  if ((abs(overall_max) > abs(overall_min)) == TRUE) {
+  if ((abs(overall_max) >= abs(overall_min)) == TRUE) {
 
     # maximum value is located. Row indeces are needed to query information
     # about the window width used to calculate the maximum. Column name is

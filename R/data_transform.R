@@ -57,7 +57,7 @@ data_transform <- function(input, format = "daily", monthly_aggregate_function =
     input$year <- year(input$date)
 
   if (monthly_aggregate_function == "auto"){
-    share_na <- sum(input$variable == 0)/length(input$variable)
+    share_na <- sum(input$variable == 0, na.rm = TRUE)/length(input$variable)
 
     if (share_na > 0.1){
 
@@ -73,7 +73,7 @@ data_transform <- function(input, format = "daily", monthly_aggregate_function =
 
     input$doy <- yday(input$date)
     input$date <- NULL
-    daily_matrix <- dcast(year ~ doy, data = input, value.var = "variable")
+    daily_matrix <- dcast(year ~ doy, data = input, value.var = "variable", fill = NA)
     row.names(daily_matrix) <- daily_matrix$year
     daily_matrix$year <- NULL
 
