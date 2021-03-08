@@ -16,8 +16,8 @@ Jernej
 ## Test environments
 * local OS X install, R 3.6.2
 * rhub platforms (https://builder.r-hub.io/status/original/dendroTools_1.1.2.tar.gz-dcb5bb950c1047448b1ebf8cb8d73723)
-* win-check oldrelease (https://win-builder.r-project.org/Fhz8ZbccmYwk/00check.log)
-* win-check release (https://win-builder.r-project.org/9mgN44lls6ZT/00check.log)
+* win-check oldrelease (https://win-builder.r-project.org/OI5FbJHWJYg8/00check.log)
+* win-check release (https://win-builder.r-project.org/08U1w71HpKmI/00check.log)
 * win-check devel (https://win-builder.r-project.org/o0I8S8PLF5eC/00check.log)
 
 ## R CMD check results
