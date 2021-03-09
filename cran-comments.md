@@ -1,8 +1,23 @@
-Dear CRAN, 
+Dear CRAN
+After updating my dendroTools R package yesterday, I have received an email from CRAN with the following content: 
 
-I am resubmitting dendroTools R package with some minor corrections related to a bug reported by users. There are no other changes.
+“Dear maintainer,
 
-I have tested new version on all platforms and all examples were finished successfully. 
+Please see the problems shown on
+<https://cran.r-project.org/web/checks/check_results_dendroTools.html>.
+
+Please correct before 2021-03-22 to safely retain your package on CRAN.
+
+It seems we need to remind you of the CRAN policy:
+
+'Packages which use Internet resources should fail gracefully with an informative message
+if the resource is not available or has changed (and not give a check warning nor error).'
+
+This needs correction whether or not the resource recovers.
+
+The CRAN Team”
+
+As I can see, similar problems usually occur when the examples/vignettes in the package are really based on external data. However, all my examples and vignettes only rely on data available within my package, so I'm not sure what caused the problem yesterday. However, I have removed the problematic example from my vignette, and I believe I have solved the problem. I have run all the examples and checked the necessary tests and received no ERROR, WARNING or NOTE.
 
 Please note extensive vignette examples. In previous versions we agreed to turn off vignette checks on some platforms. I believe it makes sense to keep it so. Thank you very much.
 

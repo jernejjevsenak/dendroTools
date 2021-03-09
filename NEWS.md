@@ -1,3 +1,6 @@
+# dendroTools 1.1.3
+* deleted example in vignette Examples_with_daily_climate_data which caused problems with CRAN check
+
 # dendroTools 1.1.2
 * a bug corrected in the data_transform()
 * minor bug is removed which happened in a case of nonsignificant calculations or only one significant correlation
