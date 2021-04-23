@@ -490,6 +490,19 @@ if (fixed_width != 0){
     }
 
     subset_seq <- seq(lower_subset, upper_subset)
+
+    if (any(!(subset_seq %in% row.names(response)))){
+
+      stop(paste0("Undefined columns selected. Subset years don't exist",
+                  " in the response data frame. Change the subset_years argument"))
+    }
+
+    if (any(!(subset_seq %in% row.names(env_data)))){
+
+      stop(paste0("Undefined columns selected. Subset years don't exist",
+                  " in the env_data data frame. Change the subset_years argument"))
+    }
+
     response <- subset(response, row.names(response) %in% subset_seq)
     env_data <- subset(env_data, row.names(env_data) %in% subset_seq)
     }

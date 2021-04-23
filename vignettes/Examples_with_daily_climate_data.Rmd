@@ -87,7 +87,7 @@ example_MVA_past <- daily_response(response = data_MVA, env_data = LJ_daily_temp
                               method = "cor", lower_limit = 50, upper_limit = 70,
                               row_names_subset = TRUE, previous_year = TRUE,
                               remove_insignificant = TRUE, alpha = 0.05, 
-                              plot_specific_window = 60, subset_years = c(1940, 1980))
+                              plot_specific_window = 60, subset_years = c(1941, 1980))
 
 example_MVA_present <- daily_response(response = data_MVA, env_data = LJ_daily_temperatures,
                                    method = "cor", lower_limit = 50, upper_limit = 70,

@@ -500,6 +500,44 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
     }
 
     subset_seq <- seq(lower_subset, upper_subset)
+
+
+
+
+
+
+    if (any(!(subset_seq %in% row.names(response)))){
+
+      stop(paste0("Undefined columns selected. Subset years don't exist",
+                  " in the response data frame. Change the subset_years argument"))
+    }
+
+    if (any(!(subset_seq %in% row.names(env_data_primary)))){
+
+      stop(paste0("Undefined columns selected. Subset years don't exist",
+                  " in the env_data_primary data frame. Change the subset_years argument"))
+    }
+
+    if (any(!(subset_seq %in% row.names(env_data_control)))){
+
+      stop(paste0("Undefined columns selected. Subset years don't exist",
+                  " in the env_data_control data frame. Change the subset_years argument"))
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     response <- subset(response, row.names(response) %in% subset_seq)
     env_data_primary <- subset(env_data_primary, row.names(env_data_primary) %in% subset_seq)
     env_data_control <- subset(env_data_control, row.names(env_data_control) %in% subset_seq)

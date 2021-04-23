@@ -1,3 +1,6 @@
+# dendroTools 1.1.4
+* new error is implemented in case of wrong subset_years 
+
 # dendroTools 1.1.3
 * deleted example in vignette Examples_with_daily_climate_data which caused problems with CRAN check
 
