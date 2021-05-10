@@ -38,6 +38,9 @@ data_transform <- function(input, format = "daily", monthly_aggregate_function =
 
   colnames(input) <- c("date", "variable")
 
+  # This is needed to ensure the proper functionality
+  input <- data.frame(input)
+
   if (date_format == "ymd"){
     input$date <- ymd(input[,"date"])
   } else if ( date_format == "ydm"){
