@@ -2357,6 +2357,10 @@ if (fixed_width != 0){
 
     place_list = 1
 
+    if (k_end < k_running_window){
+      stop("k_running_window is less than the number of analysed years. Reduce the argument k_running_window")
+    }
+
     for (w in 0:(k_end - k_running_window)){
 
       dataset_temp <- dataset[(1+w):(k_running_window + w),]
