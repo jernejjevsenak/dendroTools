@@ -13,13 +13,13 @@ Jernej
 
 ## Test environments
 * local OS X install, R 4.0.4
-* rhub platforms (https://builder.r-hub.io/status/original/dendroTools_1.1.3.tar.gz-d3de58f10edd4d5f9e10c2b102f6c95b)
-* win-check oldrelease (https://win-builder.r-project.org/fnx831RO88br/00check.log)
-* win-check release (https://win-builder.r-project.org/918gc45WjbAp/00check.log)
-* win-check devel (https://win-builder.r-project.org/Elf83DXaqNU3/00check.log)
+* rhub platforms (https://builder.r-hub.io/status/original/dendroTools_1.1.4.tar.gz-ef068614b58e4030943615eb78b121ec)
+* win-check oldrelease (https://win-builder.r-project.org/B19GfBtc95ga/00check.log)
+* win-check release (https://win-builder.r-project.org/7j1KbbNyLMcP/00check.log)
+* win-check devel (https://win-builder.r-project.org/JjeKE4S1nb87/00check.log)
 
 ## R CMD check results
-There were 0 ERRORs, 0 WARNINGs and 1 NOTE (please see the explanation above)
+There were 0 ERRORs, 0 WARNINGs and 0 NOTEs
 
 ## Downstream dependencies
 We have also run R CMD check on downstream dependencies of dendroTools
