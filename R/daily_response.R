@@ -456,7 +456,7 @@ daily_response <- function(response, env_data, method = "lm",
     if (log_preprocess == TRUE) {
 
       if (sum(response <= 0) > 1){
-        stop("your response data contains negative observations. Please set the argument log_preproces to FALSE")
+        stop("your response data contains negative observations. Please set the argument log_preprocess to FALSE")
       }
 
       response <- data.frame(log(response))
