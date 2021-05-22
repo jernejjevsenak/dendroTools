@@ -1,3 +1,5 @@
+# dendroTools 1.1.5
+
 # dendroTools 1.1.4
 * new error is implemented in case of wrong subset_years
 * minor corrections to partial correlation functions
