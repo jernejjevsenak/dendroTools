@@ -145,7 +145,7 @@ plot_specific <- function(result_daily_response, window_width, title = TRUE,
 
   # In case of we have more than 366 days, we calculate the day of a year
   # (plot_column), considering 366 days of previous year.
-  if (nrow(temporal_vector) > 366 & plot_column > 366) {
+  if (ncol(result_daily_element1) > 366 & plot_column > 366) {
     plot_column_extra <- plot_column %% 366
   } else {
     plot_column_extra <- plot_column
@@ -235,47 +235,47 @@ plot_specific <- function(result_daily_response, window_width, title = TRUE,
     y_lab <- "Adjusted Explained Variance"
   }
 
-  if (nrow(temporal_vector) > 366){
+  if (ncol(result_daily_element1) > 366){
     x_lab <- "Day of Year  (Including Previous Year)"
-  } else if (nrow(temporal_vector) <= 366){
+  } else if (ncol(result_daily_element1) <= 366){
     x_lab <- "Day of Year"
   }
 
-  if (reference_window == 'start' &&  plot_column > 366 && nrow(temporal_vector) > 366){
+  if (reference_window == 'start' &&  plot_column > 366 && ncol(result_daily_element1) > 366){
     reference_string <- paste0("\nStarting Day of Optimal Window Width: Day ",
                                plot_column_extra, " of Current Year")}
 
-  if (reference_window == 'start' &&  plot_column <= 366 && nrow(temporal_vector) > 366){
+  if (reference_window == 'start' &&  plot_column <= 366 && ncol(result_daily_element1) > 366){
     reference_string <- paste0("\nStarting Day of Optimal Window Width: Day ",
                                plot_column_extra, " of Previous Year")}
 
-  if (reference_window == 'start' &&  plot_column <=  366 && nrow(temporal_vector) <=  366){
+  if (reference_window == 'start' &&  plot_column <=  366 && ncol(result_daily_element1) <=  366){
     reference_string <- paste0("\nStarting Day of Optimal Window Width: Day ",
                                plot_column_extra)}
 
 
-  if (reference_window == 'end' &&  plot_column > 366 && nrow(temporal_vector) > 366){
+  if (reference_window == 'end' &&  plot_column > 366 && ncol(result_daily_element1) > 366){
     reference_string <- paste0("\nEnding Day of Optimal Window Width: Day ",
                                plot_column_extra, " of Current Year")}
 
-  if (reference_window == 'end' &&  plot_column  <= 366 && nrow(temporal_vector) > 366){
+  if (reference_window == 'end' &&  plot_column  <= 366 && ncol(result_daily_element1) > 366){
     reference_string <- paste0("\nEnding Day of Optimal Window Width: Day ",
                                plot_column_extra, " of Previous Year")}
 
-  if (reference_window == 'end' &&  plot_column  <=  366 && nrow(temporal_vector) <=  366){
+  if (reference_window == 'end' &&  plot_column  <=  366 && ncol(result_daily_element1) <=  366){
     reference_string <- paste0("\nEnding Day of Optimal Window Width: Day ",
                                plot_column_extra)}
 
 
-  if (reference_window == 'middle' &&  plot_column > 366 && nrow(temporal_vector) > 366){
+  if (reference_window == 'middle' &&  plot_column > 366 && ncol(result_daily_element1) > 366){
     reference_string <- paste0("\nMiddle Day of Optimal Window Width: Day ",
                                plot_column_extra, " of Current Year")}
 
-  if (reference_window == 'middle' &&  plot_column  <= 366 && nrow(temporal_vector) > 366){
+  if (reference_window == 'middle' &&  plot_column  <= 366 && ncol(result_daily_element1) > 366){
     reference_string <- paste0("\nMiddle Day of Optimal Window Width: Day ",
                                plot_column_extra, " of Previous Year")}
 
-  if (reference_window == 'middle' &&  plot_column  <=  366 && nrow(temporal_vector) <=  366){
+  if (reference_window == 'middle' &&  plot_column  <=  366 && ncol(result_daily_element1) <=  366){
     reference_string <- paste0("\nMiddle Day of Optimal Window Width: Day ",
                                plot_column_extra)}
 

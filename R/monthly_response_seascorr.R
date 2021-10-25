@@ -37,9 +37,9 @@
 #' to be used for calculations)
 #' @param fixed_width fixed width used for calculations (i.e. number of consecutive
 #' months to be used for calculations)
-#' @param previous_year if set to TRUE, env_data and response variables will be
-#' rearranged in a way, that also previous year will be used for calculations of
-#' selected statistical metric.
+#' @param previous_year if set to TRUE, env_data_primary, env_data_control and
+#' response variables will be rearranged in a way, that also previous year will
+#' be used for calculations of selected statistical metric.
 #' @param remove_insignificant if set to TRUE, removes all correlations bellow
 #' the significant threshold level, based on a selected alpha.
 #' @param alpha significance level used to remove insignificant calculations.
@@ -100,6 +100,10 @@
 #' "perc", "bca").
 #' @param boot_conf_int A scalar or vector containing the confidence level(s) of
 #' the required interval(s)
+#' @param month_interval a vector of two values: lower and upper time interval of
+#' months that will be used to calculate statistical metrics. Negative values indicate
+#' previous growing season months. This argument overwrites the calculation
+#' limits defined by lower_limit and upper_limit arguments.
 #'
 #' @return a list with 15 elements:
 #' \enumerate{
@@ -194,7 +198,95 @@ monthly_response_seascorr <- function(response, env_data_primary, env_data_contr
                            subset_years = NULL, plot_specific_window = NULL,
                            ylimits = NULL, seed = NULL, tidy_env_data_primary = FALSE,
                            tidy_env_data_control = FALSE,  boot = FALSE, boot_n = 1000,
-                           boot_ci_type = "norm", boot_conf_int = 0.95) {
+                           boot_ci_type = "norm", boot_conf_int = 0.95,
+                           month_interval = ifelse(c(previous_year == TRUE,
+                                                     previous_year == TRUE),
+                                                   c(-1, 12), c(1, 12))) {
+
+  ##############################################################################
+  # 1 day interval is organized
+  offset_start <- month_interval[1]
+  offset_end <- month_interval[2]
+
+  # if both are positive but previous_year = TRUE
+  if (offset_start > 0 & offset_end > 0 & previous_year == TRUE){
+
+    previous_year <- FALSE
+
+    warning(paste0("Previous year is not included in selected month_interval. ",
+                   "The argument previous_year is set to FALSE"))
+  }
+
+
+  # if both are negative negative
+  if (offset_start < 0 & offset_end < 0){
+    offset_start <- abs(offset_start)
+    offset_end <- abs(offset_end)
+
+    # If previous_year is FALSE, we set it to TRUE
+    if (previous_year == FALSE){
+      previous_year = TRUE
+      warning(paste0("Previous year is included in month_interval. ",
+                     "The argument previous_year is set to TRUE"))
+    }
+
+    # if only offset_start is negative
+  } else if (offset_start < 0 & offset_end > 0){
+    offset_end <- offset_end + 12
+    offset_start <- abs(offset_start)
+
+    # If previous_year is FALSE, we set it to TRUE
+    if (previous_year == FALSE){
+      previous_year = TRUE
+      warning(paste0("Previous year is included in month_interval. ",
+                     "The argument previous_year is set to TRUE"))
+    }
+
+  }
+
+  # Calculate the max_window allowed
+  max_window <- offset_end - offset_start + 1
+
+  # If max_window is greater then upper_limit, it must be reduced
+  if (upper_limit > max_window){
+
+    upper_limit <- max_window
+
+    if (fixed_width == 0){
+    warning(paste0("The upper_limit is outside your month_interval and",
+                   " therefore reduced to the maximum allowed: ",max_window,"."))
+    }
+  }
+
+  # Now, if lower_limit > max_window, we make them the same
+  if (lower_limit > max_window){
+    lower_limit <- max_window
+
+    if (fixed_width == 0){
+    warning(paste0("The lower_limit is outside your month_interval and",
+                   " therefore reduced to the minimum allowed: ",max_window,"."))
+    }
+  }
+
+
+  # Also correction for fixed_window approach - can only be ERROR
+  if (fixed_width > max_window){
+
+    stop(paste0("The selected fixed_width is outside your month_interval.",
+                " Decrease the fixed_width argument to at least: ",max_window,"."))
+  }
+
+  if (previous_year == FALSE){
+
+    offset_end <- 12 - offset_end
+
+  } else {
+
+    offset_end <- 24 - offset_end
+
+  }
+
+  ################################################################################
 
   if (!is.null(seed)) {
     set.seed(seed)
@@ -233,7 +325,7 @@ monthly_response_seascorr <- function(response, env_data_primary, env_data_contr
  }
 
 
- # Here I define the method = "cor", so the fubctionality is ensured
+ # Here I define the method = "cor", so the functionality is ensured
  method = "cor"
 
  # If there is a column name samp.depth in response data frame, warning is given
@@ -330,6 +422,46 @@ monthly_response_seascorr <- function(response, env_data_primary, env_data_contr
   if (nrow(response) !=  nrow(env_data_primary) & row_names_subset == FALSE)
     stop("Length of env_data_primary and response records differ")
 
+
+
+
+
+  if (previous_year == FALSE){
+
+    # Stop message if fixed_width is not between 0 and 366
+    if (fixed_width < 0 | fixed_width > 12)
+      stop("fixed_width should be between 1 and 12")
+
+    if (lower_limit > upper_limit)
+      stop("lower_limit can not be higher than upper_limit!")
+
+    if (lower_limit > 12 | lower_limit < 1)
+      stop("lower_limit out of bounds! It should be between 1 and 12")
+
+    if (upper_limit > 12 | upper_limit < 1)
+      stop("upper_limit out of bounds! It should be between 1 and 12")
+
+    # Rules for previous_year = TRUE
+  } else if (previous_year == TRUE){
+
+    # Stop message if fixed_width is not between 0 and 366
+    if (fixed_width < 0 | fixed_width > 24)
+      stop("fixed_width should be between 1 and 24")
+
+    if (lower_limit > upper_limit)
+      stop("lower_limit can not be higher than upper_limit!")
+
+    if (lower_limit > 24 | lower_limit < 1)
+      stop("lower_limit out of bounds! It should be between 1 and 24")
+
+    if (upper_limit > 24 | upper_limit < 1)
+      stop("upper_limit out of bounds! It should be between 1 and 24")
+
+  }
+
+
+
+
   # Stop message if fixed_width is not between 0 and 365
   if (fixed_width < 0 | fixed_width > 24)
     stop("fixed_width should be between 1 and 12 (24=")
@@ -340,7 +472,7 @@ monthly_response_seascorr <- function(response, env_data_primary, env_data_contr
     stop(paste("More than 1 variable in response data frame not suitable ",
   "for 'pcor' method'"))
 
-  if (lower_limit >= upper_limit)
+  if (lower_limit > upper_limit)
     stop("lower_limit can not be higher than upper_limit!")
 
   if ((upper_limit > 24 & previous_year == TRUE) | (upper_limit > 12 & previous_year == FALSE))
@@ -532,8 +664,13 @@ monthly_response_seascorr <- function(response, env_data_primary, env_data_contr
     temporal_matrix_lower <- temporal_matrix
     temporal_matrix_upper <- temporal_matrix
 
-      pb <- txtProgressBar(min = 0, max = (ncol(env_data_primary) - fixed_width),
-                           style = 3)
+
+
+
+
+    if (fixed_width != max_window){
+      pb <- txtProgressBar(min = 0, max = (ncol(env_data_primary) - fixed_width - offset_end - offset_start + 1),
+                           style = 3)}
 
       b = 0
 
@@ -542,7 +679,8 @@ monthly_response_seascorr <- function(response, env_data_primary, env_data_contr
       # a moving window is fixed_width. Next, statistical metric is calculated
       # based on a selected method (cor, lm or brnn). Calculation is stored in
       # temporal matrix.
-      for (j in 0: (ncol(env_data_primary) - fixed_width)) {
+
+      for (j in (0 + offset_start -1): (ncol(env_data_primary) - max((fixed_width + offset_end), offset_end))) {
 
         b = b + 1
 
@@ -664,9 +802,10 @@ monthly_response_seascorr <- function(response, env_data_primary, env_data_contr
           print(paste0("boot should be TRUE or FALSE, instead it is ", boot))
         }
 
-        setTxtProgressBar(pb, b)
+        if (fixed_width != max_window){setTxtProgressBar(pb, b)}
       }
-      close(pb)
+
+      if (fixed_width != max_window){close(pb)}
 
      # temporal_matrix is given rownames and colnames. Rownames represent a
      # window width used fot calculations. Colnames represent the position of
@@ -717,8 +856,9 @@ monthly_response_seascorr <- function(response, env_data_primary, env_data_contr
     temporal_matrix_lower <- temporal_matrix
     temporal_matrix_upper <- temporal_matrix
 
-  pb <- txtProgressBar(min = 0, max = (upper_limit - lower_limit),
-                       style = 3)
+    if (upper_limit != lower_limit){
+      pb <- txtProgressBar(min = 0, max = (upper_limit - lower_limit), style = 3)
+    }
 
 
   b = 0
@@ -728,7 +868,7 @@ monthly_response_seascorr <- function(response, env_data_primary, env_data_contr
 
     b = b + 1
 
-    for (j in 0: (ncol(env_data_primary) - K)) {
+    for (j in (0 + offset_start -1): (ncol(env_data_primary) - max((K + offset_end), offset_end))) {
 
       if (aggregate_function_env_data_primary == 'median'){
 
@@ -886,18 +1026,14 @@ monthly_response_seascorr <- function(response, env_data_primary, env_data_contr
          }
 
        } else {
-
          print(paste0("boot should be TRUE or FALSE, instead it is ", boot))
-
        }
+    }
 
-
-
-      }
-    setTxtProgressBar(pb, b)
+    if (upper_limit != lower_limit){setTxtProgressBar(pb, b)}
   }
 
-  close(pb)
+  if (upper_limit != lower_limit){close(pb)}
 
   # temporal_matrix is given rownames and colnames. Rownames represent a
   # window width used fot calculations. Colnames represent the position of
@@ -915,8 +1051,6 @@ monthly_response_seascorr <- function(response, env_data_primary, env_data_contr
   colnames(temporal_matrix_lower) <- temporal_colnames
   colnames(temporal_matrix_upper) <- temporal_colnames
   }
-
-
 
   # To enhance the visualisation, insignificant values
   # are removed if remove_insignificant == TRUE

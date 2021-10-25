@@ -36,7 +36,9 @@ monthly_response_seascorr(
   boot = FALSE,
   boot_n = 1000,
   boot_ci_type = "norm",
-  boot_conf_int = 0.95
+  boot_conf_int = 0.95,
+  month_interval = ifelse(c(previous_year == TRUE, previous_year == TRUE), c(-1, 12),
+    c(1, 12))
 )
 }
 \arguments{
@@ -64,9 +66,9 @@ i.e. Year, Month and third column representing values of mean temperatures, sum
 of precipitation etc. If tidy data is passed to the function, set the argument
 tidy_env_data_control to TRUE.}
 
-\item{previous_year}{if set to TRUE, env_data and response variables will be
-rearranged in a way, that also previous year will be used for calculations of
-selected statistical metric.}
+\item{previous_year}{if set to TRUE, env_data_primary, env_data_control and
+response variables will be rearranged in a way, that also previous year will
+be used for calculations of selected statistical metric.}
 
 \item{pcor_method}{a character string indicating which partial correlation
 coefficient is to be computed. One of "pearson" (default), "kendall", or
@@ -164,6 +166,11 @@ required. The value should be any subset of the values c("norm","basic", "stud",
 
 \item{boot_conf_int}{A scalar or vector containing the confidence level(s) of
 the required interval(s)}
+
+\item{month_interval}{a vector of two values: lower and upper time interval of
+months that will be used to calculate statistical metrics. Negative values indicate
+previous growing season months. This argument overwrites the calculation
+limits defined by lower_limit and upper_limit arguments.}
 }
 \value{
 a list with 15 elements:

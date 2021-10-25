@@ -96,6 +96,10 @@
 #' "perc", "bca").
 #' @param boot_conf_int A scalar or vector containing the confidence level(s) of
 #' the required interval(s)
+#' @param month_interval a vector of two values: lower and upper time interval of
+#' months that will be used to calculate statistical metrics. Negative values indicate
+#' previous growing season months. This argument overwrites the calculation
+#' limits defined by lower_limit and upper_limit arguments.
 #'
 #' @return a list with 17 elements:
 #' \enumerate{
@@ -230,16 +234,100 @@ monthly_response <- function(response, env_data, method = "cor",
                            subset_years = NULL, plot_specific_window = NULL,
                            ylimits = NULL, seed = NULL, tidy_env_data = FALSE,
                            boot = FALSE, boot_n = 1000, boot_ci_type = "norm",
-                           boot_conf_int = 0.95) {
+                           boot_conf_int = 0.95,
+                           month_interval = ifelse(c(previous_year == TRUE,
+                                                     previous_year == TRUE),
+                                                   c(-1, 12), c(1, 12))) {
 
+  ##############################################################################
+  # 1 day interval is organized
+  offset_start <- month_interval[1]
+  offset_end <- month_interval[2]
 
-  if (!is.null(seed)) {
-    set.seed(seed)
+  # if both are positive but previous_year = TRUE
+  if (offset_start > 0 & offset_end > 0 & previous_year == TRUE){
+
+    previous_year <- FALSE
+
+    warning(paste0("Previous year is not included in selected month_interval. ",
+                   "The argument previous_year is set to FALSE"))
   }
 
-#  lower_limit = 1
-#  upper_limit = 12
-#  fixed_width = 0
+
+  # if both are negative negative
+  if (offset_start < 0 & offset_end < 0){
+    offset_start <- abs(offset_start)
+    offset_end <- abs(offset_end)
+
+    # If previous_year is FALSE, we set it to TRUE
+    if (previous_year == FALSE){
+      previous_year = TRUE
+      warning(paste0("Previous year is included in month_interval. ",
+                     "The argument previous_year is set to TRUE"))
+    }
+
+    # if only offset_start is negative
+  } else if (offset_start < 0 & offset_end > 0){
+    offset_end <- offset_end + 12
+    offset_start <- abs(offset_start)
+
+    # If previous_year is FALSE, we set it to TRUE
+    if (previous_year == FALSE){
+      previous_year = TRUE
+      warning(paste0("Previous year is included in month_interval. ",
+                     "The argument previous_year is set to TRUE"))
+    }
+
+  }
+
+  # Calculate the max_window allowed
+  max_window <- offset_end - offset_start + 1
+
+  # If max_window is greater then upper_limit, it must be reduced
+  if (upper_limit > max_window){
+
+    upper_limit <- max_window
+
+    if (fixed_width == 0){
+      warning(paste0("The upper_limit is outside your month_interval and",
+                     " therefore reduced to the maximum allowed: ",max_window,"."))
+    }
+
+  }
+
+  # Now, if lower_limit > max_window, we make them the same
+  if (lower_limit > max_window){
+    lower_limit <- max_window
+
+    if (fixed_width == 0){
+    warning(paste0("The lower_limit is outside your month_interval and",
+                   " therefore reduced to the minimum allowed: ",max_window,"."))
+    }
+  }
+
+
+  # Also correction for fixed_window approach - can only be ERROR
+  if (fixed_width > max_window){
+
+    stop(paste0("The selected fixed_width is outside your month_interval.",
+                " Decrease the fixed_width argument to at least: ",max_window,"."))
+  }
+
+  if (previous_year == FALSE){
+
+    offset_end <- 12 - offset_end
+
+  } else {
+
+    offset_end <- 24 - offset_end
+
+  }
+
+################################################################################
+
+if (!is.null(seed)) {
+    set.seed(seed)
+  }
 
 if (fixed_width != 0){
     lower_limit = 1
@@ -248,15 +336,11 @@ if (fixed_width != 0){
 
 
   if (fixed_width > 12 & previous_year == FALSE){
-    stop(paste0("fixed_width argument must not be greater than 12! Instead, it is ", fixed_width, "!"))
+    stop(paste0("fixed_width argument can not be greater than 12! Instead, it is ", fixed_width, "!"))
   }
 
   reference_window = 'start'
 
-#  if (previous_year == TRUE)
-#  {
-#    upper_limit = 24
-#  }
 
  # Defining global variables
  median <- NULL
@@ -359,9 +443,9 @@ if (fixed_width != 0){
   if (nrow(response) !=  nrow(env_data) & row_names_subset == FALSE)
     stop("Length of env_data and response records differ")
 
-  # Stop message if fixed_width is not between 0 and 365
-  if (fixed_width < 0 | fixed_width > 365)
-    stop("fixed_width should be between 0 and 365")
+  # Stop message if fixed_width is not between 0 and 24
+  if (fixed_width < 0 | fixed_width > 24)
+    stop("fixed_width should be between 1 and 24")
 
   # Stop in case of method == "cor" and ncol(proxies) > 1
   # Correlations could be calculated only for one variable
@@ -369,14 +453,39 @@ if (fixed_width != 0){
     stop(paste("More than 1 variable in response data frame not suitable ",
   "for 'cor' method. Use 'lm' or 'brnn'"))
 
-#  if (lower_limit >= upper_limit)
-#    stop("lower_limit can not be higher than upper_limit!")
-#
-#  if (lower_limit > 12 | lower_limit < 1)
-#    stop("lower_limit out of bounds! It should be between 1 and 12 for monthly response")
-#
-#  if (upper_limit > 12 | upper_limit < 1)
-#    stop("upper_limit out of bounds! It should be between 1 and 12 for monthly response")
+
+  if (previous_year == FALSE){
+
+    # Stop message if fixed_width is not between 0 and 366
+    if (fixed_width < 0 | fixed_width > 12)
+      stop("fixed_width should be between 1 and 12")
+
+    if (lower_limit > upper_limit)
+      stop("lower_limit can not be higher than upper_limit!")
+
+    if (lower_limit > 12 | lower_limit < 1)
+      stop("lower_limit out of bounds! It should be between 1 and 12")
+
+    if (upper_limit > 12 | upper_limit < 1)
+      stop("upper_limit out of bounds! It should be between 1 and 12")
+
+    # Rules for previous_year = TRUE
+  } else if (previous_year == TRUE){
+
+    # Stop message if fixed_width is not between 0 and 366
+    if (fixed_width < 0 | fixed_width > 24)
+      stop("fixed_width should be between 1 and 24")
+
+    if (lower_limit > upper_limit)
+      stop("lower_limit can not be higher than upper_limit!")
+
+    if (lower_limit > 24 | lower_limit < 1)
+      stop("lower_limit out of bounds! It should be between 1 and 24")
+
+    if (upper_limit > 24 | upper_limit < 1)
+      stop("upper_limit out of bounds! It should be between 1 and 24")
+
+  }
 
 
   # Data manipulation
@@ -545,8 +654,9 @@ if (fixed_width != 0){
       temporal_matrix_lower <- temporal_matrix
       temporal_matrix_upper <- temporal_matrix
 
-      pb <- txtProgressBar(min = 0, max = (ncol(env_data) - fixed_width),
-                           style = 3)
+      if (fixed_width != max_window){
+        pb <- txtProgressBar(min = 0, max = (ncol(env_data) - fixed_width - offset_end - offset_start + 1),
+                           style = 3)}
 
       b = 0
 
@@ -555,7 +665,7 @@ if (fixed_width != 0){
       # a moving window is fixed_width. Next, statistical metric is calculated
       # based on a selected method (cor, lm or brnn). Calculation is stored in
       # temporal matrix.
-      for (j in 0: (ncol(env_data) - fixed_width)) {
+        for (j in (0 + offset_start -1): (ncol(env_data) - max((fixed_width + offset_end), offset_end))) {
 
         b = b + 1
 
@@ -649,8 +759,6 @@ if (fixed_width != 0){
           print(paste0("boot should be TRUE or FALSE, instead it is ", boot))
         }
 
-
-
         # Each calculation is printed. Reason: usually it takes several minutes
         # to go through all loops and therefore, users might think that R is
         # not responding. But if each calculation is printed, user could be
@@ -672,9 +780,10 @@ if (fixed_width != 0){
           temporal_matrix_upper[1, round2(j + 1 + fixed_width/2, 0)] <- temporal_upper
         }
 
-        setTxtProgressBar(pb, b)
+        if (fixed_width != max_window){setTxtProgressBar(pb, b)}
       }
-      close(pb)
+
+      if (fixed_width != max_window){close(pb)}
 
      # temporal_matrix is given rownames and colnames. Rownames represent a
      # window width used fot calculations. Colnames represent the position of
@@ -710,12 +819,13 @@ if (fixed_width != 0){
     temporal_matrix_lower <- temporal_matrix
     temporal_matrix_upper <- temporal_matrix
 
-    pb <- txtProgressBar(min = 0, max = (ncol(env_data) - fixed_width + 1),
-                         style = 3)
+    if (fixed_width != max_window){
+      pb <- txtProgressBar(min = 0, max = (ncol(env_data) - fixed_width - offset_end - offset_start + 1),
+                           style = 3)}
 
     b = 0
 
-    for (j in 0:(ncol(env_data) - fixed_width)) {
+    for (j in (0 + offset_start -1): (ncol(env_data) - max((fixed_width + offset_end), offset_end))) {
 
       b = b + 1
 
@@ -753,7 +863,6 @@ if (fixed_width != 0){
 
       if (boot == FALSE){
 
-
         temporal_df <- data.frame(cbind(x, response))
         temporal_model <- lm(x ~ ., data = temporal_df)
         temporal_summary <- summary(temporal_model)
@@ -764,8 +873,6 @@ if (fixed_width != 0){
         temporal_r_squared_upper<- NA
         temporal_adj_r_squared_lower <- NA
         temporal_adj_r_squared_upper <- NA
-
-
 
       } else if (boot == TRUE){
 
@@ -835,8 +942,6 @@ if (fixed_width != 0){
         stop(paste0("boot should be TRUE or FALSE, instead it is ", boot))
       }
 
-
-
       if (metric == "r.squared"){
 
         if (reference_window == 'start'){
@@ -881,9 +986,11 @@ if (fixed_width != 0){
         }
       }
 
-      setTxtProgressBar(pb, b)
+      if (fixed_width != max_window){setTxtProgressBar(pb, b)}
+
     }
-    close(pb)
+
+    if (fixed_width != max_window){close(pb)}
 
     row.names(temporal_matrix) <- fixed_width
     row.names(temporal_matrix_lower) <- fixed_width
@@ -916,12 +1023,13 @@ if (fixed_width != 0){
     temporal_matrix_lower <- temporal_matrix
     temporal_matrix_upper <- temporal_matrix
 
-    pb <- txtProgressBar(min = 0, max = (ncol(env_data) - fixed_width + 1),
-                         style = 3)
+    if (fixed_width != max_window){
+      pb <- txtProgressBar(min = 0, max = (ncol(env_data) - fixed_width - offset_end - offset_start + 1),
+                           style = 3)}
 
     b = 0
 
-     for (j in 0: (ncol(env_data) - fixed_width)) {
+    for (j in (0 + offset_start -1): (ncol(env_data) - max((fixed_width + offset_end), offset_end))) {
 
        b = b + 1
 
@@ -1111,10 +1219,10 @@ if (fixed_width != 0){
         }
       }
 
-      setTxtProgressBar(pb, b)
+      if (fixed_width != max_window){setTxtProgressBar(pb, b)}
      }
 
-    close(pb)
+    if (fixed_width != max_window){close(pb)}
 
     row.names(temporal_matrix) <- fixed_width
     row.names(temporal_matrix_lower) <- fixed_width
@@ -1165,8 +1273,9 @@ if (fixed_width != 0){
   # The position of stored calculation is informative later used for
   # indiciating optimal values.
 
-  pb <- txtProgressBar(min = 0, max = (upper_limit - lower_limit),
-                       style = 3)
+    if (upper_limit != lower_limit){
+      pb <- txtProgressBar(min = 0, max = (upper_limit - lower_limit), style = 3)
+    }
 
   b = 0
 
@@ -1175,7 +1284,7 @@ if (fixed_width != 0){
 
     b = b + 1
 
-    for (j in 0: (ncol(env_data) - K)) {
+    for (j in (0 + offset_start -1): (ncol(env_data) - max((K + offset_end), offset_end))) {
 
       if (aggregate_function == 'median'){
         if (K == 1){
@@ -1275,10 +1384,10 @@ if (fixed_width != 0){
       }
 
         }
-    setTxtProgressBar(pb, b)
+    if (upper_limit != lower_limit){setTxtProgressBar(pb, b)}
   }
 
-  close(pb)
+  if (upper_limit != lower_limit){close(pb)}
 
   # temporal_matrix is given rownames and colnames. Rownames represent a
   # window width used fot calculations. Colnames represent the position of
@@ -1318,8 +1427,9 @@ if (fixed_width != 0){
     temporal_matrix_lower <- temporal_matrix
     temporal_matrix_upper <- temporal_matrix
 
-    pb <- txtProgressBar(min = 0, max = (upper_limit - lower_limit),
-                         style = 3)
+    if (upper_limit != lower_limit){
+      pb <- txtProgressBar(min = 0, max = (upper_limit - lower_limit), style = 3)
+    }
 
     b = 0
 
@@ -1327,7 +1437,8 @@ if (fixed_width != 0){
 
       b = b + 1
 
-      for (j in 0: (ncol(env_data) - K)) {
+      for (j in (0 + offset_start -1): (ncol(env_data) - max((K + offset_end), offset_end))) {
+
         if (aggregate_function == 'median'){
 
           if (K == 1){
@@ -1479,10 +1590,10 @@ if (fixed_width != 0){
 
         }
       }
-      setTxtProgressBar(pb, b)
+      if (upper_limit != lower_limit){setTxtProgressBar(pb, b)}
     }
 
-    close(pb)
+    if (upper_limit != lower_limit){close(pb)}
 
     temporal_rownames <- as.vector(seq(from = lower_limit, to = upper_limit, by = 1))
     row.names(temporal_matrix) <- temporal_rownames
@@ -1516,8 +1627,9 @@ if (fixed_width != 0){
     temporal_matrix_lower <- temporal_matrix
     temporal_matrix_upper <- temporal_matrix
 
-    pb <- txtProgressBar(min = 0, max = (upper_limit - lower_limit),
-                         style = 3)
+    if (upper_limit != lower_limit){
+      pb <- txtProgressBar(min = 0, max = (upper_limit - lower_limit), style = 3)
+    }
 
     b = 0
 
@@ -1526,7 +1638,7 @@ if (fixed_width != 0){
       b = b + 1
 
 
-      for (j in 0: (ncol(env_data) - K)) {
+      for (j in (0 + offset_start -1): (ncol(env_data) - max((K + offset_end), offset_end))) {
 
         if (aggregate_function == 'median'){
 
@@ -1706,10 +1818,11 @@ if (fixed_width != 0){
         }
 
         }
-      setTxtProgressBar(pb, b)
+      if (upper_limit != lower_limit){setTxtProgressBar(pb, b)}
     }
 
-    close(pb)
+    if (upper_limit != lower_limit){close(pb)}
+
     temporal_rownames <- as.vector(seq(from = lower_limit, to = upper_limit, by = 1))
     row.names(temporal_matrix) <- temporal_rownames
     row.names(temporal_matrix_lower) <- temporal_rownames
@@ -2002,20 +2115,6 @@ if (fixed_width != 0){
     colnames(dataf) <- "Optimized return"
 
   }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
   # 1. reference window = "middle"
   if (reference_window == 'middle'){

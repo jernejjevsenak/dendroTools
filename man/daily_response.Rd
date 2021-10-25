@@ -38,7 +38,9 @@ daily_response(
   boot = FALSE,
   boot_n = 1000,
   boot_ci_type = "norm",
-  boot_conf_int = 0.95
+  boot_conf_int = 0.95,
+  day_interval = ifelse(c(previous_year == TRUE, previous_year == TRUE), c(-1, 366),
+    c(1, 366))
 )
 }
 \arguments{
@@ -176,6 +178,11 @@ required. The value should be any subset of the values c("norm","basic", "stud",
 
 \item{boot_conf_int}{A scalar or vector containing the confidence level(s) of
 the required interval(s)}
+
+\item{day_interval}{a vector of two values: lower and upper time interval of
+days that will be used to calculate statistical metrics. Negative values indicate
+previous growing season days. This argument overwrites the calculation
+limits defined by lower_limit and upper_limit arguments.}
 }
 \value{
 a list with 17 elements:
