@@ -1,6 +1,7 @@
 Dear CRAN
 
-This is regular update of the dendroTools r package. There were only minor corrections which ensure the proper functionality of the package. 
+This is regular update of the dendroTools r package. There was one major update and some minor as well.
+
 Please also note the extensive vignette examples. In previous versions, we agreed to disable vignette checking on some platforms. I believe it makes sense to keep it that way.
 
 Many thanks at this point. 
