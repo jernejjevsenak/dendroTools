@@ -18,7 +18,7 @@ BugReports: https://github.com/jernejjevsenak/dendroTools/issues
 Encoding: UTF-8
 LazyData: true
 Suggests: testthat, dplR, rmarkdown
-RoxygenNote: 7.1.1
+RoxygenNote: 7.1.2
 Imports: ggplot2(>= 2.2.0), brnn(>= 0.6), reshape2(>= 1.4.2), scales(>= 0.4.1), 
   stats, oce(>= 1.2-0), MLmetrics(>= 1.1.1), dplyr(>= 0.7.0), gridExtra(>= 2.2.1), 
   knitr(>= 1.19), magrittr(>= 1.5), plotly(>= 4.7.1), randomForest(>= 4.6-14), 

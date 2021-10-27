@@ -307,7 +307,7 @@ stepwise_direction = "backward")
 comparison_TRW$mean_std
 comparison_TRW$bias_val
 comparison_TRW$transfer_functions + xlab(expression(paste('TRW'))) +
-ylab("June-July Mean Temperature [Â°C]")
+ylab("June-July Mean Temperature [°C]")
 comparison_TRW$reconstructions
 comparison_TRW$reconstructions_together
 comparison_TRW$edge_results
