@@ -19,9 +19,9 @@ Jernej
 * rhub Ubuntu (https://builder.r-hub.io/status/original/dendroTools_1.2.0.tar.gz-530b7c270d93453bb9ddc3414632e02e)
 * rhub Fedora Linux (https://builder.r-hub.io/status/original/dendroTools_1.2.0.tar.gz-b3f4c493650c4022b21282e204335b5b)
 
-* win-check oldrelease (https://win-builder.r-project.org/B19GfBtc95ga/00check.log)
-* win-check release (https://win-builder.r-project.org/7j1KbbNyLMcP/00check.log)
-* win-check devel (https://win-builder.r-project.org/JjeKE4S1nb87/00check.log)
+* win-check oldrelease (https://win-builder.r-project.org/j3i3LAD9zOSn/)
+* win-check release (https://win-builder.r-project.org/66oDZ9C2RRPG/)
+* win-check devel (https://win-builder.r-project.org/3E2O0Mau5Ekt/)
 
 ## R CMD check results
 There were 0 ERRORs, 0 WARNINGs and 0 NOTEs
