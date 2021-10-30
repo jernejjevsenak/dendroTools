@@ -492,7 +492,7 @@ plot_extreme <- function(result_daily_response, title = TRUE, ylimits = NULL, re
                     xlab(paste0("Starting Month of Calculation (Including Previous Year) and ",as.character(as.numeric(row_index)) ,
                          " Consecutive", month_string)) +
                     ylab(y_lab) +
-          scale_fill_discrete(guide=FALSE) +
+          scale_fill_discrete(guide = 'none') +
                     geom_hline(yintercept = 0) +
           scale_y_continuous(limits = ylimits) +
           ggtitle(paste0(period_string, method_string, optimal_calculation,
