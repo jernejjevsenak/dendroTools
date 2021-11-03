@@ -510,6 +510,16 @@ monthly_response_seascorr <- function(response, env_data_primary, env_data_contr
   if (upper_limit > 24 | upper_limit < 1)
     stop("upper_limit out of bounds! It should be between 1 and 365")
 
+  # Make sure the selected method is appropriate
+  if (!is.null(dc_method)){
+
+    if (!(dc_method %in% c("Spline", "ModNegExp", "Mean", "Friedman", "ModHugershoff"))){
+
+      stop(paste0('dc_method should be one of "Spline", "ModNegExp", "Mean", "Friedman", "ModHugershoff",
+         but instead it is:',dc_method))
+
+    }
+  }
 
   # Data manipulation
   # If use.previous == TRUE, env_data_primary data has to be rearranged accordingly
