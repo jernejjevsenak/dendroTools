@@ -40,7 +40,15 @@ daily_response(
   boot_ci_type = "norm",
   boot_conf_int = 0.95,
   day_interval = ifelse(c(previous_year == TRUE, previous_year == TRUE), c(-1, 366),
-    c(1, 366))
+    c(1, 366)),
+  dc_method = NULL,
+  dc_nyrs = NULL,
+  dc_f = 0.5,
+  dc_pos.slope = FALSE,
+  dc_constrain.nls = c("never", "when.fail", "always"),
+  dc_span = "cv",
+  dc_bass = 0,
+  dc_difference = FALSE
 )
 }
 \arguments{
@@ -183,6 +191,32 @@ the required interval(s)}
 days that will be used to calculate statistical metrics. Negative values indicate
 previous growing season days. This argument overwrites the calculation
 limits defined by lower_limit and upper_limit arguments.}
+
+\item{dc_method}{a character string to determine the method to detrend climate
+(environmental) data.  Possible values are c("Spline", "ModNegExp", "Mean",
+"Friedman", "ModHugershoff"). Defaults to "none" (see dplR R package).}
+
+\item{dc_nyrs}{a number giving the rigidity of the smoothing spline, defaults
+to 0.67 of series length if nyrs is NULL (see dplR R package).}
+
+\item{dc_f}{a number between 0 and 1 giving the frequency response or wavelength
+cutoff. Defaults to 0.5 (see dplR R package).}
+
+\item{dc_pos.slope}{a logical flag. Will allow for a positive slope to be used
+in method "ModNegExp" and "ModHugershoff". If FALSE the line will be horizontal
+(see dplR R package).}
+
+\item{dc_constrain.nls}{a character string which controls the constraints of
+the "ModNegExp" model and the "ModHugershoff"  (see dplR R package).}
+
+\item{dc_span}{a numeric value controlling method "Friedman", or "cv" (default)
+for automatic choice by cross-validation (see dplR R package).}
+
+\item{dc_bass}{a numeric value controlling the smoothness of the fitted curve
+in method "Friedman" (see dplR R package).}
+
+\item{dc_difference}{a logical flag. Compute residuals by substraction if TRUE,
+otherwise use division (see dplR R package).}
 }
 \value{
 a list with 17 elements:

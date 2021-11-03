@@ -104,6 +104,24 @@
 #' months that will be used to calculate statistical metrics. Negative values indicate
 #' previous growing season months. This argument overwrites the calculation
 #' limits defined by lower_limit and upper_limit arguments.
+#' @param dc_method a character string to determine the method to detrend climate
+#' (environmental) data.  Possible values are c("Spline", "ModNegExp", "Mean",
+#' "Friedman", "ModHugershoff"). Defaults to "none" (see dplR R package).
+#' @param dc_nyrs a number giving the rigidity of the smoothing spline, defaults
+#' to 0.67 of series length if nyrs is NULL (see dplR R package).
+#' @param dc_f a number between 0 and 1 giving the frequency response or wavelength
+#' cutoff. Defaults to 0.5 (see dplR R package).
+#' @param dc_pos.slope a logical flag. Will allow for a positive slope to be used
+#' in method "ModNegExp" and "ModHugershoff". If FALSE the line will be horizontal
+#' (see dplR R package).
+#' @param dc_constrain.nls a character string which controls the constraints of
+#' the "ModNegExp" model and the "ModHugershoff"  (see dplR R package).
+#' @param dc_span a numeric value controlling method "Friedman", or "cv" (default)
+#' for automatic choice by cross-validation (see dplR R package).
+#' @param dc_bass a numeric value controlling the smoothness of the fitted curve
+#' in method "Friedman" (see dplR R package).
+#' @param dc_difference	a logical flag. Compute residuals by substraction if TRUE,
+#' otherwise use division (see dplR R package).
 #'
 #' @return a list with 15 elements:
 #' \enumerate{
@@ -201,7 +219,15 @@ monthly_response_seascorr <- function(response, env_data_primary, env_data_contr
                            boot_ci_type = "norm", boot_conf_int = 0.95,
                            month_interval = ifelse(c(previous_year == TRUE,
                                                      previous_year == TRUE),
-                                                   c(-1, 12), c(1, 12))) {
+                                                   c(-1, 12), c(1, 12)),
+                           dc_method = NULL,
+                           dc_nyrs = NULL,
+                           dc_f = 0.5,
+                           dc_pos.slope = FALSE,
+                           dc_constrain.nls = c("never", "when.fail", "always"),
+                           dc_span = "cv",
+                           dc_bass = 0,
+                           dc_difference = FALSE) {
 
   ##############################################################################
   # 1 day interval is organized
@@ -722,6 +748,31 @@ monthly_response_seascorr <- function(response, env_data_primary, env_data_contr
         }
 
 
+        if (!is.null(dc_method)){
+
+          x1 <- dplR::detrend(data.frame(x1), method = dc_method, nyrs = dc_nyrs, f = dc_f,
+                              pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
+                              span = dc_span, bass = dc_bass,  difference = dc_difference)
+
+        } else {
+
+          x1 <- matrix(x1, nrow = nrow(env_data_primary), ncol = 1)
+
+        }
+
+
+        if (!is.null(dc_method)){
+
+          x2 <- dplR::detrend(data.frame(x2), method = dc_method, nyrs = dc_nyrs, f = dc_f,
+                              pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
+                              span = dc_span, bass = dc_bass,  difference = dc_difference)
+
+        } else {
+
+          x2 <- matrix(x2, nrow = nrow(env_data_primary), ncol = 1)
+
+        }
+
         my_temporal_data <- cbind(response[, 1], x1, x2)
         colnames(my_temporal_data) <- c("x", "y", "z")
 
@@ -942,9 +993,30 @@ monthly_response_seascorr <- function(response, env_data_primary, env_data_contr
 
       }
 
-       x1 <- matrix(x1, nrow = nrow(env_data_primary), ncol = 1)
+      if (!is.null(dc_method)){
 
-       x2 <- matrix(x2, nrow = nrow(env_data_primary), ncol = 1)
+        x1 <- dplR::detrend(data.frame(x1), method = dc_method, nyrs = dc_nyrs, f = dc_f,
+                            pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
+                            span = dc_span, bass = dc_bass,  difference = dc_difference)
+
+      } else {
+
+        x1 <- matrix(x1, nrow = nrow(env_data_primary), ncol = 1)
+
+      }
+
+
+      if (!is.null(dc_method)){
+
+        x2 <- dplR::detrend(data.frame(x2), method = dc_method, nyrs = dc_nyrs, f = dc_f,
+                            pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
+                            span = dc_span, bass = dc_bass,  difference = dc_difference)
+
+      } else {
+
+        x2 <- matrix(x2, nrow = nrow(env_data_primary), ncol = 1)
+
+      }
 
        my_temporal_data <- cbind(response[, 1], x1, x2)
        colnames(my_temporal_data) <- c("x", "y", "z")
