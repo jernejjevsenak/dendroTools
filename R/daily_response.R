@@ -1960,7 +1960,7 @@ daily_response <- function(response, env_data, method = "lm",
 
   # The fourth return element is being created: rowMeans/ apply of optimal sequence:
   # So, here we consider more options, based on the reference_winow
-  # 1. reference window = "start"
+  # option 1: reference window = "start"
   if (reference_window == 'start'){
 
 
@@ -1983,6 +1983,15 @@ daily_response <- function(response, env_data, method = "lm",
   } else {
     stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median or sum."))
   }
+
+    # if detrending was applied, should also be applied here
+    if (!is.null(dc_method)){
+
+      dataf <- dplR::detrend(dataf, method = dc_method, nyrs = dc_nyrs, f = dc_f,
+                             pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
+                             span = dc_span, bass = dc_bass,  difference = dc_difference)
+
+    }
 
   dataf_full <- cbind(response, dataf)
   colnames(dataf_full)[ncol(dataf_full)] <- "Optimized_return"
@@ -2009,6 +2018,15 @@ daily_response <- function(response, env_data, method = "lm",
   }
 
   dataf_full_original <- dataf_original
+
+  if (!is.null(dc_method)){
+
+    dataf_full_original <- dplR::detrend(dataf_full_original, method = dc_method, nyrs = dc_nyrs, f = dc_f,
+                                         pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
+                                         span = dc_span, bass = dc_bass,  difference = dc_difference)
+
+  }
+
   colnames(dataf_full_original) <- "Optimized_return"
   colnames(dataf) <- "Optimized.rowNames"
 
@@ -2066,7 +2084,7 @@ daily_response <- function(response, env_data, method = "lm",
 
   }
 
-  # Option 2, reference window = "end"
+  # Option 2: reference window = "end"
     if (reference_window == 'end'){
 
     if (aggregate_function == 'median'){
@@ -2082,6 +2100,15 @@ daily_response <- function(response, env_data, method = "lm",
     } else {
       stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median or sum."))
     }
+
+      # if detrending was applied, should also be applied here
+      if (!is.null(dc_method)){
+
+        dataf <- dplR::detrend(dataf, method = dc_method, nyrs = dc_nyrs, f = dc_f,
+                               pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
+                               span = dc_span, bass = dc_bass,  difference = dc_difference)
+
+      }
 
     dataf_full <- cbind(response, dataf)
     colnames(dataf_full)[ncol(dataf_full)] <- "Optimized_return"
@@ -2104,6 +2131,15 @@ daily_response <- function(response, env_data, method = "lm",
     }
 
     dataf_full_original <- dataf_original
+
+    if (!is.null(dc_method)){
+
+      dataf_full_original <- dplR::detrend(dataf_full_original, method = dc_method, nyrs = dc_nyrs, f = dc_f,
+                                           pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
+                                           span = dc_span, bass = dc_bass,  difference = dc_difference)
+
+    }
+
     colnames(dataf_full_original) <- "Optimized_return"
     colnames(dataf) <- "Optimized.rowNames"
 
@@ -2159,21 +2195,7 @@ daily_response <- function(response, env_data, method = "lm",
 
   }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  # 1. reference window = "middle"
+  # option 3: reference window = "middle"
   if (reference_window == 'middle'){
 
     if (as.numeric(row_index)%%2 == 0){
@@ -2202,6 +2224,16 @@ daily_response <- function(response, env_data, method = "lm",
       stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median or sum."))
     }
 
+
+    # if detrending was applied, should also be applied here
+    if (!is.null(dc_method)){
+
+      dataf <- dplR::detrend(dataf, method = dc_method, nyrs = dc_nyrs, f = dc_f,
+                         pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
+                         span = dc_span, bass = dc_bass,  difference = dc_difference)
+
+    }
+
     dataf_full <- cbind(response, dataf)
     colnames(dataf_full)[ncol(dataf_full)] <- "Optimized_return"
     colnames(dataf) <- "Optimized.rowNames"
@@ -2226,10 +2258,18 @@ daily_response <- function(response, env_data, method = "lm",
     }
 
     dataf_full_original <- dataf_original
+
+
+    if (!is.null(dc_method)){
+
+      dataf_full_original <- dplR::detrend(dataf_full_original, method = dc_method, nyrs = dc_nyrs, f = dc_f,
+                             pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
+                             span = dc_span, bass = dc_bass,  difference = dc_difference)
+
+    }
+
     colnames(dataf_full_original) <- "Optimized_return"
     colnames(dataf) <- "Optimized.rowNames"
-
-
 
     # Additional check: (we should get the same metric as before in the loop)
     if (method == "lm" & metric == "r.squared"){
@@ -2282,6 +2322,42 @@ daily_response <- function(response, env_data, method = "lm",
     colnames(dataf) <- "Optimized return"
 
   }
+
+
+  ##############################################################################
+  # If detrending was used, it also needs to be applied on optimized return
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
   # Element 5
@@ -2351,7 +2427,7 @@ analysed_period
   ############## The temporal stability of optimized_return #############
   #######################################################################
 
-  dataset = data.frame(optimized_return =dataf[,1], proxy = response)
+  dataset = data.frame(optimized_return = dataf[,1], proxy = response)
 
   empty_list = list()
   empty_list_period = list()
@@ -2599,9 +2675,6 @@ for (m in 1:length(empty_list_datasets)){
     colnames(temporal_stability) <-c("Period", colname, "p value")
     temporal_stability
 }
-
-
-
 
   #########################################################################
   ################## Out of sample estimates ##############################

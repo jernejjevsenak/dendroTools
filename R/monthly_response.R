@@ -2037,6 +2037,14 @@ if (fixed_width != 0){
     stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median or sum."))
   }
 
+    if (!is.null(dc_method)){
+
+      dataf <- dplR::detrend(dataf, method = dc_method, nyrs = dc_nyrs, f = dc_f,
+                             pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
+                             span = dc_span, bass = dc_bass,  difference = dc_difference)
+
+    }
+
   dataf_full <- cbind(response, dataf)
   colnames(dataf_full)[ncol(dataf_full)] <- "Optimized_return"
   colnames(dataf) <- "Optimized.rowNames"
@@ -2062,6 +2070,15 @@ if (fixed_width != 0){
   }
 
   dataf_full_original <- dataf_original
+
+  if (!is.null(dc_method)){
+
+    dataf_full_original <- dplR::detrend(dataf_full_original, method = dc_method, nyrs = dc_nyrs, f = dc_f,
+                                         pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
+                                         span = dc_span, bass = dc_bass,  difference = dc_difference)
+
+  }
+
   colnames(dataf_full_original) <- "Optimized_return"
   colnames(dataf) <- "Optimized.rowNames"
 
@@ -2136,6 +2153,14 @@ if (fixed_width != 0){
       stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median or sum."))
     }
 
+      if (!is.null(dc_method)){
+
+        dataf <- dplR::detrend(dataf, method = dc_method, nyrs = dc_nyrs, f = dc_f,
+                               pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
+                               span = dc_span, bass = dc_bass,  difference = dc_difference)
+
+      }
+
     dataf_full <- cbind(response, dataf)
     colnames(dataf_full)[ncol(dataf_full)] <- "Optimized_return"
     colnames(dataf) <- "Optimized.rowNames"
@@ -2157,6 +2182,15 @@ if (fixed_width != 0){
     }
 
     dataf_full_original <- dataf_original
+
+    if (!is.null(dc_method)){
+
+      dataf_full_original <- dplR::detrend(dataf_full_original, method = dc_method, nyrs = dc_nyrs, f = dc_f,
+                                           pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
+                                           span = dc_span, bass = dc_bass,  difference = dc_difference)
+
+    }
+
     colnames(dataf_full_original) <- "Optimized_return"
     colnames(dataf) <- "Optimized.rowNames"
 
@@ -2241,6 +2275,14 @@ if (fixed_width != 0){
       stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median or sum."))
     }
 
+    if (!is.null(dc_method)){
+
+      dataf <- dplR::detrend(dataf, method = dc_method, nyrs = dc_nyrs, f = dc_f,
+                             pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
+                             span = dc_span, bass = dc_bass,  difference = dc_difference)
+
+    }
+
     dataf_full <- cbind(response, dataf)
     colnames(dataf_full)[ncol(dataf_full)] <- "Optimized_return"
     colnames(dataf) <- "Optimized.rowNames"
@@ -2265,6 +2307,15 @@ if (fixed_width != 0){
     }
 
     dataf_full_original <- dataf_original
+
+    if (!is.null(dc_method)){
+
+      dataf_full_original <- dplR::detrend(dataf_full_original, method = dc_method, nyrs = dc_nyrs, f = dc_f,
+                                           pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
+                                           span = dc_span, bass = dc_bass,  difference = dc_difference)
+
+    }
+
     colnames(dataf_full_original) <- "Optimized_return"
     colnames(dataf) <- "Optimized.rowNames"
 
