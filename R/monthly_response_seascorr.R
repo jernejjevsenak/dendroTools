@@ -673,6 +673,15 @@ monthly_response_seascorr <- function(response, env_data_primary, env_data_contr
     env_data_control <- subset(env_data_control, row.names(env_data_control) %in% subset_seq)
     }
 
+  # NA values are not allowed and must be removed from response data.frame
+  if (sum(is.na(response)) > 0){
+
+    prob_year <- row.names(response[is.na(response), , drop = F])
+
+    stop(paste0("NA is not allowed in response data frame. ",
+                "Problematic year is ", prob_year))
+    }
+
   # PART 2 - Based on the selected function arguments, different chunks of code
   # will be used. For demonstration:
   # A) Chunks are used if fixed.withd != 0
