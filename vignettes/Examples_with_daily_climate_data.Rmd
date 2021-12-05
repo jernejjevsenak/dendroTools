@@ -17,36 +17,59 @@ text-align: justify; font-size: 16px}
 </style>
 
 
-# 1. Introduction
+# 1 Introduction
 
-The dendroTools R package provides some novel dendroclimatological methods to analyse the relationship between tree-ring and environmental data. In this document we give details about how to use our package. All the data included in examples bellow is a part of the dendroTools R package. 
+The dendroTools R package was developed in 2018 and is still being updated regularly and will continue to do so in the future. It provides dendroclimatological methods for analysing statistical relationships between tree rings and daily climate data. The most commonly used method is the Pearson correlation coefficient, but users can also use non-parametric correlations such as Kendall or Spearman correlations, and in the case of a multiproxy approach, linear regression can also be applied. Artificial neural networks (brnn) are also available for nonlinear analyses.
 
-Please note, the examples presented here are made computationally less intensive to satisfy the CRAN policy. You are invited to explore the full potential of our package by using the wide range of possible window widths. 
+In this document I describe the basic principles behind the dendroTools R package and give some basic examples. All data included in the examples below is already included in the dendroTools R package. Please note that the examples presented here are less made computationally less intensive to accommodate the policy of CRAN. You are welcome to explore the full potential of my package by using the wide range of possible window widths.
 
-# 2. The use of daily_response()
+# 2 Transformation and quick preview of daily data
 
-The *daily_response()* works by sliding a moving window through daily environmental data and calculates statistical metrics with one or more tree ring proxies. Possible metrics are correlation coefficient, coefficient of determination (r squared) or adjusted coefficient of determination (adjusted r squared). In addition to linear regression, it is possible to use nonlinear artificial neural network with Bayesian regularization training algorithm (brnn).
-In general, user can use a fixed or progressive window for calculations of moving averages. To use a fixed window, select its width by assigning an integer to the argument *fixed_width*. To use many different windows, define the *lower_limit* and *upper_limit* arguments. In this case, all window widths between the lower and upper limits will be considered. In the later text, window width representative of a specific day of year (DOY) is defined as the values for this particular day and number of subsequent days corresponding to window width. All calculated metrics are stored in a matrix, which is later used to find the optimal window (i.e. optimal consecutive sequence of days), that returns the highest calculated metric. This selection is later used to calculate temporal stability and cross validation.
+One of the crucial step before using a dendroTools is to prepare climate data into a proper format. For *daily_response()* climate data must be in a format of 366 columns and n number of rows, which represent years, which are given as row names. A common format of daily data provided by many online sources is a table with two columns, where one column represents the date and the second is the value of the climate variable. To quickly transform such a format into a data frame with dimensions of 366 x n, dendroTools now offers the function *data_transform()*. The date can be in different formats, but it must be correctly speciﬁed with the argument date_format. For example, if the date is in the format "1988-01-30′′ ("year-month-day"), the argument date_format must be "ymd".
 
-## 2.1 Glimpse daily data
+When your data is in the proper format, the *glimpse_daily_data()* can be used for visual inspection of daily climate data. The main purpose here is to spot missing values and to evaluate the suitability of using specific daily data.
 
-The *glimpse_daily_data()* is used for visual depiction of daily environmental data. Especially, it is useful to spot missing values and to evaluate the suitability of using specific daily data. 
 
-```{r, fig.align='center', fig.width=8, fig.height=5, fig.cap=paste("Figure 1: Glimpse of daily temperautres for meteorological station Ljubljana."), message=FALSE, warning=FALSE, include=TRUE}
-# Load the dendroTools R package
+```{r, fig.align='center', fig.width=8, fig.height=8, fig.cap=paste("Figure 1: Glimpse of daily temperautres for swit272 site."), message=FALSE, warning=FALSE, include=TRUE}
+# Load the dendroTools and ggplot2 R packages
 library(dendroTools)
+library(ggplot2)
 
-# Load data
-data(LJ_daily_temperatures)
-glimpse_daily_data(env_data = LJ_daily_temperatures, tidy_env_data = FALSE, na.color = "white")
+# 1 Load an example data (source: E-OBS)
+data("swit272_daily_temperatures")
+data("swit272_daily_precipitation")
+
+# 2 Transform data into wide format
+swit272_daily_temperatures <- data_transform(swit272_daily_temperatures, format = 'daily', date_format = 'ymd')
+swit272_daily_precipitation <- data_transform(swit272_daily_precipitation, format = 'daily', date_format = 'ymd')
+
+# 3 Glimpse daily data
+glimpse_daily_data(env_data = swit272_daily_temperatures, na.color = "red") + 
+  theme(legend.position = "bottom")
+```
+
+```{r, fig.align='center', fig.width=8, fig.height=8, fig.cap=paste("Figure 2: Glimpse of daily precipitation for swit272 site."), message=FALSE, warning=FALSE, include=TRUE}
+
+glimpse_daily_data(env_data = swit272_daily_precipitation, na.color = "red") + 
+  theme(legend.position = "bottom")
 
 ```
 
+# 3 The *daily_response()* in action
 
+The *daily_response()* is the most commonly used function in the R package dendroTools, and works by sliding a moving window through the daily environmental (climate) data and computing statistical metrics using a tree-ring proxy. In dendroclimatology, such an analysis typically involves a site chronology that has been previously detrended, but a multiproxy approach involving multiple individual chronologies can also be used (see examples below). Possible metrics for the single-proxy approach include correlation coefficients, coefficient of determination (r-squared), and adjusted coefficient of determination (adjusted r-squared). In addition to linear regression, it is possible to use a nonlinear artificial neural network with a Bayesian regularisation training algorithm (brnn).
+In general, the user can use a fixed window or a progressive window to calculate the moving averages. To use a fixed window, choose its width by assigning an integer to the *fixed_width* argument. To use a so-called variable window, which includes many different windows, define the arguments *lower_limit* and *upper_limit*. In this case, all window widths between the lower and upper limits are taken into account. The window width is defined here as the number of days between the start and end days of a calculation. Thus, the window width represents a season of interest used in the calculations. 
+All calculated statistical metrics (correlation coefficients, r-squared or adjusted r-squared) are stored in a matrix that is later used to interpret the results. Such interpretation usually involves identifying the optimal season in relation to tree-ring chronology or analysing temporal patterns of correlations between climate and growth. The so-called optimal season (also called optimal window or time window with the highest correlation value) is later extracted and used to evaluate the temporal stability correlations.
 
-## 2.2 Example of analysing the relationship between mean vessel area (MVA) parameter and daily temperature data with fixed window width
+## 3.1 An example of analysing the relationship between Mean Vessel Area (MVA) tree-ring parameter and daily temperature data with fixed window appraoch
 
-In this example, we analyse the relationship between MVA and daily temperature data for wind width of 60 days (argument *fixed_width = 60*). Importantly, the *row_names_subset* argument is set to TRUE. This argument automatically subsets both data frames (i.e., environmental and tree-ring data) and keeps only matching years, which are used for calculations. To use this feature, years must be included as row names. All insignificant correlations are removed by setting the argument *remove_insignificant* to TRUE. The threshold for significance is set with the *alpha* argument.
+In this example, I analyse the relationship between the tree ring parameter Mean Early Wood Vessel Area (MVA) and daily temperature data (meteorological station Ljubljana, Slovenia) for a chosen window width of 60 days (argument *fixed_width = 60*). Note that the *fixed_width* argument overrides the *upper_limit* and *lower_limit* arguments when used.
+
+Here I also demonstrate the usability of the *row_names_subset* argument, which I highly recommend using. In most real cases, tree-ring chronologies and climate data do not completely overlap - the chronologies are usually longer than the available climate data. So if you use the argument *row_names_subset = TRUE *, your tree ring chronology (response) and your climate data (env_data) will be automatically subdivided, keeping only the overlapping years. Therefore, it is very important that the years are correctly specified in the row names of both data inputs.
+
+Another option I use here is to remove non-significant correlations. All non-significant correlations are removed by setting the argument *remove_insignificant = TRUE * while controlling the threshold for significance with the argument *alpha*.
+
+The results are interpreted with generic *summary()* and visualised with the generic *plot()* functions. There are two types of plots available, 1) highlighted results for a window with the highest calculated value (type = 1), and 2) heatmap of all calculated values (type = 2).
 
 ```{r, results = 'hide'}
 # Load the dendroTools R package
@@ -63,16 +86,19 @@ example_fixed_width <- daily_response(response = data_MVA, env_data = LJ_daily_t
                                    alpha = 0.05)
 
 ```
-```{r, fig.align='center', fig.width=8, fig.height=5, fig.cap=paste("Figure 2: The MVA parameter contains the optimal temperature signal from March 14 (DOY 73) to May 12 (DOY 132).")}
-example_fixed_width$plot_extreme
+```{r, fig.align='center', fig.width=10, fig.height=8, fig.cap=paste("Figure 3: The MVA parameter contains the optimal temperature signal from March 14 (DOY 73) to May 12 (DOY 132).")}
+
+summary(example_fixed_width)
+
+plot(example_fixed_width, type = 1)
+
 ```
 
-## 2.3 Example of analysing the statistical relationship between mean vessel area (MVA) parameter and daily temperature data for past and present
+## 3.2 The variable window approach with the arguments *subset_years* and *previous_year*
 
-In the exploration of tree-climate relationships, researchers might be interested in how this relationship is different between past and present. The key argument for such analysis is *subset_years*, which defines the subset of years to be analysed. In the following example, we will analyse the relationship between MVA and daily temperature data for two periods, 1940 – 1980 and 1981 – 2010.
-All possible window widths between 50 and 70 days, including the previous year, will be considered. The latter is achieved by setting the *previous_year* argument to TRUE. Importantly, the *row_names_subset* argument is set to TRUE. This argument automatically subsets both data frames (i.e., environmental and tree-ring data) and keeps only matching years, which are used for calculations. To use this feature, years must be included as row names. All insignificant correlations are removed by setting the argument *remove_insignificant* to TRUE. The threshold for significance is set with the *alpha* argument.
+In the exploration of climate-growth relationships, we are often interested in the effect of climate in previous year on tree-ring characteristics in current year. To calculate the correlations (or other statistical metrices) with previous growing seasons, use *previous_year = TRUE*. In addition to previous year effect, researchers are often interested in how these relationships differ in time, are they stable of vary? The key argument for such analysis is *subset_years*, which defines the subset of years to be analysed. In the following example, I will analyse the relationship between MVA and daily temperature data for two subperiods, 1940 – 1980 and 1981 – 2010.
+To make the example computationally less intensive, we will only use window with sizes of 55 and 65. As suggested before, the *row_names_subset* argument is set to TRUE.
 
-After the function finish with all calculations, we plot the temporal patterns for past and present. In addition, we are interested in specific window width with span of 60 days (use *plot_specific_window* argument). 
 
 ```{r, results = 'hide'}
 # Load the dendroTools R package
@@ -83,37 +109,169 @@ data(data_MVA)
 data(LJ_daily_temperatures)
 
 # Example for past and present
-example_MVA_past <- daily_response(response = data_MVA, env_data = LJ_daily_temperatures,
-                              method = "cor", lower_limit = 50, upper_limit = 70,
+example_MVA_early <- daily_response(response = data_MVA, env_data = LJ_daily_temperatures,
+                              method = "cor", lower_limit = 55, upper_limit = 65,
                               row_names_subset = TRUE, previous_year = TRUE,
                               remove_insignificant = TRUE, alpha = 0.05, 
-                              plot_specific_window = 60, subset_years = c(1941, 1980))
+                              subset_years = c(1941, 1980))
 
-example_MVA_present <- daily_response(response = data_MVA, env_data = LJ_daily_temperatures,
-                                   method = "cor", lower_limit = 50, upper_limit = 70,
+example_MVA_late <- daily_response(response = data_MVA, env_data = LJ_daily_temperatures,
+                                   method = "cor", lower_limit = 55, upper_limit = 65,
                                    row_names_subset = TRUE, previous_year = TRUE,
                                    remove_insignificant = TRUE, alpha = 0.05, 
-                                   plot_specific_window = 60, subset_years = c(1981, 2010))
+                                   subset_years = c(1981, 2010))
 ```
-```{r, fig.align='center', warning=FALSE, fig.width=8, fig.height=5, fig.cap=paste("Figure 3: The temporal correlations pattern for the past"), message=FALSE, warning=FALSE, include=TRUE}
-example_MVA_past$plot_heatmap
-```
-
-```{r, fig.align='center', warning=FALSE, fig.width=8, fig.height=5, fig.cap=paste("Figure 4: The temporal correlations pattern for the present"), message=FALSE, warning=FALSE, include=TRUE}
-example_MVA_present$plot_heatmap
+```{r, fig.align='center', warning=FALSE, fig.width = 10, fig.height = 8, fig.cap=paste("Figure 4: The temporal correlations pattern for the period 1941-1980"), message=FALSE, warning=FALSE, include=TRUE}
+plot(example_MVA_early, type = 2)
 ```
 
-```{r, fig.align='center', warning=FALSE, fig.width=8, fig.height=5, fig.cap=paste("Figure 5: The temporal correlations for pre-defined window of 60 days for past years"), message=FALSE, warning=FALSE, include=TRUE}
-example_MVA_past$plot_specific
+```{r, fig.align='center', warning=FALSE, fig.width=10, fig.height=8, fig.cap=paste("Figure 5: The temporal correlations pattern for the period 1981-2010"), message=FALSE, warning=FALSE, include=TRUE}
+plot(example_MVA_late, type = 2)
 ```
 
-```{r, fig.align='center', warning=FALSE, fig.width=8, fig.height=5, fig.cap=paste("Figure 6: The temporal correlations for pre-defined window of 60 days for present years"), message=FALSE, warning=FALSE, include=TRUE}
-example_MVA_present$plot_specific
+## 3.3 Analysis of climate-growth correlations only for a subset of selected time interval
+
+If users wish to restrict the time interval of interest for calculating climate-growth correlations, the *day_interval* argument can be used for daily data and *month_interval* for monthly data in *monthly_response()*. For example, if you use *daily_response()* and want to calculate correlations only from the beginning of previous October to the current end of September, use the argument *daily_interval =c(-274, 273)*. Note that a negative sign indicates previous_year doy, while a positive sign indicates the current year doy. In normal (non-leap ) years, October 1 represents doy 274, while September 30 represents doy 273. If you use *monthly_response()* and want to calculate correlations only from the beginning of the previous October to the current end of September, use the argument *monthly_interval =c(-10, 9)*. Note that a negative sign indicates the month of the previous year, while a positive sign indicates the month of the current year.
+
+```{r, results = 'hide'}
+# Load the dendroTools R package
+library(dendroTools)
+
+# Load data
+data(data_TRW_1)
+data(LJ_daily_temperatures)
+
+# Example negative correlations
+data(data_TRW_1)
+example_restricted_interval <- daily_response(response = data_TRW_1, env_data = LJ_daily_temperatures,
+                                   method = "cor", lower_limit = 55, upper_limit = 65,
+                                   previous_year = FALSE, row_names_subset = TRUE, remove_insignificant = TRUE,
+                                   alpha = 0.05, day_interval = c(150, 210))
 ```
 
-The climate-tree relationships between past and present are similar. However, there is a three days of shift in optimal window between past and present. 
+```{r, fig.align='center', warning=FALSE, fig.width=10, fig.height=8, fig.cap=paste("Figure 6: Climate-growth correlations calculated only for a subset of time window from DOY 150 to DOY 210"), message=FALSE, warning=FALSE, include=TRUE}
 
-## 2.4 Principal component analysis in combination with the daily_response()
+plot(example_restricted_interval, type = 2)
+
+```
+
+# 4 An example with multiple tree-ring proxies
+
+As mentioned in the introduction, *daily_response()* allows multiproxy analysis where the *response* data frame consists of more than one tree-ring proxy. In such cases, linear or non-linear (brnn) models are fitted at each step and r-squared or adjusted r-squared is computed. However, users should choose multiple proxies judiciously and with caution, as there is nothing to prevent from including colinear variables. Using multiple proxies will result in higher explained variance, but at the expense of degrees of freedom. In these cases, you should also check the stability of the relationship over time and the result of cross-validation. If the metrics on the validation data are much lower than on the calibration data, there is a problem of overfitting and you should exclude some proxies and repeat the analysis. It ishighly recommended that you use the adjusted r-squared metric when using the multiproxy approach.
+
+```{r }
+# Load the dendroTools and brnn R package
+library(dendroTools)
+
+# Example of multiproxy analysis
+data(example_proxies_1)
+data(LJ_daily_temperatures)
+
+# Summary of the example_proxies_1 data frame
+summary(example_proxies_1)
+```
+
+There are three proxy variables: Tree-ring width (TRWi), stable oxygen isotopes (O18) and Mean Vessel Area (MVA).
+
+```{r }
+cor(example_proxies_1)
+```
+
+The correlation matrix shows only low correlations among the three proxies.
+
+```{r, results = 'hide'}
+example_multiproxy <- daily_response(response = example_proxies_1, 
+                                     env_data = LJ_daily_temperatures, 
+                                     method = "lm", metric = "adj.r.squared", 
+                                     lower_limit = 63, upper_limit = 67, 
+                                     row_names_subset = TRUE, previous_year = FALSE, 
+                                     remove_insignificant = TRUE, alpha = 0.05)
+```
+
+```{r, fig.align='center', warning=FALSE, fig.width=8, fig.height=5, fig.cap=paste("Figure 7: The temporal pattern of adjusted r-squared for the multiproxy example. The temporal pattern shows similar result than for the example with MVA only. Therefore, the highest percentage of (adjusted) explained variance is most likely related to MVA variable."), message=FALSE, warning=FALSE, include=TRUE}
+plot(example_multiproxy, type = 2)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## 4 Principal component analysis in combination with the daily_response()
 
 Principal Component Analysis (PCA) is commonly used with tree-ring data to reduce the full set of original tree-ring chronologies to a more manageable set of transformed variables. These transformed variables, the set of principal component scores, are then used as predictors in climate reconstruction models. The PCA also acts to strengthen the common regional-scale climate response within a group of tree-ring chronologies by concentrating the common signal in the components with the largest eigenvalues. 
 
@@ -144,38 +302,9 @@ summary(example_PCA$PCA_output)
 ```{r, fig.align='center', warning=FALSE, fig.width=8, fig.height=5, fig.cap=paste("Figure 7: The temporal pattern for the r.squared. The highest coefficients of determination were calculated for DOY around 90 with span of 2 months."), message=FALSE, warning=FALSE, include=TRUE}
 example_PCA$plot_heatmap
 ```
-## 2.5 Example with negative correlations
 
-The *daily_response()* recognizes negative relationship (negative correlations) between proxy and daily climate data. Here we show a simple example with negative correlation coefficients. For the demonstration, we use data_TRW_1 and LJ_daily_temperatures.
 
-```{r, results = 'hide'}
-# Load the dendroTools R package
-library(dendroTools)
-
-# Load data
-data(data_TRW_1)
-data(LJ_daily_temperatures)
-
-# Example negative correlations
-data(data_TRW_1)
-example_neg_cor <- daily_response(response = data_TRW_1, env_data = LJ_daily_temperatures,
-                              method = "cor", lower_limit = 50, upper_limit = 70,
-                              row_names_subset = TRUE, remove_insignificant = TRUE,
-                              alpha = 0.05)
-```
-
-```{r, fig.align='center', warning=FALSE, fig.width=8, fig.height=5, fig.cap=paste("Figure 8: The temporal pattern of correlation coefficients."), message=FALSE, warning=FALSE, include=TRUE}
-example_neg_cor$plot_heatmap
-```
-```{r, fig.align='center', warning=FALSE, fig.width=8, fig.height=5, fig.cap=paste("Figure 9: The highest calculated correlation coefficient."), message=FALSE, warning=FALSE, include=TRUE}
-example_neg_cor$plot_extreme
-```
-```{r}
-# The temporal stability of correlations
-example_neg_cor$temporal_stability
-```
-
-## 2.6 The example of climate reconstruction with linear model
+## 6 The example of climate reconstruction with linear model
 
 Reconstructions of past climate conditions include reconstructions of past temperature, precipitation, vegetation, streamflow, sea surface temperature, and other climatic or climate-dependent conditions. With the *daily_response()*, we first find the optimal sequence of consecutive days that returns the highest metric. In this example, we use data_TRW and daily temperatures from Kredarica (KRE_daily_temperatures). The temporal stability of statistical relationship will be analysed with "progressive" method, using 3 splits (*k* = 3). Progressive check splits data into *k* splits, calculates metric for the first split and then progressively adds 1 split at a time and calculates selected metric. The argument *cross_validation_type* is set to "randomized", so years will be shuffled before the cross-validation test.
 
@@ -221,11 +350,11 @@ reconstruction <- data.frame(predictions = predict(linear_model, newdata = data_
 plot(row.names(data_TRW), reconstruction$predictions, type = "l", xlab = "Year", ylab = "Mean temperature May 15 - Jun 27 [ºC]")
 ```
 
-## 2.7 The example of climate reconstruction with nonlinear brnn model
+## 7 The example of climate reconstruction with nonlinear brnn model
 
 To reconstruct the climate with the nonlinear brnn model, use the argument method = "brnn". Note Please note that this example has been removed from CRAN due to the CRAN policy. To see the step-by-step procedure, search for the older versions of the vignettes or see the examples in the dendroTools manual and in the published articles in Dendrochronologia.
 
-## 2.8 Example of using daily_response() with daily precipitation and daily temperature data
+## 8 Example of using daily_response() with daily precipitation and daily temperature data
 
 The current version of the *daily_response()* does not allow for using more than 1 daily environmental data, but the analysis with, e.g., daily temperature and precipitation data could be done separately and visualised together. In the following example, we analyse the relationship between Mean Vessel Area (MVA) chronology and daily temperature and precipitation data for the period 1960 – 2010. The period is defined with the *subset_ years* argument.
 
@@ -260,53 +389,4 @@ grid.arrange(example_MVA_TEMP$plot_heatmap, example_MVA_PREC$plot_heatmap)
 ```
 ```{r, fig.align='center', warning=FALSE, fig.width=8, fig.height=10, fig.cap=paste("Figure 17: The highest calculated correlations for temperatures (upper plot) and precipitation (lower plot)"), message=FALSE, warning=FALSE, include=TRUE}
 grid.arrange(example_MVA_TEMP$plot_extreme, example_MVA_PREC$plot_extreme)
-```
-
-## 2.9 Example of multiproxy analysis
-
-The *daily_response()* enables the analysis of the relationship between daily environmental data and more than one *response* (proxy) variable, simultaneously. However, users should select multiple proxies reasonably and with caution, since there is nothing to prevent from including colinear variables. Using several proxies will result in higher explained variance but at the cost of degrees of freedom. In those cases, users should check the temporal stability of relationship and the cross-validation result. If metrics on validation data are much lower than on calibration data, there is a problem of overfitting and users should exclude some proxies and repeat the analysis. Importantly, when using the multiproxy approach, use the adjusted r squared metric!
-
-```{r }
-# Load the dendroTools and brnn R package
-library(dendroTools)
-
-# Example of multiproxy analysis
-data(example_proxies_1)
-data(LJ_daily_temperatures)
-
-# Summary of the example_proxies_1 data frame
-summary(example_proxies_1)
-```
-
-There are three proxy variables: Tree-ring width (TRW), stable oxygen isotope ratio (O18) and Mean Vessel Area (MVA).
-
-```{r }
-cor(example_proxies_1)
-```
-
-The correlation matrix shows only low correlations among the three proxies.
-
-```{r, results = 'hide'}
-example_multiproxy <- daily_response(response = example_proxies_1, 
-                                     env_data = LJ_daily_temperatures, 
-                                     method = "lm", metric = "adj.r.squared", 
-                                     lower_limit = 60, upper_limit = 70, 
-                                     row_names_subset = TRUE, previous_year = FALSE, 
-                                     remove_insignificant = TRUE, alpha = 0.05)
-```
-
-```{r, fig.align='center', warning=FALSE, fig.width=8, fig.height=5, fig.cap=paste("Figure 18: The temporal pattern of r squared for the multiproxy example"), message=FALSE, warning=FALSE, include=TRUE}
-example_multiproxy$plot_heatmap
-```
-
-The temporal pattern shows similar result than for the example with MVA only. Therefore, the highest percentage of explained variance is probable due to the MVA variable. TRW and O18 are probable not significant variables. Let's check this out.
-
-```{r }
-liner_model <- lm(Optimized_return ~ ., data = example_multiproxy$optimized_return)
-summary(liner_model)
-```
-
-For the multiproxy approach, there is no transfer function created.
-```{r , message=FALSE, warning=FALSE, include=TRUE}
-example_multiproxy$transfer_function
 ```
