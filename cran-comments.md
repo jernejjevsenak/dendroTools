@@ -13,12 +13,12 @@ Jernej
 * local OS X install, R 4.1.1
 
 * rhub Windows Server 2008 (https://builder.r-hub.io/status/original/dendroTools_1.2.4.tar.gz-222bec681bb844ad9b667b5ce9365697)
-* rhub Ubuntu (https://builder.r-hub.io/status/original/dendroTools_1.2.0.tar.gz-530b7c270d93453bb9ddc3414632e02e)
-* rhub Fedora Linux (https://builder.r-hub.io/status/original/dendroTools_1.2.0.tar.gz-b3f4c493650c4022b21282e204335b5b)
+* rhub Ubuntu (https://builder.r-hub.io/status/original/dendroTools_1.2.4.tar.gz-e65703f8b6a246c0bdc28e90d9854c06)
+* rhub Fedora Linux (https://builder.r-hub.io/status/original/dendroTools_1.2.4.tar.gz-ca591383ea85471eb471e5263d57e36d)
 
-* win-check oldrelease (https://win-builder.r-project.org/j3i3LAD9zOSn/)
-* win-check release (https://win-builder.r-project.org/66oDZ9C2RRPG/)
-* win-check devel (https://win-builder.r-project.org/3E2O0Mau5Ekt/)
+* win-check oldrelease (https://win-builder.r-project.org/yeW10nFGzY9l/00check.log)
+* win-check release (https://win-builder.r-project.org/JA604TvmhX7A/00check.log)
+* win-check devel (https://win-builder.r-project.org/nsSADg5T9951/00check.log)
 
 ## R CMD check results
 There were 0 ERRORs, 0 WARNINGs and 0 NOTEs
