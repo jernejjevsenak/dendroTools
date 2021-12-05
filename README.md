@@ -1,16 +1,39 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
-dendroTools
-===========
 
-The core purpose of the dendroTools package is to introduce novel dendroclimatological methods to study linear and nonlinear relationships between environmental (climate) data and tree-ring sequences. Currently, there are two core functions. The first core function is the daily\_response(), which finds the optimal sequence of days that are linearly or nonlinearly related to a tree-ring proxy records. The second core function is compare\_methods() which calculates several performance metrics for train and test data for different regression methods.
+# dendroTools
 
-To use daily\_response(), two data frames are required, one with daily climate data, e.g. mean daily temperature; and one with tree-ring proxy records. Example data is provided, so users can see, how data frames should be organized. The daily\_response() calculates all possible values of a selected statistical metric between response variable(s) and daily environmental data. Calculations are based on a moving window, which runs through daily environmental data and calculates moving averages.
+The core purpose of the dendroTools package is to introduce novel
+dendroclimatological methods to study linear and nonlinear relationships
+between environmental (climate) data and tree-ring sequences in R. The
+two functions, which are used to study climate-growth relationships
+using daily climate data, are *daily_response()* and
+*daily_response_seascorr()*, while the two functions for monthly data
+are *monthly_response()* and *monthly_response_seascorr()*. The seascorr
+functions are designed to study partial correlation coefficients, while
+the other two can be used to calculate simple correlations, or fit
+linear and nonlinear models between aggregated climate data and
+tree-ring proxies. To use daily_response(), two data frames are
+required, one with daily climate data, e.g. mean daily temperature; and
+one with tree-ring proxy records. Example data is provided, so users can
+see, how data frames should be organized. The daily_response()
+calculates all possible values of a selected statistical metric between
+response variable(s) and daily environmental data. Calculations are
+based on a moving window, which runs through daily environmental data
+and calculates moving averages. In addition, there generic functions are
+available for visualization and interpretation of results.  
+A completely separate function is the *compare_methods()* which can be
+used to compare different regression methods for climate reconstruction.
+It calculates several performance metrics for train and test data for
+different regression methods: multiple linear regression (MLR),
+artificial neural networks with Bayesian regularization training
+algorithm (BRNN), M5P model trees (MT), model trees with bagging (BMT)
+and random forest of regression trees (RF). Calculated performance
+metrics are correlation coefficient (r), root mean squared error (RMSE),
+root relative squared error (RRSE), index of agreement (d), reduction of
+error (RE), coefficient of efficiency (CE) and mean bias.
 
-compare\_methods() calculates performance metrics for multiple linear regression (MLR), artificial neural networks with Bayesian regularization training algorithm (BRNN), M5P model trees (MT), model trees with bagging (BMT) and random forest of regression trees (RF). Calculated performance metrics are correlation coefficient (r), root mean squared error (RMSE), root relative squared error (RRSE), index of agreement (d), reduction of error (RE), coefficient of efficiency (CE) and mean bias.
-
-Installation
-------------
+## Installation
 
 You can install dendroTools using:
 
@@ -21,7 +44,6 @@ devtools::install_github("jernejjevsenak/dendroTools") # current version under d
 install.packages("dendroTools") # from CRAN
 ```
 
-Authors
--------
+## Authors
 
 -   **Jernej Jevšenak**

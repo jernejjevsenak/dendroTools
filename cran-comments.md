@@ -1,10 +1,7 @@
-Dear CRAN
-
-This is regular update of the dendroTools r package. There was one major update and some minor as well.
-
-Please also note the extensive vignette examples. In previous versions, we agreed to disable vignette checking on some platforms. I believe it makes sense to keep it that way.
-
-Many thanks at this point. 
+Dear CRAN  
+This is regular update of the dendroTools r package.
+I have also updated the vignette examples, which are now computationally less extensive, but I believe they will still exceed CRAN computational limits.  In previous versions, we agreed to disable vignette checking on some platforms. I believe it makes sense to keep it that way.  
+Best,   
 Jernej
 
 

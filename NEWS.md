@@ -1,13 +1,17 @@
-# dendroTools 1.2.1
-Minor correction for ggplot2 object -> guide = FALSE --> guide = 'none'
+# dendroTools 1.2.4
+* updated vignettes
+* new arguments are added which can be used to detrend climate
+* climate detrending is based on the dplR R package
+* gridExtra is removed from dependences
 
+# dendroTools 1.2.1
+* Minor correction for ggplot2 object -> guide = FALSE --> guide = 'none'
 
 # dendroTools 1.2.0
-There is a major upgrade related to new arguments that now allow you to specify the time of interest to be used for calculating correlation coefficients or other statistical metrics.
+* There is a major upgrade related to new arguments that now allow you to specify the time of interest to be used for calculating correlation coefficients or other statistical metrics.
 For example, if you are using daily_response() or daily_response_seascorr() and want to calculate correlations only from the beginning of last October to the current end of September, use the argument daily_interval =c(-274, 273). Note that a negative sign indicates the previous year's doy, while a positive sign indicates the current year doy. In normal (non-leap ) years, October 1 represents doy 274, and September 30 represents doy 273.
-If you use monthly_response() or monthly_response_seascorr() and want to calculate correlations only from the beginning of the previous October to the current end of September, for example, use the argument monthly_interval =c(-10, 9). Note that a negative sign indicates the month of the previous year, while a positive sign indicates the month of the current year.
+* If you use monthly_response() or monthly_response_seascorr() and want to calculate correlations only from the beginning of the previous October to the current end of September, for example, use the argument monthly_interval =c(-10, 9). Note that a negative sign indicates the month of the previous year, while a positive sign indicates the month of the current year.
 Other functions have been changed only slightly, so they will work even if new arguments are used.
-
 
 # dendroTools 1.1.4
 * new error is implemented in case of wrong subset_years
