@@ -12,7 +12,7 @@ Jernej
 ## Test environments
 * local OS X install, R 4.1.1
 
-* rhub Windows Server 2008 (https://builder.r-hub.io/status/original/dendroTools_1.2.0.tar.gz-f181d9d390624541b9ac73f661dec018)
+* rhub Windows Server 2008 (https://builder.r-hub.io/status/original/dendroTools_1.2.4.tar.gz-222bec681bb844ad9b667b5ce9365697)
 * rhub Ubuntu (https://builder.r-hub.io/status/original/dendroTools_1.2.0.tar.gz-530b7c270d93453bb9ddc3414632e02e)
 * rhub Fedora Linux (https://builder.r-hub.io/status/original/dendroTools_1.2.0.tar.gz-b3f4c493650c4022b21282e204335b5b)
 
