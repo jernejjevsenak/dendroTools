@@ -238,6 +238,7 @@ a list with 17 elements:
  \item $reference_window - character string, which reference window was used for calculations
  \item $boot_lower - matrix with lower limit of confidence intervals of bootstrap calculations
  \item $boot_upper - matrix with upper limit of confidence intervals of bootstrap calculations
+ \item $aggregated_climate - matrix with all aggregated climate series
 }
 }
 \description{
@@ -274,14 +275,12 @@ example_daily_response <- daily_response(response = data_MVA,
     alpha = 0.05, aggregate_function = 'mean',
     reference_window = "start")
 
-class(example_daily_response)
 summary(example_daily_response)
 plot(example_daily_response, type = 1)
 plot(example_daily_response, type = 2)
-plot(example_daily_response, type = 3)
 
 # 2 Example for past and present. Use subset_years argument.
-example_MVA_past <- daily_response(response = data_MVA,
+example_MVA_early <- daily_response(response = data_MVA,
     env_data = LJ_daily_temperatures, cor_method = "kendall",
     method = "cor", lower_limit = 21, upper_limit = 90,
     row_names_subset = TRUE, previous_year = TRUE,
@@ -289,7 +288,7 @@ example_MVA_past <- daily_response(response = data_MVA,
     plot_specific_window = 60, subset_years = c(1940, 1980),
     aggregate_function = 'sum')
 
-example_MVA_present <- daily_response(response = data_MVA,
+example_MVA_late <- daily_response(response = data_MVA,
     env_data = LJ_daily_temperatures,
     method = "cor", lower_limit = 21, upper_limit = 60,
     row_names_subset = TRUE, previous_year = TRUE,
@@ -297,10 +296,10 @@ example_MVA_present <- daily_response(response = data_MVA,
     plot_specific_window = 60, subset_years = c(1981, 2010),
     aggregate_function = 'sum')
 
-plot(example_MVA_past, type = 1)
-plot(example_MVA_present, type = 1)
-plot(example_MVA_past, type = 2)
-plot(example_MVA_present, type = 2)
+plot(example_MVA_early, type = 1)
+plot(example_MVA_late, type = 1)
+plot(example_MVA_early, type = 2)
+plot(example_MVA_late, type = 2)
 
 # 3 Example PCA
 example_PCA <- daily_response(response = example_proxies_individual,
