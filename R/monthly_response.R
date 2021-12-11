@@ -679,6 +679,10 @@ if (fixed_width != 0){
     # B.2 method == "lm"
     # B.3 method == "brnn"
 
+  # this is a list for climate and and holder for saving mm
+  list_climate <- list()
+  mm <- 1
+
   # A.1 method = "cor"
   if (fixed_width != 0 & method == "cor") {
 
@@ -757,6 +761,13 @@ if (fixed_width != 0){
           x <- matrix(x, nrow = nrow(env_data), ncol = 1)
 
         }
+
+        x_list <- x
+        colnames(x_list) <- paste0(j + 1, "_" ,j + fixed_width)
+        row.names(x_list) <- row.names(env_data)
+        list_climate[[mm]] <- x_list
+        mm = mm + 1
+
 
         if (boot == FALSE){
 
@@ -926,6 +937,12 @@ if (fixed_width != 0){
         x <- matrix(x, nrow = nrow(env_data), ncol = 1)
 
       }
+
+      x_list <- x
+      colnames(x_list) <- paste0(j + 1, "_" ,j + fixed_width)
+      row.names(x_list) <- row.names(env_data)
+      list_climate[[mm]] <- x_list
+      mm = mm + 1
 
       if (boot == FALSE){
 
@@ -1143,6 +1160,12 @@ if (fixed_width != 0){
          x <- matrix(x, nrow = nrow(env_data), ncol = 1)
 
        }
+
+       x_list <- x
+       colnames(x_list) <- paste0(j + 1, "_" ,j + fixed_width)
+       row.names(x_list) <- row.names(env_data)
+       list_climate[[mm]] <- x_list
+       mm = mm + 1
 
       if (boot == FALSE){
 
@@ -1398,6 +1421,11 @@ if (fixed_width != 0){
 
       }
 
+      x_list <- x
+      colnames(x_list) <- paste0(j + 1, "_" ,j + K)
+      row.names(x_list) <- row.names(env_data)
+      list_climate[[mm]] <- x_list
+      mm = mm + 1
 
       if (boot == FALSE){
         temporal_correlation <- cor(response[, 1], x[, 1], method = cor_method)
@@ -1560,6 +1588,12 @@ if (fixed_width != 0){
           x <- matrix(x, nrow = nrow(env_data), ncol = 1)
 
         }
+
+        x_list <- x
+        colnames(x_list) <- paste0(j + 1, "_" ,j + K)
+        row.names(x_list) <- row.names(env_data)
+        list_climate[[mm]] <- x_list
+        mm = mm + 1
 
         if (boot == FALSE){
 
@@ -1773,6 +1807,12 @@ if (fixed_width != 0){
           x <- matrix(x, nrow = nrow(env_data), ncol = 1)
 
         }
+
+        x_list <- x
+        colnames(x_list) <- paste0(j + 1, "_" ,j + K)
+        row.names(x_list) <- row.names(env_data)
+        list_climate[[mm]] <- x_list
+        mm = mm + 1
 
         if (boot == FALSE){
 
@@ -2788,14 +2828,9 @@ for (m in 1:length(empty_list_datasets)){
       cross_validation <- dplyr::select(cross_validation, CV, Period, cor, RMSE, RRSE, d, RE, CE, DE)
     }
 
-
-
   ################################################################
   #### Here the final list is being filled with six elements #####
   ################################################################
-
-
-
 
   # When metohod == "cor", different final_list is created
   if (method == "lm" | method == "brnn") {
@@ -2804,7 +2839,8 @@ for (m in 1:length(empty_list_datasets)){
                        optimized_return = dataf_full,
                        optimized_return_all = dataf_full_original,
                        transfer_function = p1, temporal_stability = temporal_stability,
-                       cross_validation = cross_validation)
+                       cross_validation = cross_validation,
+                       aggregated_climate = do.call(cbind, list_climate))
   }
 
   if (method == "cor"){
@@ -2813,7 +2849,8 @@ for (m in 1:length(empty_list_datasets)){
                        optimized_return = dataf_full,
                        optimized_return_all = dataf_full_original,
                        transfer_function = p1, temporal_stability = temporal_stability,
-                       cross_validation = cross_validation)
+                       cross_validation = cross_validation,
+                       aggregated_climate = do.call(cbind, list_climate))
   }
 
 
@@ -2855,7 +2892,8 @@ for (m in 1:length(empty_list_datasets)){
                          type = "monthly",
                          reference_window = reference_window,
                          boot_lower = temporal_matrix_lower,
-                         boot_upper = temporal_matrix_upper)
+                         boot_upper = temporal_matrix_upper,
+                         aggregated_climate = do.call(cbind, list_climate))
     }
 
     if (method == "cor"){
@@ -2872,7 +2910,8 @@ for (m in 1:length(empty_list_datasets)){
                          type = "monthly",
                          reference_window = reference_window,
                          boot_lower = temporal_matrix_lower,
-                         boot_upper = temporal_matrix_upper)
+                         boot_upper = temporal_matrix_upper,
+                         aggregated_climate = do.call(cbind, list_climate))
     }
 
     class(final_list) <- 'dmrs'
