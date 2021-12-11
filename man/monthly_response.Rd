@@ -223,6 +223,7 @@ a list with 17 elements:
  \item $reference_window - character string, which reference window was used for calculations
  \item $boot_lower - matrix with lower limit of confidence intervals of bootstrap calculations
  \item $boot_upper - matrix with upper limit of confidence intervals of bootstrap calculations
+ \item $aggregated_climate - matrix with all aggregated climate series
 }
 }
 \description{

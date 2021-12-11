@@ -153,6 +153,8 @@
 #'  \item $PCA_output - princomp object: the result output of the PCA analysis
 #'  \item $type - the character string describing type of analysis: daily or monthly
 #'  \item $reference_window - character string, which reference window was used for calculations
+#'  \item $aggregated_climate_primary - matrix with all aggregated climate series of primary data
+#'  \item $aggregated_climate_control - matrix with all aggregated climate series of control data
 #'}
 #'
 #' @export
@@ -679,6 +681,13 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
   # B) Chunks are used if fixed.withd == 0
     # B.1 method == "cor"
 
+  # these are lists for climate and and holder for saving mm1 and mm2
+  list_climate_primary <- list()
+  list_climate_control <- list()
+
+  mm1 <- 1
+  mm2 <- 1
+
   # A.1 method = "cor"
   if (fixed_width != 0 & method == "cor") {
 
@@ -782,6 +791,17 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
         my_temporal_data <- cbind(response[, 1], x1, x2)
         colnames(my_temporal_data) <- c("x", "y", "z")
 
+        x1_list <- x1
+        colnames(x1_list) <- paste0(j + 1, "_" ,j + fixed_width)
+        row.names(x1_list) <- row.names(env_data_primary)
+        list_climate_primary[[mm1]] <- x1_list
+        mm1 = mm1 + 1
+
+        x2_list <- x2
+        colnames(x2_list) <- paste0(j + 1, "_" ,j + fixed_width)
+        row.names(x2_list) <- row.names(env_data_control)
+        list_climate_control[[mm2]] <- x2_list
+        mm2 = mm2 + 1
 
         if (boot == FALSE){
 
@@ -1027,6 +1047,18 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
 
       my_temporal_data <- cbind(response[, 1], x1, x2)
       colnames(my_temporal_data) <- c("x", "y", "z")
+
+      x1_list <- x1
+      colnames(x1_list) <- paste0(j + 1, "_" ,j + K)
+      row.names(x1_list) <- row.names(env_data_primary)
+      list_climate_primary[[mm1]] <- x1_list
+      mm1 = mm1 + 1
+
+      x2_list <- x2
+      colnames(x2_list) <- paste0(j + 1, "_" ,j + K)
+      row.names(x2_list) <- row.names(env_data_control)
+      list_climate_control[[mm2]] <- x2_list
+      mm2 = mm2 + 1
 
       if (boot == FALSE){
 
@@ -1773,9 +1805,6 @@ for (m in 1:length(empty_list_datasets)){
   #### Here the final list is being filled with six elements #####
   ################################################################
 
-
-
-
   # When metohod == "cor", different final_list is created
   if (method == "lm" | method == "brnn") {
     final_list <- list(calculations = temporal_matrix, method = method,
@@ -1783,7 +1812,9 @@ for (m in 1:length(empty_list_datasets)){
                        optimized_return = x1_full,
                        optimized_return_all = x1_full_original,
                        transfer_function = p1, temporal_stability = temporal_stability,
-                       cross_validation = cross_validation)
+                       cross_validation = cross_validation,
+                       aggregated_climate_primary = do.call(cbind, list_climate_primary),
+                       aggregated_climate_control = do.call(cbind, list_climate_control))
   }
 
   if (method == "cor"){
@@ -1792,7 +1823,9 @@ for (m in 1:length(empty_list_datasets)){
                        optimized_return = x1_full,
                        optimized_return_all = x1_full_original,
                        transfer_function = p1, temporal_stability = temporal_stability,
-                       cross_validation = cross_validation)
+                       cross_validation = cross_validation,
+                       aggregated_climate_primary = do.call(cbind, list_climate_primary),
+                       aggregated_climate_control = do.call(cbind, list_climate_control))
   }
 
     plot_heatmapA <- plot_heatmap(final_list, reference_window = reference_window, type = "daily")
@@ -1832,7 +1865,9 @@ for (m in 1:length(empty_list_datasets)){
                          type = "daily",
                          reference_window = reference_window,
                          boot_lower = temporal_matrix_lower,
-                         boot_upper = temporal_matrix_upper)
+                         boot_upper = temporal_matrix_upper,
+                         aggregated_climate_primary = do.call(cbind, list_climate_primary),
+                         aggregated_climate_control = do.call(cbind, list_climate_control))
     }
 
     if (method == "cor"){
@@ -1849,7 +1884,9 @@ for (m in 1:length(empty_list_datasets)){
                          type = "daily",
                          reference_window = reference_window,
                          boot_lower = temporal_matrix_lower,
-                         boot_upper = temporal_matrix_upper)
+                         boot_upper = temporal_matrix_upper,
+                         aggregated_climate_primary = do.call(cbind, list_climate_primary),
+                         aggregated_climate_control = do.call(cbind, list_climate_control))
     }
 
     class(final_list) <- "dmrs"

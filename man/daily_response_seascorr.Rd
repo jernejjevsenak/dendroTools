@@ -239,6 +239,8 @@ a list with 15 elements:
  \item $PCA_output - princomp object: the result output of the PCA analysis
  \item $type - the character string describing type of analysis: daily or monthly
  \item $reference_window - character string, which reference window was used for calculations
+ \item $aggregated_climate_primary - matrix with all aggregated climate series of primary data
+ \item $aggregated_climate_control - matrix with all aggregated climate series of control data
 }
 }
 \description{
