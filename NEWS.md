@@ -1,3 +1,6 @@
+# dendroTools 1.2.6
+* detrending climate data is now available in all response type functions
+
 # dendroTools 1.2.4
 * updated vignettes
 * new arguments are added which can be used to detrend climate
