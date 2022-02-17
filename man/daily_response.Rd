@@ -48,7 +48,8 @@ daily_response(
   dc_constrain.nls = c("never", "when.fail", "always"),
   dc_span = "cv",
   dc_bass = 0,
-  dc_difference = FALSE
+  dc_difference = FALSE,
+  cor_na_use = "everything"
 )
 }
 \arguments{
@@ -217,6 +218,12 @@ in method "Friedman" (see dplR R package).}
 
 \item{dc_difference}{a logical flag. Compute residuals by substraction if TRUE,
 otherwise use division (see dplR R package).}
+
+\item{cor_na_use}{an optional character string giving a method for computing
+covariances in the presence of missing values for correlation coefficients.
+This must be (an abbreviation of) one of the strings "everything" (default),
+"all.obs", "complete.obs", "na.or.complete", or "pairwise.complete.obs". See
+also the documentation for the base cor() function.}
 }
 \value{
 a list with 17 elements:
