@@ -1,7 +1,7 @@
 Package: dendroTools
 Type: Package
 Title: Linear and Nonlinear Methods for Analyzing Daily and Monthly Dendroclimatological Data
-Version: 1.2.6
+Version: 1.2.7
 Author: Jernej Jevsenak [aut, cre]
 Maintainer: Jernej Jevsenak <jernej.jevsenak@gmail.com>
 Description: Provides novel dendroclimatological methods, primarily used by the
