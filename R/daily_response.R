@@ -542,7 +542,8 @@ daily_response <- function(response, env_data, method = "lm",
   }
 
   na_problem <- data.frame(na_sum = rowSums(is.na(env_temp)))
-  problematic_years <- paste0(row.names(na_problem[na_problem$na_sum > 270, , F]), sep = "", collapse=", ")
+  na_problem <- na_problem[na_problem$na_sum > 270, , F]
+  problematic_years <- paste0(row.names(na_problem), sep = "", collapse=", ")
 
   if (nrow(na_problem) > 0){
 
@@ -566,12 +567,12 @@ daily_response <- function(response, env_data, method = "lm",
     row.names(env_data) <- row_names_current
     env_data_original <- env_data
 
-    response$yearABC <- row.names(response)
-    response <- dplyr::arrange(response, desc(yearABC))
-    response <- years_to_rownames(response, "yearABC")
-    response <- data.frame(response[-nrow(response),,F ])
-    response <- data.frame(response)
-    response_original <- response
+    # response$yearABC <- row.names(response)
+    # response <- dplyr::arrange(response, desc(yearABC))
+    # response <- years_to_rownames(response, "yearABC")
+    # response <- data.frame(response[-nrow(response),,F ])
+    # response <- data.frame(response)
+    # response_original <- response
 
     }
 

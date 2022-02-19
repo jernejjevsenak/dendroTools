@@ -487,7 +487,6 @@ if (fixed_width != 0){
     stop(paste("More than 1 variable in response data frame not suitable ",
   "for 'cor' method. Use 'lm' or 'brnn'"))
 
-
   if (previous_year == FALSE){
 
     # Stop message if fixed_width is not between 0 and 366
@@ -532,6 +531,29 @@ if (fixed_width != 0){
     }
   }
 
+
+  # Warn users in case of missing values (selected threshold is 9 months)
+  env_temp <- env_data[row.names(env_data) %in% row.names(response),]
+
+  # Subset of years
+  if (!is.null(subset_years)){
+    lower_subset <- subset_years[1]
+    upper_subset <- subset_years[2]
+
+    subset_seq <- seq(lower_subset, upper_subset)
+    env_temp <- subset(env_temp, row.names(env_temp) %in% subset_seq)
+  }
+
+  na_problem <- data.frame(na_sum = rowSums(is.na(env_temp)))
+  na_problem <- na_problem[na_problem$na_sum > 8, , F]
+  problematic_years <- paste0(row.names(na_problem), sep = "", collapse=", ")
+
+  if (nrow(na_problem) > 0){
+
+    warning(paste0("Problematic years with missing values are present: ", problematic_years))
+
+  }
+
   # Data manipulation
   # If use.previous == TRUE, env_data data has to be rearranged accordingly
   if (previous_year == TRUE) {
@@ -548,12 +570,12 @@ if (fixed_width != 0){
     row.names(env_data) <- row_names_current
     env_data_original <- env_data
 
-    response$yearABC <- row.names(response)
-    response <- dplyr::arrange(response, desc(yearABC))
-    response <- years_to_rownames(response, "yearABC")
-    response <- data.frame(response[-nrow(response),,F ])
-    response <- data.frame(response)
-    response_original <- response
+    # response$yearABC <- row.names(response)
+    # response <- dplyr::arrange(response, desc(yearABC))
+    # response <- years_to_rownames(response, "yearABC")
+    # response <- data.frame(response[-nrow(response),,F ])
+    # response <- data.frame(response)
+    # response_original <- response
 
     }
 

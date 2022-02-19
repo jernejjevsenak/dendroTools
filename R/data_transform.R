@@ -33,7 +33,8 @@
 #' proper_monthly_data <- data_transform(swit272_daily_precipitation, format = "monthly",
 #'    date_format = "ymd")
 
-data_transform <- function(input, format = "daily", monthly_aggregate_function = "auto",
+data_transform <- function(input, format = "daily",
+                           monthly_aggregate_function = "auto",
                             date_format = "ymd"){
 
   colnames(input) <- c("date", "variable")
@@ -86,10 +87,17 @@ data_transform <- function(input, format = "daily", monthly_aggregate_function =
     input$date <- NULL
     colnames(input)[1] <- "value"
 
+
     if (monthly_aggregate_function == "mean"){
       daily_matrix <- dcast(year ~ month, data = input, value.var = "value", fun.aggregate = mean, na.rm = TRUE)
+
     } else if (monthly_aggregate_function == "sum") {
-      daily_matrix <- dcast(year ~ month, data = input, value.var = "value", fun.aggregate = sum, na.rm = TRUE)
+
+      # here we create user specified sum, since Primitive sum returns 0 when only NA values are present
+      daily_matrix <- dcast(year ~ month, data = input, value.var = "value", fun.aggregate = function(x)
+
+        if (length(x) < 1) NA_real_ else if (sum(!is.na(x)) < 1) NA_real_ else sum(x, na.rm = TRUE))
+
     } else {
       stop(paste0("monthly_aggregate_function argument should be 'mean' or 'sum'! It is ", monthly_aggregate_function))
     }

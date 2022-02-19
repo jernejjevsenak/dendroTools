@@ -431,8 +431,6 @@ monthly_response_seascorr <- function(response, env_data_primary, env_data_contr
 
 
 
-
-
   # PART 1 - general data arrangements, warnings and stops
   # Both bojects (response and env_data_primary) are converted to data frames
   response <- data.frame(response)
@@ -523,6 +521,53 @@ monthly_response_seascorr <- function(response, env_data_primary, env_data_contr
     }
   }
 
+  # Warn users in case of missing values (selected threshold is 8 months)
+  # A) env_data_primary
+  env_temp_primary <- env_data_primary[row.names(env_data_primary) %in% row.names(response),]
+
+  if (!is.null(subset_years)){
+    lower_subset <- subset_years[1]
+    upper_subset <- subset_years[2]
+
+    subset_seq <- seq(lower_subset, upper_subset)
+    env_temp_primary <- subset(env_temp_primary, row.names(env_temp_primary) %in% subset_seq)
+  }
+
+  na_problem <- data.frame(na_sum = rowSums(is.na(env_temp_primary)))
+  na_problem <- na_problem[na_problem$na_sum > 8, , F]
+  problematic_years <- paste0(row.names(na_problem), sep = "", collapse=", ")
+
+  if (nrow(na_problem) > 0){
+
+    warning(paste0("Problematic years with missing values are present in env_data_primary: ", problematic_years))
+
+  }
+
+  # B) env_data_control
+
+  env_temp_conotrol <- env_data_control[row.names(env_data_control) %in% row.names(response),]
+
+  if (!is.null(subset_years)){
+    lower_subset <- subset_years[1]
+    upper_subset <- subset_years[2]
+
+    subset_seq <- seq(lower_subset, upper_subset)
+    env_temp_conotrol <- subset(env_temp_conotrol, row.names(env_temp_conotrol) %in% subset_seq)
+  }
+
+  na_problem <- data.frame(na_sum = rowSums(is.na(env_temp_conotrol)))
+  na_problem <- na_problem[na_problem$na_sum > 8, , F]
+  problematic_years <- paste0(row.names(na_problem), sep = "", collapse=", ")
+
+  if (nrow(na_problem) > 0){
+
+    warning(paste0("Problematic years with missing values are present in env_data_control: ", problematic_years))
+
+  }
+
+  ##############################################################################
+
+
   # Data manipulation
   # If use.previous == TRUE, env_data_primary data has to be rearranged accordingly
   if (previous_year == TRUE) {
@@ -550,12 +595,12 @@ monthly_response_seascorr <- function(response, env_data_primary, env_data_contr
     row.names(env_data_control) <- row_names_current
     env_data_control_original <- env_data_control
 
-    response$yearABC <- row.names(response)
-    response <- dplyr::arrange(response, desc(yearABC))
-    response <- years_to_rownames(response, "yearABC")
-    response <- data.frame(response[-nrow(response),,F ])
-    response <- data.frame(response)
-    response_original <- response
+    # response$yearABC <- row.names(response)
+    # response <- dplyr::arrange(response, desc(yearABC))
+    # response <- years_to_rownames(response, "yearABC")
+    # response <- data.frame(response[-nrow(response),,F ])
+    # response <- data.frame(response)
+    # response_original <- response
 
     }
 
@@ -816,7 +861,6 @@ monthly_response_seascorr <- function(response, env_data_primary, env_data_contr
         row.names(x2_list) <- row.names(env_data_control)
         list_climate_control[[mm2]] <- x2_list
         mm2 = mm2 + 1
-
 
         if (boot == FALSE){
 
