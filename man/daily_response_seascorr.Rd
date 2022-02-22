@@ -26,7 +26,6 @@ daily_response_seascorr(
   temporal_stability_check = "sequential",
   k = 2,
   k_running_window = 30,
-  cross_validation_type = "blocked",
   subset_years = NULL,
   plot_specific_window = NULL,
   ylimits = NULL,
@@ -47,7 +46,8 @@ daily_response_seascorr(
   dc_constrain.nls = c("never", "when.fail", "always"),
   dc_span = "cv",
   dc_bass = 0,
-  dc_difference = FALSE
+  dc_difference = FALSE,
+  pcor_na_use = "pairwise.complete"
 )
 }
 \arguments{
@@ -135,15 +135,10 @@ check will split data into k splits, calculate metric for the first split and th
 progressively add 1 split at a time and calculate selected metric. For running window,
 select the length of running window with the k_running_window argument.}
 
-\item{k}{integer, number of breaks (splits) for temporal stability and cross validation
-analysis.}
+\item{k}{integer, number of breaks (splits) for temporal stability}
 
 \item{k_running_window}{the length of running window for temporal stability check.
 Applicable only if temporal_stability argument is set to running window.}
-
-\item{cross_validation_type}{character string, specifying, how to perform cross validation
-between the optimal selection and response variables. If the argument is set to "blocked",
-years will not be shuffled. If the argument is set to "randomized", years will be shuffled.}
 
 \item{subset_years}{a subset of years to be analyzed. Should be given in the form of
 subset_years = c(1980, 2005)}
@@ -220,6 +215,12 @@ in method "Friedman" (see dplR R package).}
 
 \item{dc_difference}{a logical flag. Compute residuals by substraction if TRUE,
 otherwise use division (see dplR R package).}
+
+\item{pcor_na_use}{an optional character string giving a method for computing
+covariances in the presence of missing values for partial correlation
+coefficients. This must be (an abbreviation of) one of the strings "all.obs",
+"everything", "complete.obs", "na.or.complete", or "pairwise.complete.obs"
+(default). See also the documentation for the base partial.r in psych R package}
 }
 \value{
 a list with 15 elements:
@@ -232,7 +233,7 @@ a list with 15 elements:
  \item $optimized_return_all - a data frame with aggregated daily data, that returned the optimal result for the entire env_data_primary (and not only subset of analysed years)
  \item $transfer_function - a ggplot object: scatter plot of optimized return and a transfer line of the selected method
  \item $temporal_stability - a data frame with calculations of selected metric for different temporal subsets
- \item $cross_validation - a data frame with cross validation results
+ \item $cross_validation - not available for partial correlations
  \item $plot_heatmap - ggplot2 object: a heatmap of calculated metrics
  \item $plot_extreme - ggplot2 object: line plot of a row with the highest value in a matrix of calculated metrics
  \item $plot_specific -  ggplot2 object: line plot of a row with a selected window width in a matrix of calculated metrics
@@ -270,7 +271,7 @@ data(LJ_daily_precipitation)
 example_basic <- daily_response_seascorr(response = data_MVA,
                           env_data_primary = LJ_daily_temperatures,
                           env_data_control = LJ_daily_precipitation,
-                          row_names_subset = TRUE, fixed_width = 2,
+                          row_names_subset = TRUE, fixed_width = 25,
                           lower_limit = 35, upper_limit = 45,
                           remove_insignificant = TRUE,
                           aggregate_function_env_data_primary = 'median',
@@ -279,7 +280,7 @@ example_basic <- daily_response_seascorr(response = data_MVA,
                           tidy_env_data_primary = FALSE,
                           previous_year = FALSE, boot = TRUE,
                           tidy_env_data_control = TRUE, boot_n = 10,
-                          reference_window = "end",
+                          reference_window = "end", k = 5,
                           day_interval = c(-100, 250))
 summary(example_basic)
 plot(example_basic, type = 1)
@@ -287,7 +288,7 @@ plot(example_basic, type = 2)
 plot(example_basic, type = 3)
 example_basic$optimized_return
 example_basic$optimized_return_all
-
+example_basic$temporal_stability
 
 # 2 Example with fixed temporal time window
 example_fixed_width <- daily_response_seascorr(response = data_MVA,

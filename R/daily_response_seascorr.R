@@ -74,11 +74,7 @@
 #' select the length of running window with the k_running_window argument.
 #' @param k_running_window the length of running window for temporal stability check.
 #' Applicable only if temporal_stability argument is set to running window.
-#' @param k integer, number of breaks (splits) for temporal stability and cross validation
-#' analysis.
-#' @param cross_validation_type character string, specifying, how to perform cross validation
-#' between the optimal selection and response variables. If the argument is set to "blocked",
-#' years will not be shuffled. If the argument is set to "randomized", years will be shuffled.
+#' @param k integer, number of breaks (splits) for temporal stability
 #' @param subset_years a subset of years to be analyzed. Should be given in the form of
 #' subset_years = c(1980, 2005)
 #' @param plot_specific_window integer representing window width to be displayed
@@ -135,6 +131,11 @@
 #' in method "Friedman" (see dplR R package).
 #' @param dc_difference	a logical flag. Compute residuals by substraction if TRUE,
 #' otherwise use division (see dplR R package).
+#' @param pcor_na_use an optional character string giving a method for computing
+#' covariances in the presence of missing values for partial correlation
+#' coefficients. This must be (an abbreviation of) one of the strings "all.obs",
+#' "everything", "complete.obs", "na.or.complete", or "pairwise.complete.obs"
+#' (default). See also the documentation for the base partial.r in psych R package
 #'
 #' @return a list with 15 elements:
 #' \enumerate{
@@ -146,7 +147,7 @@
 #'  \item $optimized_return_all - a data frame with aggregated daily data, that returned the optimal result for the entire env_data_primary (and not only subset of analysed years)
 #'  \item $transfer_function - a ggplot object: scatter plot of optimized return and a transfer line of the selected method
 #'  \item $temporal_stability - a data frame with calculations of selected metric for different temporal subsets
-#'  \item $cross_validation - a data frame with cross validation results
+#'  \item $cross_validation - not available for partial correlations
 #'  \item $plot_heatmap - ggplot2 object: a heatmap of calculated metrics
 #'  \item $plot_extreme - ggplot2 object: line plot of a row with the highest value in a matrix of calculated metrics
 #'  \item $plot_specific -  ggplot2 object: line plot of a row with a selected window width in a matrix of calculated metrics
@@ -177,7 +178,7 @@
 #' example_basic <- daily_response_seascorr(response = data_MVA,
 #'                           env_data_primary = LJ_daily_temperatures,
 #'                           env_data_control = LJ_daily_precipitation,
-#'                           row_names_subset = TRUE, fixed_width = 2,
+#'                           row_names_subset = TRUE, fixed_width = 25,
 #'                           lower_limit = 35, upper_limit = 45,
 #'                           remove_insignificant = TRUE,
 #'                           aggregate_function_env_data_primary = 'median',
@@ -186,7 +187,7 @@
 #'                           tidy_env_data_primary = FALSE,
 #'                           previous_year = FALSE, boot = TRUE,
 #'                           tidy_env_data_control = TRUE, boot_n = 10,
-#'                           reference_window = "end",
+#'                           reference_window = "end", k = 5,
 #'                           day_interval = c(-100, 250))
 #' summary(example_basic)
 #' plot(example_basic, type = 1)
@@ -194,7 +195,7 @@
 #' plot(example_basic, type = 3)
 #' example_basic$optimized_return
 #' example_basic$optimized_return_all
-#'
+#' example_basic$temporal_stability
 #'
 #' # 2 Example with fixed temporal time window
 #' example_fixed_width <- daily_response_seascorr(response = data_MVA,
@@ -231,7 +232,7 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
                            aggregate_function_env_data_primary = 'mean',
                            aggregate_function_env_data_control = 'mean',
                            temporal_stability_check = "sequential", k = 2,
-                           k_running_window = 30, cross_validation_type = "blocked",
+                           k_running_window = 30,
                            subset_years = NULL, plot_specific_window = NULL,
                            ylimits = NULL, seed = NULL, tidy_env_data_primary = FALSE,
                            tidy_env_data_control = FALSE,
@@ -247,7 +248,8 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
                            dc_constrain.nls = c("never", "when.fail", "always"),
                            dc_span = "cv",
                            dc_bass = 0,
-                           dc_difference = FALSE) {
+                           dc_difference = FALSE,
+                           pcor_na_use = "pairwise.complete") {
 
   ##############################################################################
   # 1 day interval is organized
@@ -366,9 +368,6 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
  temporal_matrix_lower <- NULL
  temporal_matrix_upper <- NULL
 
- # Here I define the method = "cor", so the functionality is ensured
- method = "cor"
-
  # If there is a column name samp.depth in response data frame, warning is given
  if ("samp.depth" %in% colnames(response)){
 
@@ -378,12 +377,11 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
    warning("Removed the samp.depth from response data frame")
  }
 
- # If there is more than 2 columns in response data frame, give a warning
+ # If there are more than 2 columns in response data frame, give a warning
  if (ncol(response) > 1){
    warning(paste0("Your response data frame has more than 1 column! Are you doing a multiproxy research?",
    " If so, OK. If not, check your response data frame!"))
  }
-
 
  # If env_data_control is given in tidy version, transformation is needed
  if (tidy_env_data_control == TRUE){
@@ -442,12 +440,7 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
    env_data_control <- years_to_rownames(env_data_control, "Year")
  }
 
-
-
-
-
   # PART 1 - general data arrangements, warnings and stops
-  # Both bojects (response and env_data_primary) are converted to data frames
   response <- data.frame(response)
   env_data_primary <- data.frame(env_data_primary)
   env_data_control <- data.frame(env_data_control)
@@ -461,7 +454,13 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
   # with the exception, when row_names_subset is set to TRUE
   # Stop message in case both data frames do not have the same length
   if (nrow(response) !=  nrow(env_data_primary) & row_names_subset == FALSE)
-    stop("Length of env_data_primary and response records differ")
+    stop(paste0("Length of env_data_primary and response records differ",
+                " You can use row_names_subset = TRUE"))
+
+  if (nrow(response) !=  nrow(env_data_control) & row_names_subset == FALSE)
+    stop(paste0("Length of env_data_control and response records differ",
+                " You can use row_names_subset = TRUE"))
+
 
   #######################################################
   # Rules for previous_year = FALSE
@@ -581,16 +580,9 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
     row.names(env_data_control) <- row_names_current
     env_data_control_original <- env_data_control
 
-    # response$yearABC <- row.names(response)
-    # response <- dplyr::arrange(response, desc(yearABC))
-    # response <- years_to_rownames(response, "yearABC")
-    # response <- data.frame(response[-nrow(response),,F ])
-    # response <- data.frame(response)
-    # response_original <- response
-
     }
 
-  # If row_names_subset == TRUE, data is subseted and ordered based on matching
+  # If row_names_subset == TRUE, data is subset and ordered based on matching
   # row.names. Additionally, number of characters in row.names is checked.
   # There should be at least three characters (assuming years before 100 will
   # never be analysed, there is no such environmental data available)
@@ -616,8 +608,7 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
 
   }
 
-  # if row.names of env_data_primary and the response data frames are not equal,
-  # warning is given.
+  # if row.names of env_data_primary and the response data frames are not equal - warning is given.
   if (sum(row.names(env_data_primary) == row.names(response)) != nrow(env_data_primary)) {
     warning("row.names between env_data_primary and response do not match!")
   }
@@ -701,7 +692,6 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
                   " in the env_data_control data frame. Change the subset_years argument"))
     }
 
-
     response <- subset(response, row.names(response) %in% subset_seq)
     env_data_primary <- subset(env_data_primary, row.names(env_data_primary) %in% subset_seq)
     env_data_control <- subset(env_data_control, row.names(env_data_control) %in% subset_seq)
@@ -717,23 +707,19 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
 
   }
 
-  # PART 2 - Based on the selected function arguments, different chunks of code
-  # will be used. For demonstration:
-  # A) Chunks are used if fixed.withd != 0
-    # A.1 method == "cor"
+  # PART 2 - the calculation of day-wise correlations
+  # A) fixed window approach
+  # B) Variable window approach
 
-  # B) Chunks are used if fixed.withd == 0
-    # B.1 method == "cor"
-
-  # these are lists for climate and and holder for saving mm1 and mm2
+  # these are lists for climate and holder for saving mm1 and mm2
   list_climate_primary <- list()
   list_climate_control <- list()
 
   mm1 <- 1
   mm2 <- 1
 
-  # A.1 method = "cor"
-  if (fixed_width != 0 & method == "cor") {
+  # A) The fixed_window approach
+  if (fixed_width != 0) {
 
       # This is an empty matrix, currently filled with NA's
       # Latter, calculations will be stored in this matrix
@@ -759,10 +745,9 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
 
     b = 0
 
-      # An iterating loop. In each itteration x is calculated and represents
+      # An iterating loop. In each iteration x is calculated and represents
       # response (dependent) variable. X is a moving average. Window width of
-      # a moving window is fixed_width. Next, statistical metric is calculated
-      # based on a selected method (cor, lm or brnn). Calculation is stored in
+      # a moving window is fixed_width. Next, partial correlation is stored in
       # temporal matrix.
     for (j in (0 + offset_start -1): (ncol(env_data_primary) - max((fixed_width + offset_end), offset_end))) {
 
@@ -848,12 +833,8 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
 
         if (boot == FALSE){
 
-          temporal_correlation <- partial.r(data=my_temporal_data, x=c("x","y"), y="z", use="pairwise",method = pcor_method)[2]
-
-          # Each calculation is printed. Reason: usually it takes several minutes
-          # to go through all loops and therefore, users might think that R is
-          # not responding. But if each calculation is printed, user could be
-          # confident, that R is responding.
+          temporal_correlation <- partial.r(data=my_temporal_data, x=c("x","y"), y="z",
+                                            use=pcor_na_use,method = pcor_method)[2]
 
           if (reference_window == 'start'){
             temporal_matrix[1, j + 1] <- as.numeric(temporal_correlation)[1]
@@ -924,15 +905,17 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
           }
 
         } else {
+
           print(paste0("boot should be TRUE or FALSE, instead it is ", boot))
-        }
+
+          }
 
         if (fixed_width != max_window){setTxtProgressBar(pb, b)}
       }
     if (fixed_width != max_window){close(pb)}
 
      # temporal_matrix is given rownames and colnames. Rownames represent a
-     # window width used fot calculations. Colnames represent the position of
+     # window width used for calculations. Colnames represent the position of
      # moving window in a original env_data_primary data frame.
       row.names(temporal_matrix) <- fixed_width
       row.names(temporal_matrix_lower) <- fixed_width
@@ -948,12 +931,11 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
 
   # B fixed_width == 0, in this case, lower_limit and upper_limit arguments
   # will be used to define window width of a moving window.
-  # B.1 method == "cor"
 
-  if (fixed_width == 0 & method == "cor") {
+  if (fixed_width == 0) {
 
     # This is an empty matrix, currently filled with NA's
-    # Latter, calculations will be stored in this matrix
+    # Latter, calculations will be saved in this matrix
 
     if (reference_window == 'start'){
     temporal_matrix <- matrix(NA, nrow = (upper_limit - lower_limit + 1),
@@ -970,12 +952,12 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
   # An iterating double loop: 1 outer loop) iterating from lower_limit :
   # upper_limit defines windo.width used for a moving window. 2) inner loop
   # defines the starting position of a moving window.
-  # In each itteration, x is calculated and represents a response (dependent)
+  # In each iteration, x is calculated and represents a response (dependent)
   # variable. x is a moving average, based on rowMeans/apply function.
-  # Next, statistical metric is calculated based on a selected method (cor,
-  # lm or brnn). Calculation is stored in temporal matrix in a proper place.
+  # Next, statistical metric is calculated based on a selected method (partial).
+  # Calculation is stored in temporal matrix in a proper place.
   # The position of stored calculation is informative later used for
-  # indiciating optimal values.
+  # indicating optimal values.
 
     temporal_matrix_lower <- temporal_matrix
     temporal_matrix_upper <- temporal_matrix
@@ -1105,7 +1087,8 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
 
       if (boot == FALSE){
 
-        temporal_correlation <- partial.r(data=my_temporal_data, x=c("x","y"), y="z", use="pairwise",method = pcor_method)[2]
+        temporal_correlation <- partial.r(data = my_temporal_data, x=c("x","y"), y="z",
+                                          use=pcor_na_use,method = pcor_method)[2]
 
         if (reference_window == 'start'){
           temporal_matrix[(K - lower_limit) + 1, j + 1] <- as.numeric(temporal_correlation)[1]
@@ -1204,21 +1187,13 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
   colnames(temporal_matrix_upper) <- temporal_colnames
   }
 
-
-
   # To enhance the visualisation, insignificant values
   # are removed if remove_insignificant == TRUE
   if (remove_insignificant == TRUE){
     critical_threshold_cor <- critical_r(nrow(response), alpha = alpha)
     critical_threshold_cor2 <- critical_threshold_cor ^ 2
 
-  # 1 Method is correlation
-   if (method == "cor") {
      temporal_matrix[abs(temporal_matrix) < abs(critical_threshold_cor)] <- NA
-  # 2 lm and brnn method
-      } else if (method == "lm" | method == "brnn") {
-    temporal_matrix[abs(temporal_matrix) < abs(critical_threshold_cor2)] <- NA
-      }
 
     if(is.finite(mean(temporal_matrix, na.rm = TRUE)) == FALSE){
       stop("All calculations are insignificant! Please change the alpha argument.")
@@ -1528,9 +1503,7 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
   }
 
 
-
-
-# Naredi conclusion
+# Final output list
 
   if (!is.null(dc_method)){
 
@@ -1542,7 +1515,6 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
                         pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
                         span = dc_span, bass = dc_bass,  difference = dc_difference)
   }
-
 
   x1_full <- cbind(response, x1, x2)
   colnames(x1_full)[ncol(x1_full)-1] <- "Optimized_return_primary"
@@ -1578,7 +1550,7 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
   colnames(x1) <- "Optimized.rowNames"
   my_temporal_data <- cbind(x1_full[,1], x1_full[,2], x1_full[,3])
   colnames(my_temporal_data) <- c("x", "y", "z")
-  test_calculation <- partial.r(data=my_temporal_data, x=c("x","y"), y="z", use="pairwise",method = pcor_method)[2]
+  test_calculation <- partial.r(data=my_temporal_data, x=c("x","y"), y="z", use=pcor_na_use,method = pcor_method)[2]
   test_logical <- as.numeric(max_calculation) == as.numeric(test_calculation)
 
 # if (test_logical == FALSE){
@@ -1612,10 +1584,7 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
   lm_model = lm(optimized_return ~ proxy, data = transfer_data)
   full_range = data.frame(proxy = seq(from = min(response[,1]), to = max(response[,1]), length.out = 100))
 
-  if (method == "lm" | method == "cor"){
-    full_range$transfer_f = predict(lm_model, full_range)
-  }
-
+  full_range$transfer_f = predict(lm_model, full_range)
 
   # String for titles
 
@@ -1633,19 +1602,19 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
     journal_theme +
     ggtitle(paste("Analysed Period:", analysed_period, "\nMethod:", title_string))
 
-analysed_period
   # If there is more than one independent variable in the model,
   # transfer function is not given, since we should return a 3d model
   if (ncol(response) > 1){
     p1 <- "No transfer function is created for two or more response variables"
   }
 
-
   #######################################################################
   ############## The temporal stability of optimized_return #############
   #######################################################################
 
-  dataset = data.frame(optimized_return =x1[,1], proxy = response)
+  # dataset = data.frame(optimized_return =x1[,1], proxy = response)
+
+  dataset = x1_full
 
   empty_list = list()
   empty_list_period = list()
@@ -1655,11 +1624,12 @@ analysed_period
 
   # 1. Progressive stability check
   if (temporal_stability_check == "progressive"){
+
     foldi <- seq(1:k)
-    #foldi <- paste("fold_", foldi)
     folds <- cut(seq(1, nrow(dataset)), breaks = k, labels = FALSE)
 
       for (m in 1:k){
+
       #Segement your data by fold using the which() function
       trainIndexes <- which(folds <= m, arr.ind = TRUE)
       dataset_temp <- dataset[trainIndexes, ]
@@ -1667,13 +1637,14 @@ analysed_period
       MIN <- min(as.numeric(row.names(dataset_temp)))
       empty_list_period[[m]] <- paste(MIN, "-", MAKS)
 
-      if (method == "cor"){
-        calculation <- cor(dataset_temp[,1], dataset_temp[,2])
-        sig <- cor.test(dataset_temp[,1], dataset_temp[,2], method = pcor_method, exact = FALSE)$p.value
-        empty_list_significance[[m]] <- sig
-        empty_list[[m]] <- calculation
-        colname = "correlation"
-      }
+      par.r <- partial.r(data=dataset_temp, x=c(1,2), y=3, use=pcor_na_use,method = pcor_method)
+      calculation <- par.r[2]
+      sig <- corr.p(par.r,n = nrow(dataset_temp - 2))$p[2]
+
+      empty_list_significance[[m]] <- sig
+      empty_list[[m]] <- calculation
+      colname = "partial correlation"
+
       }
     m1 <- do.call(rbind, empty_list)
     m2 <- do.call(rbind, empty_list_period)
@@ -1686,11 +1657,12 @@ analysed_period
 
   # 2. Sequential stability check
   if (temporal_stability_check == "sequential"){
+
       foldi <- seq(1:k)
-      #foldi <- paste("fold_", foldi)
       folds <- cut(seq(1, nrow(dataset)), breaks = k, labels = FALSE)
 
       for (m in 1:k){
+
         #Segement your data by fold using the which() function
         trainIndexes <- which(folds == m, arr.ind = TRUE)
         dataset_temp <- dataset[trainIndexes, ]
@@ -1699,16 +1671,17 @@ analysed_period
         MIN <- min(as.numeric(row.names(dataset_temp)))
         empty_list_period[[m]] <- paste(MIN, "-", MAKS)
 
-        if (method == "cor"){
-          calculation <- cor(dataset_temp[,1], dataset_temp[,2])
-          sig <- cor.test(dataset_temp[,1], dataset_temp[,2], method = pcor_method, exact = FALSE)$p.value
-          empty_list[[m]] <- calculation
-          empty_list_significance[[m]] <- sig
-          colname = "correlation"
+        par.r <- partial.r(data=dataset_temp, x=c(1,2), y=3, use=pcor_na_use,method = pcor_method)
+        calculation <- par.r[2]
+        sig <- corr.p(par.r,n = nrow(dataset_temp - 2))$p[2]
 
-        }
+          empty_list_significance[[m]] <- sig
+          empty_list[[m]] <- calculation
+          colname = "partial correlation"
+
       }
-      m1 <- do.call(rbind, empty_list)
+
+            m1 <- do.call(rbind, empty_list)
       m2 <- do.call(rbind, empty_list_period)
       m3 <- do.call(rbind, empty_list_significance)
 
@@ -1740,13 +1713,10 @@ analysed_period
 
       dataset_temp <- dataset[(1+w):(k_running_window + w),]
       empty_list_datasets[[place_list]] <- dataset_temp
-
       MAKS <- max(as.numeric(row.names(dataset_temp)))
       MIN <- min(as.numeric(row.names(dataset_temp)))
       empty_list_period[[place_list]] <- paste(MIN, "-", MAKS)
-
       place_list <- place_list + 1
-
 
     }
 
@@ -1754,14 +1724,14 @@ for (m in 1:length(empty_list_datasets)){
 
   dataset_temp <- empty_list_datasets[[m]]
 
-  if (method == "cor"){
-    calculation <- cor(dataset_temp[,1], dataset_temp[,2])
-    sig <- cor.test(dataset_temp[,1], dataset_temp[,2], method = pcor_method, exact = FALSE)$p.value
-    empty_list[[m]] <- calculation
-    empty_list_significance[[m]] <- sig
-    colname = "correlation"
+  par.r <- partial.r(data=dataset_temp, x=c(1,2), y=3, use=pcor_na_use,method = pcor_method)
+  calculation <- par.r[2]
+  sig <- corr.p(par.r,n = nrow(dataset_temp - 2))$p[2]
 
-  }
+    empty_list_significance[[m]] <- sig
+    empty_list[[m]] <- calculation
+    colname = "partial correlation"
+
 }
     m1 <- do.call(rbind, empty_list)
     m2 <- do.call(rbind, empty_list_period)
@@ -1772,104 +1742,17 @@ for (m in 1:length(empty_list_datasets)){
     temporal_stability
 }
 
-
-
-
-  #########################################################################
-  ################## Out of sample estimates ##############################
-  #########################################################################
-
-  dataset = data.frame(optimized_return =x1[,1], proxy = response)
-
-  empty_list = list()
-  empty_list_period = list()
-
-  if (cross_validation_type == "blocked"){
-    dataset <- dataset
-  } else if (cross_validation_type == "randomized"){
-    dataset <- dataset[sample(nrow(dataset)), ]
-  } else (stop(paste("The cross_validation_type is not selected correctly! It is ", cross_validation_type,
-    ". It should be 'blocked' or 'randomized'!", sep = "")))
-
-     foldi <- seq(1:k)
-     #foldi <- paste("fold_", foldi)
-     folds <- cut(seq(1, nrow(dataset)), breaks = k, labels = FALSE)
-     bl = 1
-
-    for (m in 1:k){
-      #Segement your data by fold using the which() function
-      testIndexes <- which(folds == m, arr.ind = TRUE)
-      test <- dataset[testIndexes, ]
-      train <- dataset[-testIndexes, ]
-
-      MAKS <- max(as.numeric(row.names(train)))
-      MIN <- min(as.numeric(row.names(train)))
-      empty_list_period[[bl]] <- paste(MIN, "-", MAKS)
-      bl <- bl + 1
-
-      MAKS <- max(as.numeric(row.names(test)))
-      MIN <- min(as.numeric(row.names(test)))
-      empty_list_period[[bl]] <- paste(MIN, "-", MAKS)
-      bl <- bl + 1
-
-      if (method == "lm" | method == "cor"){
-        MLR <- lm(optimized_return ~ ., data = train)
-        train_predicted <- predict(MLR, train)
-        test_predicted <- predict(MLR, test)
-        train_observed <- train[, 1]
-        test_observed <- test[, 1]
-        calculations <- calculate_metrics(train_predicted, test_predicted,
-                                          train_observed, test_observed, test = test,
-                                          formula = optimized_return ~ ., digits = 15)
-
-        empty_list[[m]] <- calculations
-      }
-
-    }
-    m1 <- do.call(rbind, empty_list)
-    # m1 <- m1[, -c(3, 4, 7)]
-    m2 <- do.call(rbind, empty_list_period)
-
-    cross_validation <- cbind(Years = m2, m1)
-    cross_validation$Period <- c("Calibration", "Validation")
-    cross_validation$CV <- rep(1:k, each = 2)
-    row.names(cross_validation) <- NULL
-
-    if (cross_validation_type == "blocked"){
-      cross_validation <- dplyr::select(cross_validation, CV, Period, Years, cor, RMSE, RRSE, d, RE, CE, DE)
-    }
-    if (cross_validation_type == "randomized"){
-      cross_validation <- dplyr::select(cross_validation, CV, Period, cor, RMSE, RRSE, d, RE, CE, DE)
-    }
-
-
-
-  ################################################################
-  #### Here the final list is being filled with six elements #####
   ################################################################
 
-  # When metohod == "cor", different final_list is created
-  if (method == "lm" | method == "brnn") {
-    final_list <- list(calculations = temporal_matrix, method = method,
-                       metric = metric, analysed_period = analysed_period,
-                       optimized_return = x1_full,
-                       optimized_return_all = x1_full_original,
-                       transfer_function = p1, temporal_stability = temporal_stability,
-                       cross_validation = cross_validation,
-                       aggregated_climate_primary = do.call(cbind, list_climate_primary),
-                       aggregated_climate_control = do.call(cbind, list_climate_control))
-  }
-
-  if (method == "cor"){
     final_list <- list(calculations = temporal_matrix, method = "pcor",
                        metric = pcor_method, analysed_period = analysed_period,
                        optimized_return = x1_full,
                        optimized_return_all = x1_full_original,
                        transfer_function = p1, temporal_stability = temporal_stability,
-                       cross_validation = cross_validation,
+                       cross_validation = NA,
                        aggregated_climate_primary = do.call(cbind, list_climate_primary),
                        aggregated_climate_control = do.call(cbind, list_climate_control))
-  }
+
 
     plot_heatmapA <- plot_heatmap(final_list, reference_window = reference_window, type = "daily")
     plot_extremeA <- plot_extreme(final_list, ylimits = ylimits, reference_window = reference_window, type = "daily")
@@ -1893,33 +1776,13 @@ for (m in 1:length(empty_list_datasets)){
                                       reference_window = reference_window)
     } else (plot_specificA <- "Selected plot_specific_window is not available. No plot_specific is made!")
 
-    # Here, for the sake of simplicity, we create final list again
-    if (method == "lm" | method == "brnn") {
-      final_list <- list(calculations = temporal_matrix, method = "pcor",
-                         metric = pcor_method, analysed_period = analysed_period,
-                         optimized_return = x1_full,
-                         optimized_return_all = x1_full_original,
-                         transfer_function = p1, temporal_stability = temporal_stability,
-                         cross_validation = cross_validation,
-                         plot_heatmap = plot_heatmapA,
-                         plot_extreme = plot_extremeA,
-                         plot_specific = plot_specificA,
-                         PCA_output = PCA_result,
-                         type = "daily",
-                         reference_window = reference_window,
-                         boot_lower = temporal_matrix_lower,
-                         boot_upper = temporal_matrix_upper,
-                         aggregated_climate_primary = do.call(cbind, list_climate_primary),
-                         aggregated_climate_control = do.call(cbind, list_climate_control))
-    }
 
-    if (method == "cor"){
       final_list <- list(calculations = temporal_matrix, method = "pcor",
                          metric = pcor_method, analysed_period = analysed_period,
                          optimized_return = x1_full,
                          optimized_return_all = x1_full_original,
                          transfer_function = p1, temporal_stability = temporal_stability,
-                         cross_validation = cross_validation,
+                         cross_validation = NA,
                          plot_heatmap = plot_heatmapA,
                          plot_extreme = plot_extremeA,
                          plot_specific = plot_specificA,
@@ -1930,7 +1793,6 @@ for (m in 1:length(empty_list_datasets)){
                          boot_upper = temporal_matrix_upper,
                          aggregated_climate_primary = do.call(cbind, list_climate_primary),
                          aggregated_climate_control = do.call(cbind, list_climate_control))
-    }
 
     class(final_list) <- "dmrs"
 

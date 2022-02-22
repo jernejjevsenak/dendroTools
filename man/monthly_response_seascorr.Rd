@@ -26,7 +26,6 @@ monthly_response_seascorr(
   temporal_stability_check = "sequential",
   k = 2,
   k_running_window = 30,
-  cross_validation_type = "blocked",
   subset_years = NULL,
   plot_specific_window = NULL,
   ylimits = NULL,
@@ -46,7 +45,8 @@ monthly_response_seascorr(
   dc_constrain.nls = c("never", "when.fail", "always"),
   dc_span = "cv",
   dc_bass = 0,
-  dc_difference = FALSE
+  dc_difference = FALSE,
+  pcor_na_use = "pairwise.complete"
 )
 }
 \arguments{
@@ -136,15 +136,10 @@ check will split data into k splits, calculate metric for the first split and th
 progressively add 1 split at a time and calculate selected metric. For running window,
 select the length of running window with the k_running_window argument.}
 
-\item{k}{integer, number of breaks (splits) for temporal stability and cross validation
-analysis.}
+\item{k}{integer, number of breaks (splits) for temporal stability}
 
 \item{k_running_window}{the length of running window for temporal stability check.
 Applicable only if temporal_stability argument is set to running window.}
-
-\item{cross_validation_type}{character string, specifying, how to perform cross validation
-between the optimal selection and response variables. If the argument is set to "blocked",
-years will not be shuffled. If the argument is set to "randomized", years will be shuffled.}
 
 \item{subset_years}{a subset of years to be analyzed. Should be given in the form of
 subset_years = c(1980, 2005)}
@@ -205,6 +200,12 @@ in method "Friedman" (see dplR R package).}
 
 \item{dc_difference}{a logical flag. Compute residuals by substraction if TRUE,
 otherwise use division (see dplR R package).}
+
+\item{pcor_na_use}{an optional character string giving a method for computing
+covariances in the presence of missing values for partial correlation
+coefficients. This must be (an abbreviation of) one of the strings "all.obs",
+"everything", "complete.obs", "na.or.complete", or "pairwise.complete.obs"
+(default). See also the documentation for the base partial.r in psych R package}
 }
 \value{
 a list with 15 elements:
@@ -217,7 +218,7 @@ a list with 15 elements:
  \item $optimized_return_all - a data frame with aggregated monthly data, that returned the optimal result for the entire env_data_primary (and not only subset of analysed years)
  \item $transfer_function - a ggplot object: scatter plot of optimized return and a transfer line of the selected method
  \item $temporal_stability - a data frame with calculations of selected metric for different temporal subsets
- \item $cross_validation - a data frame with cross validation results
+ \item $cross_validation - not available for partial correlation method
  \item $plot_heatmap - ggplot2 object: a heatmap of calculated metrics
  \item $plot_extreme - ggplot2 object: line plot of a row with the highest value in a matrix of calculated metrics
  \item $plot_specific - ggplot2 object: line plot of a row with a selected window width in a matrix of calculated metrics
@@ -270,7 +271,7 @@ plot(example_basic, type = 2)
 plot(example_basic, type = 3)
 example_basic$optimized_return
 example_basic$optimized_return_all
-
+example_basic$temporal_stability
 
 # 2 Extended example
 example_extended <- monthly_response_seascorr(response = data_MVA,
@@ -284,11 +285,11 @@ example_extended <- monthly_response_seascorr(response = data_MVA,
    tidy_env_data_primary = FALSE,
    tidy_env_data_control = TRUE)
 
-summary(example_fixed_width)
-plot(example_fixed_width, type = 1)
-plot(example_fixed_width, type = 2)
-example_fixed_width$optimized_return
-example_fixed_width$optimized_return_all
+summary(example_extended)
+plot(example_extended, type = 1)
+plot(example_extended, type = 2)
+example_extended$optimized_return
+example_extended$optimized_return_all
 
 }
 }
