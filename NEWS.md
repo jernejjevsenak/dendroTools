@@ -1,3 +1,10 @@
+# dendroTools 1.2.7
+* comments are added to the code, which is now more readable
+* unused part of the scripts are removed
+* new arguments are implemented to control the behavior of calculations of correlation coefficients in case of missing values
+* the calculation of significance of partial correlation coefficients is improved
+* daily_transform() is also improved, so it gives the correct behavior in case of missing values
+
 # dendroTools 1.2.6
 * detrending climate data is now available in all response type functions
 
