@@ -693,6 +693,7 @@ daily_response <- function(response, env_data, method = "lm",
 
   }
 
+
   # PART 2 - Based on the selected function arguments, different chunks of code
   # will be used. For demonstration:
   # A) Chunks are used if fixed.withd != 0
