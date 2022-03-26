@@ -1264,17 +1264,17 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
   if (aggregate_function_env_data_primary == 'median'){
     x1 <- data.frame(apply(data.frame(env_data_primary[, as.numeric(plot_column):
                                             (as.numeric(plot_column) +
-                                               as.numeric(row_index) - 1)]),1 , median, na.rm = TRUE))
+                                               as.numeric(row_index) - 1), drop = FALSE]),1 , median, na.rm = TRUE))
 
   } else if (aggregate_function_env_data_primary == 'sum'){
     x1 <- data.frame(apply(data.frame(env_data_primary[, as.numeric(plot_column):
                                          (as.numeric(plot_column) +
-                                            as.numeric(row_index) - 1)]),1 , sum, na.rm = TRUE))
+                                            as.numeric(row_index) - 1), drop = FALSE]),1 , sum, na.rm = TRUE))
 
   } else if (aggregate_function_env_data_primary == 'mean'){
     x1 <- data.frame(rowMeans(data.frame(env_data_primary[, as.numeric(plot_column):
                                             (as.numeric(plot_column) +
-                                               as.numeric(row_index) - 1)]),
+                                               as.numeric(row_index) - 1), drop = FALSE]),
                                  na.rm = TRUE))
   } else {
     stop(paste0("aggregate function for env_data_primary is ", aggregate_function_env_data_primary, ". Instead it should be mean, median or sum."))
@@ -1286,17 +1286,17 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
  if (aggregate_function_env_data_control == 'median'){
    x2 <- data.frame(apply(data.frame(env_data_control[, as.numeric(plot_column):
                                              (as.numeric(plot_column) +
-                                                as.numeric(row_index) - 1)]),1 , median, na.rm = TRUE))
+                                                as.numeric(row_index) - 1), drop = FALSE]),1 , median, na.rm = TRUE))
 
  } else if (aggregate_function_env_data_control == 'sum'){
    x2 <- data.frame(apply(data.frame(env_data_control[, as.numeric(plot_column):
                                              (as.numeric(plot_column) +
-                                                as.numeric(row_index) - 1)]),1 , sum, na.rm = TRUE))
+                                                as.numeric(row_index) - 1), drop = FALSE]),1 , sum, na.rm = TRUE))
 
  } else if (aggregate_function_env_data_control == 'mean'){
    x2 <- data.frame(rowMeans(data.frame(env_data_control[, as.numeric(plot_column):
                                                 (as.numeric(plot_column) +
-                                                   as.numeric(row_index) - 1)]),
+                                                   as.numeric(row_index) - 1), drop = FALSE]),
                              na.rm = TRUE))
  } else {
    stop(paste0("aggregate function for env_data_control is ", aggregate_function_env_data_control, ". Instead it should be mean, median or sum."))
@@ -1309,16 +1309,16 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
   if (aggregate_function_env_data_primary == 'median'){
     x1_original <- data.frame(apply(data.frame(env_data_primary_original[, as.numeric(plot_column):
                                          (as.numeric(plot_column) +
-                                            as.numeric(row_index) - 1)]),1 , median, na.rm = TRUE))
+                                            as.numeric(row_index) - 1), drop = FALSE]),1 , median, na.rm = TRUE))
   } else if (aggregate_function_env_data_primary == 'sum'){
     x1_original <- data.frame(apply(data.frame(env_data_primary_original[, as.numeric(plot_column):
                                                            (as.numeric(plot_column) +
-                                                              as.numeric(row_index) - 1)]),1 , sum, na.rm = TRUE))
+                                                              as.numeric(row_index) - 1), drop = FALSE]),1 , sum, na.rm = TRUE))
   } else if (aggregate_function_env_data_primary == 'mean'){
 
      x1_original <- data.frame(apply(data.frame(env_data_primary_original[, as.numeric(plot_column):
                                                                            (as.numeric(plot_column) +
-                                                                              as.numeric(row_index) - 1)]),1 , mean, na.rm = TRUE))
+                                                                              as.numeric(row_index) - 1), drop = FALSE]),1 , mean, na.rm = TRUE))
   } else {
     stop(paste0("aggregate function for env_data_primary is ", aggregate_function_env_data_primary, ". Instead it should be mean, median or sum."))
   }
@@ -1327,16 +1327,16 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
   if (aggregate_function_env_data_control == 'median'){
     x2_original <- data.frame(apply(data.frame(env_data_control_original[, as.numeric(plot_column):
                                                                            (as.numeric(plot_column) +
-                                                                              as.numeric(row_index) - 1)]),1 , median, na.rm = TRUE))
+                                                                              as.numeric(row_index) - 1), drop = FALSE]),1 , median, na.rm = TRUE))
   } else if (aggregate_function_env_data_control == 'sum'){
     x2_original <- data.frame(apply(data.frame(env_data_control_original[, as.numeric(plot_column):
                                                                            (as.numeric(plot_column) +
-                                                                              as.numeric(row_index) - 1)]),1 , sum, na.rm = TRUE))
+                                                                              as.numeric(row_index) - 1), drop = FALSE]),1 , sum, na.rm = TRUE))
   } else if (aggregate_function_env_data_control == 'mean'){
 
     x2_original <- data.frame(apply(data.frame(env_data_control_original[, as.numeric(plot_column):
                                                                            (as.numeric(plot_column) +
-                                                                              as.numeric(row_index) - 1)]),1 , mean, na.rm = TRUE))
+                                                                              as.numeric(row_index) - 1), drop = FALSE]),1 , mean, na.rm = TRUE))
 
       } else {
     stop(paste0("aggregate function for env_data_control is ", aggregate_function_env_data_control, ". Instead it should be mean, median or sum."))
@@ -1351,14 +1351,14 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
 
     if (aggregate_function_env_data_primary == 'median'){
       x1 <- data.frame(apply(data.frame(env_data_primary[, (as.numeric(plot_column) - as.numeric(row_index) + 1):
-                                           (as.numeric(plot_column))]),1 , median, na.rm = TRUE))
+                                           (as.numeric(plot_column)), drop = FALSE]),1 , median, na.rm = TRUE))
     } else if (aggregate_function_env_data_primary == 'sum'){
       x1 <- data.frame(apply(data.frame(env_data_primary[, (as.numeric(plot_column) - as.numeric(row_index) + 1):
-                                           (as.numeric(plot_column))]),1 , sum, na.rm = TRUE))
+                                           (as.numeric(plot_column)), drop = FALSE]),1 , sum, na.rm = TRUE))
 
     } else if (aggregate_function_env_data_primary == 'mean'){
       x1 <- data.frame(apply(data.frame(env_data_primary[, (as.numeric(plot_column) - as.numeric(row_index) + 1):
-                                           (as.numeric(plot_column))]),1 , mean, na.rm = TRUE))
+                                           (as.numeric(plot_column)), drop = FALSE]),1 , mean, na.rm = TRUE))
     } else {
       stop(paste0("aggregate function for env_data_primary is ", aggregate_function_env_data_primary, ". Instead it should be mean, median or sum."))
     }
@@ -1366,14 +1366,14 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
 
     if (aggregate_function_env_data_control == 'median'){
       x2 <- data.frame(apply(data.frame(env_data_control[, (as.numeric(plot_column) - as.numeric(row_index) + 1):
-                                                (as.numeric(plot_column))]),1 , median, na.rm = TRUE))
+                                                (as.numeric(plot_column)), drop = FALSE]),1 , median, na.rm = TRUE))
     } else if (aggregate_function_env_data_control == 'sum'){
       x2 <- data.frame(apply(data.frame(env_data_control[, (as.numeric(plot_column) - as.numeric(row_index) + 1):
-                                                (as.numeric(plot_column))]),1 , sum, na.rm = TRUE))
+                                                (as.numeric(plot_column)), drop = FALSE]),1 , sum, na.rm = TRUE))
 
     } else if (aggregate_function_env_data_control == 'mean'){
       x2 <- data.frame(apply(data.frame(env_data_control[, (as.numeric(plot_column) - as.numeric(row_index) + 1):
-                                                (as.numeric(plot_column))]),1 , mean, na.rm = TRUE))
+                                                (as.numeric(plot_column)), drop = FALSE]),1 , mean, na.rm = TRUE))
     } else {
 
       stop(paste0("aggregate function for env_data_control is ", aggregate_function_env_data_control, ". Instead it should be mean, median or sum."))
@@ -1385,13 +1385,13 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
 
     if (aggregate_function_env_data_primary == 'median'){
       x1_original <- data.frame(apply(data.frame(env_data_primary_original[, (as.numeric(plot_column) - (as.numeric(row_index) + 1):
-                                                             as.numeric(plot_column))]),1 , median, na.rm = TRUE))
+                                                             as.numeric(plot_column)), drop = FALSE]),1 , median, na.rm = TRUE))
     } else if (aggregate_function_env_data_primary == 'sum'){
       x1_original <- data.frame(apply(data.frame(env_data_primary_original[, (as.numeric(plot_column) - (as.numeric(row_index) + 1):
-                                                             as.numeric(plot_column))]),1 , sum, na.rm = TRUE))
+                                                             as.numeric(plot_column)), drop = FALSE]),1 , sum, na.rm = TRUE))
     } else if (aggregate_function_env_data_primary == 'mean'){
       x1_original <- data.frame(apply(data.frame(env_data_primary_original[, (as.numeric(plot_column) - (as.numeric(row_index) + 1):
-                                                             as.numeric(plot_column))]),1 , mean, na.rm = TRUE))
+                                                             as.numeric(plot_column)), drop = FALSE]),1 , mean, na.rm = TRUE))
     } else {
       stop(paste0("aggregate function for env_data_primary is ", aggregate_function_env_data_primary, ". Instead it should be mean, median or sum."))
     }
@@ -1399,13 +1399,13 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
 
     if (aggregate_function_env_data_control == 'median'){
       x2_original <- data.frame(apply(data.frame(env_data_control_original[, (as.numeric(plot_column) - (as.numeric(row_index) + 1):
-                                                                                as.numeric(plot_column))]),1 , median, na.rm = TRUE))
+                                                                                as.numeric(plot_column)), drop = FALSE]),1 , median, na.rm = TRUE))
     } else if (aggregate_function_env_data_control == 'sum'){
       x2_original <- data.frame(apply(data.frame(env_data_control_original[, (as.numeric(plot_column) - (as.numeric(row_index) + 1):
-                                                                                as.numeric(plot_column))]),1 , sum, na.rm = TRUE))
+                                                                                as.numeric(plot_column)), drop = FALSE]),1 , sum, na.rm = TRUE))
     } else if (aggregate_function_env_data_control == 'mean'){
       x2_original <- data.frame(apply(data.frame(env_data_control_original[, (as.numeric(plot_column) - (as.numeric(row_index) + 1):
-                                                                                as.numeric(plot_column))]),1 , mean, na.rm = TRUE))
+                                                                                as.numeric(plot_column)), drop = FALSE]),1 , mean, na.rm = TRUE))
     } else {
       stop(paste0("aggregate function for env_data_control is ", aggregate_function_env_data_control, ". Instead it should be mean, median or sum."))
     }
@@ -1425,17 +1425,17 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
 
     if (aggregate_function_env_data_primary == 'median'){
       x1 <- data.frame(apply(data.frame(env_data_primary[, (round2((as.numeric(plot_column) - (as.numeric(row_index))/2)) - adjustment_1):
-                                           (round2((as.numeric(plot_column) + as.numeric(row_index)/2)) - adjustment_2)]),
+                                           (round2((as.numeric(plot_column) + as.numeric(row_index)/2)) - adjustment_2), drop = FALSE]),
                                           1 , median, na.rm = TRUE))
 
     } else if (aggregate_function_env_data_primary == 'sum'){
       x1 <- data.frame(apply(data.frame(env_data_primary[, (round2((as.numeric(plot_column) - (as.numeric(row_index))/2)) - adjustment_1):
-                                           (round2((as.numeric(plot_column) + as.numeric(row_index)/2)) - adjustment_2)]),
+                                           (round2((as.numeric(plot_column) + as.numeric(row_index)/2)) - adjustment_2), drop = FALSE]),
                                 1 , sum, na.rm = TRUE))
 
     } else if (aggregate_function_env_data_primary == 'mean'){
       x1 <- data.frame(apply(data.frame(env_data_primary[, (round2((as.numeric(plot_column) - (as.numeric(row_index))/2)) - adjustment_1):
-                                           (round2((as.numeric(plot_column) + as.numeric(row_index)/2)) - adjustment_2)]),
+                                           (round2((as.numeric(plot_column) + as.numeric(row_index)/2)) - adjustment_2), drop = FALSE]),
                                 1 , mean, na.rm = TRUE))
     } else {
       stop(paste0("aggregate function for env_data_primary is ", aggregate_function_env_data_primary, ". Instead it should be mean, median or sum."))
@@ -1445,17 +1445,17 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
 
     if (aggregate_function_env_data_control == 'median'){
       x2 <- data.frame(apply(data.frame(env_data_control[, (round2((as.numeric(plot_column) - (as.numeric(row_index))/2)) - adjustment_1):
-                                                (round2((as.numeric(plot_column) + as.numeric(row_index)/2)) - adjustment_2)]),
+                                                (round2((as.numeric(plot_column) + as.numeric(row_index)/2)) - adjustment_2), drop = FALSE]),
                              1 , median, na.rm = TRUE))
 
     } else if (aggregate_function_env_data_control == 'sum'){
       x2 <- data.frame(apply(data.frame(env_data_control[, (round2((as.numeric(plot_column) - (as.numeric(row_index))/2)) - adjustment_1):
-                                                (round2((as.numeric(plot_column) + as.numeric(row_index)/2)) - adjustment_2)]),
+                                                (round2((as.numeric(plot_column) + as.numeric(row_index)/2)) - adjustment_2), drop = FALSE]),
                              1 , sum, na.rm = TRUE))
 
     } else if (aggregate_function_env_data_control == 'mean'){
       x2 <- data.frame(apply(data.frame(env_data_control[, (round2((as.numeric(plot_column) - (as.numeric(row_index))/2)) - adjustment_1):
-                                                (round2((as.numeric(plot_column) + as.numeric(row_index)/2)) - adjustment_2)]),
+                                                (round2((as.numeric(plot_column) + as.numeric(row_index)/2)) - adjustment_2), drop = FALSE]),
                              1 , mean, na.rm = TRUE))
     } else {
       stop(paste0("aggregate function for env_data_control is ", aggregate_function_env_data_control, ". Instead it should be mean, median or sum."))
@@ -1467,15 +1467,15 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
 
     if (aggregate_function_env_data_primary == 'median'){
       x1_original <- data.frame(apply(data.frame(env_data_primary_original[, (round2((as.numeric(plot_column) - (as.numeric(row_index))/2)) - adjustment_1):
-                                           (round2((as.numeric(plot_column) + as.numeric(row_index)/2)) - adjustment_2)]),
+                                           (round2((as.numeric(plot_column) + as.numeric(row_index)/2)) - adjustment_2), drop = FALSE]),
                                 1 , median, na.rm = TRUE))
     } else if (aggregate_function_env_data_primary == 'sum'){
       x1_original <- data.frame(apply(data.frame(env_data_primary_original[, (round2((as.numeric(plot_column) - (as.numeric(row_index))/2)) - adjustment_1):
-                                                             (round2((as.numeric(plot_column) + as.numeric(row_index)/2)) - adjustment_2)]),
+                                                             (round2((as.numeric(plot_column) + as.numeric(row_index)/2)) - adjustment_2), drop = FALSE]),
                                          1 , sum, na.rm = TRUE))
     } else if (aggregate_function_env_data_primary == 'mean'){
       x1_original <- data.frame(apply(data.frame(env_data_primary_original[, (round2((as.numeric(plot_column) - (as.numeric(row_index))/2)) - adjustment_1):
-                                                             (round2((as.numeric(plot_column) + as.numeric(row_index)/2)) - adjustment_2)]),
+                                                             (round2((as.numeric(plot_column) + as.numeric(row_index)/2)) - adjustment_2), drop = FALSE]),
                                          1 , mean, na.rm = TRUE))
     } else {
       stop(paste0("aggregate function for env_data_primary is ", aggregate_function_env_data_primary, ". Instead it should be mean, median or sum."))
@@ -1484,17 +1484,17 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
 
     if (aggregate_function_env_data_control == 'median'){
       x2_original <- data.frame(apply(data.frame(env_data_control_original[, (round2((as.numeric(plot_column) - (as.numeric(row_index))/2)) - adjustment_1):
-                                                                             (round2((as.numeric(plot_column) + as.numeric(row_index)/2)) - adjustment_2)]),
+                                                                             (round2((as.numeric(plot_column) + as.numeric(row_index)/2)) - adjustment_2), drop = FALSE]),
                                       1 , median, na.rm = TRUE))
 
     } else if (aggregate_function_env_data_control == 'sum'){
       x2_original <- data.frame(apply(data.frame(env_data_control_original[, (round2((as.numeric(plot_column) - (as.numeric(row_index))/2)) - adjustment_1):
-                                                                             (round2((as.numeric(plot_column) + as.numeric(row_index)/2)) - adjustment_2)]),
+                                                                             (round2((as.numeric(plot_column) + as.numeric(row_index)/2)) - adjustment_2), drop = FALSE]),
                                       1 , sum, na.rm = TRUE))
 
     } else if (aggregate_function_env_data_control == 'mean'){
       x2_original <- data.frame(apply(data.frame(env_data_control_original[, (round2((as.numeric(plot_column) - (as.numeric(row_index))/2)) - adjustment_1):
-                                                                             (round2((as.numeric(plot_column) + as.numeric(row_index)/2)) - adjustment_2)]),
+                                                                             (round2((as.numeric(plot_column) + as.numeric(row_index)/2)) - adjustment_2), drop = FALSE]),
                                       1 , mean, na.rm = TRUE))
     } else {
       stop(paste0("aggregate function for env_data_control is ", aggregate_function_env_data_control, ". Instead it should be mean, median or sum."))

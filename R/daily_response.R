@@ -2084,15 +2084,15 @@ daily_response <- function(response, env_data, method = "lm",
   if (aggregate_function == 'median'){
     dataf_original <- data.frame(apply(data.frame(env_data_original[, as.numeric(plot_column):
                                          (as.numeric(plot_column) +
-                                            as.numeric(row_index) - 1)]),1 , median, na.rm = TRUE))
+                                            as.numeric(row_index) - 1), drop = FALSE]),1 , median, na.rm = TRUE))
   } else if (aggregate_function == 'sum'){
     dataf_original <- data.frame(apply(data.frame(env_data_original[, as.numeric(plot_column):
                                                            (as.numeric(plot_column) +
-                                                              as.numeric(row_index) - 1)]),1 , sum, na.rm = TRUE))
+                                                              as.numeric(row_index) - 1), drop = FALSE]),1 , sum, na.rm = TRUE))
   } else if (aggregate_function == 'mean'){
     dataf_original <- data.frame(rowMeans(data.frame(env_data_original[, as.numeric(plot_column):
                                             (as.numeric(plot_column) +
-                                               as.numeric(row_index) - 1)]),
+                                               as.numeric(row_index) - 1), drop = FALSE]),
                                  na.rm = TRUE))
   } else {
     stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median or sum."))
@@ -2170,14 +2170,14 @@ daily_response <- function(response, env_data, method = "lm",
 
     if (aggregate_function == 'median'){
       dataf <- data.frame(apply(env_data[, (as.numeric(plot_column) - as.numeric(row_index) + 1):
-                                           (as.numeric(plot_column))],1 , median, na.rm = TRUE))
+                                           (as.numeric(plot_column)), drop = FALSE],1 , median, na.rm = TRUE))
     } else if (aggregate_function == 'sum'){
       dataf <- data.frame(apply(env_data[, (as.numeric(plot_column) - as.numeric(row_index) + 1):
-                                           (as.numeric(plot_column))],1 , sum, na.rm = TRUE))
+                                           (as.numeric(plot_column)), drop = FALSE],1 , sum, na.rm = TRUE))
 
     } else if (aggregate_function == 'mean'){
       dataf <- data.frame(apply(env_data[, (as.numeric(plot_column) - as.numeric(row_index) + 1):
-                                           (as.numeric(plot_column))],1 , mean, na.rm = TRUE))
+                                           (as.numeric(plot_column)), drop = FALSE],1 , mean, na.rm = TRUE))
     } else {
       stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median or sum."))
     }
@@ -2200,13 +2200,13 @@ daily_response <- function(response, env_data, method = "lm",
 
     if (aggregate_function == 'median'){
       dataf_original <- data.frame(apply(env_data_original[, (as.numeric(plot_column) - (as.numeric(row_index) + 1):
-                                                             as.numeric(plot_column))],1 , median, na.rm = TRUE))
+                                                             as.numeric(plot_column)), drop = FALSE],1 , median, na.rm = TRUE))
     } else if (aggregate_function == 'sum'){
       dataf_original <- data.frame(apply(env_data_original[, (as.numeric(plot_column) - (as.numeric(row_index) + 1):
-                                                             as.numeric(plot_column))],1 , sum, na.rm = TRUE))
+                                                             as.numeric(plot_column)), drop = FALSE],1 , sum, na.rm = TRUE))
     } else if (aggregate_function == 'mean'){
       dataf_original <- data.frame(apply(env_data_original[, (as.numeric(plot_column) - (as.numeric(row_index) + 1):
-                                                             as.numeric(plot_column))],1 , mean, na.rm = TRUE))
+                                                             as.numeric(plot_column)), drop = FALSE],1 , mean, na.rm = TRUE))
     } else {
       stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median or sum."))
     }
@@ -2289,17 +2289,17 @@ daily_response <- function(response, env_data, method = "lm",
 
     if (aggregate_function == 'median'){
       dataf <- data.frame(apply(env_data[, (round2((as.numeric(plot_column) - (as.numeric(row_index))/2)) - adjustment_1):
-                                           (round2((as.numeric(plot_column) + as.numeric(row_index)/2)) - adjustment_2)],
+                                           (round2((as.numeric(plot_column) + as.numeric(row_index)/2)) - adjustment_2), drop = FALSE],
                                           1 , median, na.rm = TRUE))
 
     } else if (aggregate_function == 'sum'){
       dataf <- data.frame(apply(env_data[, (round2((as.numeric(plot_column) - (as.numeric(row_index))/2)) - adjustment_1):
-                                           (round2((as.numeric(plot_column) + as.numeric(row_index)/2)) - adjustment_2)],
+                                           (round2((as.numeric(plot_column) + as.numeric(row_index)/2)) - adjustment_2), drop = FALSE],
                                 1 , sum, na.rm = TRUE))
 
     } else if (aggregate_function == 'mean'){
       dataf <- data.frame(apply(env_data[, (round2((as.numeric(plot_column) - (as.numeric(row_index))/2)) - adjustment_1):
-                                           (round2((as.numeric(plot_column) + as.numeric(row_index)/2)) - adjustment_2)],
+                                           (round2((as.numeric(plot_column) + as.numeric(row_index)/2)) - adjustment_2), drop = FALSE],
                                 1 , mean, na.rm = TRUE))
     } else {
       stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median or sum."))
@@ -2324,15 +2324,15 @@ daily_response <- function(response, env_data, method = "lm",
 
     if (aggregate_function == 'median'){
       dataf_original <- data.frame(apply(env_data_original[, (round2((as.numeric(plot_column) - (as.numeric(row_index))/2)) - adjustment_1):
-                                           (round2((as.numeric(plot_column) + as.numeric(row_index)/2)) - adjustment_2)],
+                                           (round2((as.numeric(plot_column) + as.numeric(row_index)/2)) - adjustment_2), drop = FALSE],
                                 1 , median, na.rm = TRUE))
     } else if (aggregate_function == 'sum'){
       dataf_original <- data.frame(apply(env_data_original[, (round2((as.numeric(plot_column) - (as.numeric(row_index))/2)) - adjustment_1):
-                                                             (round2((as.numeric(plot_column) + as.numeric(row_index)/2)) - adjustment_2)],
+                                                             (round2((as.numeric(plot_column) + as.numeric(row_index)/2)) - adjustment_2), drop = FALSE],
                                          1 , sum, na.rm = TRUE))
     } else if (aggregate_function == 'mean'){
       dataf_original <- data.frame(apply(env_data_original[, (round2((as.numeric(plot_column) - (as.numeric(row_index))/2)) - adjustment_1):
-                                                             (round2((as.numeric(plot_column) + as.numeric(row_index)/2)) - adjustment_2)],
+                                                             (round2((as.numeric(plot_column) + as.numeric(row_index)/2)) - adjustment_2), drop = FALSE],
                                          1 , mean, na.rm = TRUE))
     } else {
       stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median or sum."))
