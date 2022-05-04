@@ -94,8 +94,8 @@
 #' middle day of window calculation. If the reference_window argument is set to
 #' 'end', then each calculation is related to the ending day of window calculation.
 #' For example, if we consider correlations with window from DOY 15 to DOY 35. If
-#' reference window is set to ‘start’, then this calculation will be related to the
-#' DOY 15. If the reference window is set to ‘end’, then this calculation will be
+#' reference window is set to  'start', then this calculation will be related to the
+#' DOY 15. If the reference window is set to 'end', then this calculation will be
 #' related to the DOY 35. If the reference_window is set to 'middle', then this
 #' calculation is related to DOY 25.
 #' The optimal selection, which describes the optimal consecutive days that returns
@@ -129,7 +129,7 @@
 #' for automatic choice by cross-validation (see dplR R package).
 #' @param dc_bass a numeric value controlling the smoothness of the fitted curve
 #' in method "Friedman" (see dplR R package).
-#' @param dc_difference	a logical flag. Compute residuals by substraction if TRUE,
+#' @param dc_difference	a logical flag. Compute residuals by subtraction if TRUE,
 #' otherwise use division (see dplR R package).
 #' @param pcor_na_use an optional character string giving a method for computing
 #' covariances in the presence of missing values for partial correlation
@@ -161,7 +161,7 @@
 #' @export
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' # Load the dendroTools R package
 #' library(dendroTools)
 #'

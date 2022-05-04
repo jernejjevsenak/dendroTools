@@ -1,6 +1,6 @@
 Dear CRAN
 
-This is regular update of the dendroTools r package. I improved the functionality of the package, also added some comments that who study my code can better understand it. Also, there is a new argument, which can be used to control the behaviour of correlation calculations in case of missing values.
+This is regular update of the dendroTools R package. There were only minor changes related to default values of function arguments, improved description and correction of spelling errors. 
 
 In previous versions, we agreed to disable vignette checking on some platforms. I believe it makes sense to keep it that way.  
 

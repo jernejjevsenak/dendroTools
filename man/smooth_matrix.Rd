@@ -25,7 +25,7 @@ values in a window 3 x 3 around the unrealistic value. Unrealistic value is
 determined by a factor_drop.
 }
 \examples{
-\dontrun{
+\donttest{
 library(dendroTools)
 data(LJ_daily_temperatures)
 data(example_proxies_1)

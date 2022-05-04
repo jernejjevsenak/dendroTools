@@ -31,8 +31,8 @@ reference_window argument is set to 'middle', each calculation is related to the
 middle day of window calculation. If the reference_window argument is set to
 'end', then each calculation is related to the ending day of window calculation.
 For example, if we consider correlations with window from DOY 15 to DOY 35. If
-reference window is set to ‘start’, then this calculation will be related to the
-DOY 15. If the reference window is set to ‘end’, then this calculation will be
+reference window is set to 'start', then this calculation will be related to the
+DOY 15. If the reference window is set to 'end', then this calculation will be
 related to the DOY 35. If the reference_window is set to 'middle', then this
 calculation is related to DOY 25.}
 
@@ -46,7 +46,7 @@ Graphs a line plot of a row with a selected window width in a matrix,
 produced by \code{\link{daily_response}} function.
 }
 \examples{
-\dontrun{
+\donttest{
 data(LJ_daily_temperatures)
 data(KRE_daily_temperatures)
 data(example_proxies_1)

@@ -7,7 +7,7 @@
 \format{
 A data frame with 273 rows and 1 variable:
 \describe{
-  \item{TRWi}{Standardised TRW index}
+  \item{TRWi}{Standardised tree-ring width chronology}
 }
 }
 \source{

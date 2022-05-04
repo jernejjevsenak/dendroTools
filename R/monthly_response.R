@@ -26,7 +26,7 @@
 #' @param fixed_width fixed width used for calculations (i.e. number of consecutive
 #' months to be used for calculations)
 #' @param method a character string specifying which method to use. Current
-#' possibilities are "cor", "lm" and "brnn".
+#' possibilities are "cor" (default), "lm" and "brnn".
 #' @param metric a character string specifying which metric to use. Current
 #' possibilities are "r.squared" and "adj.r.squared". If method = "cor",
 #' metric is not relevant.
@@ -116,7 +116,7 @@
 #' for automatic choice by cross-validation (see dplR R package).
 #' @param dc_bass a numeric value controlling the smoothness of the fitted curve
 #' in method "Friedman" (see dplR R package).
-#' @param dc_difference	a logical flag. Compute residuals by substraction if TRUE,
+#' @param dc_difference	a logical flag. Compute residuals by subtraction if TRUE,
 #' otherwise use division (see dplR R package).
 #' @param cor_na_use an optional character string giving a method for computing
 #' covariances in the presence of missing values for correlation coefficients.
@@ -149,7 +149,7 @@
 #' @export
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' # Load the dendroTools R package
 #' library(dendroTools)
 #'

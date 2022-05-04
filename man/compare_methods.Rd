@@ -250,7 +250,7 @@ considered methods, there are also residual diagnostic plots available,
 separately for calibration, holdout and edge data, if applicable.
 }
 \examples{
-\dontrun{
+\donttest{
 
 # An example with default settings of machine learning algorithms
 library(dendroTools)

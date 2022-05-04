@@ -116,7 +116,7 @@
 #' for automatic choice by cross-validation (see dplR R package).
 #' @param dc_bass a numeric value controlling the smoothness of the fitted curve
 #' in method "Friedman" (see dplR R package).
-#' @param dc_difference	a logical flag. Compute residuals by substraction if TRUE,
+#' @param dc_difference	a logical flag. Compute residuals by subtraction if TRUE,
 #' otherwise use division (see dplR R package).
 #' @param pcor_na_use an optional character string giving a method for computing
 #' covariances in the presence of missing values for partial correlation
@@ -148,7 +148,7 @@
 #' @export
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' # Load the dendroTools R package
 #' library(dendroTools)
 #'

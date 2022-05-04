@@ -16,7 +16,7 @@
 #'
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' library(dendroTools)
 #' data(LJ_daily_temperatures)
 #' data(example_proxies_1)

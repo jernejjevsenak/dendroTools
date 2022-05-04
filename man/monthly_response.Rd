@@ -66,7 +66,7 @@ sum of precipitation etc. If tidy data is passed to the function, set the argume
 tidy_env_data to TRUE.}
 
 \item{method}{a character string specifying which method to use. Current
-possibilities are "cor", "lm" and "brnn".}
+possibilities are "cor" (default), "lm" and "brnn".}
 
 \item{metric}{a character string specifying which metric to use. Current
 possibilities are "r.squared" and "adj.r.squared". If method = "cor",
@@ -201,7 +201,7 @@ for automatic choice by cross-validation (see dplR R package).}
 \item{dc_bass}{a numeric value controlling the smoothness of the fitted curve
 in method "Friedman" (see dplR R package).}
 
-\item{dc_difference}{a logical flag. Compute residuals by substraction if TRUE,
+\item{dc_difference}{a logical flag. Compute residuals by subtraction if TRUE,
 otherwise use division (see dplR R package).}
 
 \item{cor_na_use}{an optional character string giving a method for computing
@@ -243,7 +243,7 @@ width (row names) and a location in a matrix of monthly sequences of
 environmental data (column names).
 }
 \examples{
-\dontrun{
+\donttest{
 # Load the dendroTools R package
 library(dendroTools)
 

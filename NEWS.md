@@ -1,3 +1,9 @@
+# dendroTools 1.2.8
+* daily_response() default remove_insignificant argument is set to FALSE
+* updated description
+* default method in daily_response() and monthly_response() is set to 'cor'
+* Corrected all spelling errors
+
 # dendroTools 1.2.7
 * comments are added to the code, which is now more readable
 * unused part of the scripts are removed
@@ -32,11 +38,11 @@ Other functions have been changed only slightly, so they will work even if new a
 
 # dendroTools 1.1.2
 * a bug corrected in the data_transform()
-* minor bug is removed which happened in a case of nonsignificant calculations or only one significant correlation
+* minor bug is removed which happened in a case of non significant calculations or only one significant correlation
 
 # dendroTools 1.1.1
 * dendroTools version is changed to 1.1.1
-* Correctcions realted to testhat changes.
+* Corrections related to testthat changes.
 * imports is updated: oce(>= 1.2-0)
 
 # dendroTools 1.0.8

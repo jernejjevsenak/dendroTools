@@ -177,7 +177,7 @@
 #' Scientific, Hobart, pp. 343-348.
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #'
 #' # An example with default settings of machine learning algorithms
 #' library(dendroTools)

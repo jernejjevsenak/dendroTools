@@ -61,7 +61,7 @@ The *daily_response()* is the most commonly used function in the R package dendr
 In general, the user can use a fixed window or a progressive window to calculate the moving averages. To use a fixed window, choose its width by assigning an integer to the *fixed_width* argument. To use a so-called variable window, which includes many different windows, define the arguments *lower_limit* and *upper_limit*. In this case, all window widths between the lower and upper limits are taken into account. The window width is defined here as the number of days between the start and end days of a calculation. Thus, the window width represents a season of interest used in the calculations. 
 All calculated statistical metrics (correlation coefficients, r-squared or adjusted r-squared) are stored in a matrix that is later used to interpret the results. Such interpretation usually involves identifying the optimal season in relation to tree-ring chronology or analysing temporal patterns of correlations between climate and growth. The so-called optimal season (also called optimal window or time window with the highest correlation value) is later extracted and used to evaluate the temporal stability correlations.
 
-## 3.1 An example of analysing the relationship between Mean Vessel Area (MVA) tree-ring parameter and daily temperature data with fixed window appraoch
+## 3.1 An example of analysing the relationship between Mean Vessel Area (MVA) tree-ring parameter and daily temperature data with fixed window approach
 
 In this example, I analyse the relationship between the tree ring parameter Mean Early Wood Vessel Area (MVA) and daily temperature data (meteorological station Ljubljana, Slovenia) for a chosen window width of 60 days (argument *fixed_width = 60*). Note that the *fixed_width* argument overrides the *upper_limit* and *lower_limit* arguments when used.
 
@@ -69,7 +69,7 @@ Here I also demonstrate the usability of the *row_names_subset* argument, which 
 
 Another option I use here is to remove non-significant correlations. All non-significant correlations are removed by setting the argument *remove_insignificant = TRUE * while controlling the threshold for significance with the argument *alpha*.
 
-The results are interpreted with generic *summary()* and visualised with the generic *plot()* functions. There are two types of plots available, 1) highlighted results for a window with the highest calculated value (type = 1), and 2) heatmap of all calculated values (type = 2).
+The results are interpreted with generic *summary()* and visualized with the generic *plot()* functions. There are two types of plots available, 1) highlighted results for a window with the highest calculated value (type = 1), and 2) heatmap of all calculated values (type = 2).
 
 ```{r, results = 'hide'}
 # Load the dendroTools R package
@@ -157,7 +157,7 @@ plot(example_restricted_interval, type = 2)
 
 # 4 An example with multiple tree-ring proxies
 
-As mentioned in the introduction, *daily_response()* allows multiproxy analysis where the *response* data frame consists of more than one tree-ring proxy. In such cases, linear or non-linear (brnn) models are fitted at each step and r-squared or adjusted r-squared is computed. However, users should choose multiple proxies judiciously and with caution, as there is nothing to prevent from including colinear variables. Using multiple proxies will result in higher explained variance, but at the expense of degrees of freedom. In these cases, you should also check the stability of the relationship over time and the result of cross-validation. If the metrics on the validation data are much lower than on the calibration data, there is a problem of overfitting and you should exclude some proxies and repeat the analysis. It ishighly recommended that you use the adjusted r-squared metric when using the multiproxy approach.
+As mentioned in the introduction, *daily_response()* allows multiproxy analysis where the *response* data frame consists of more than one tree-ring proxy. In such cases, linear or non-linear (brnn) models are fitted at each step and r-squared or adjusted r-squared is computed. However, users should choose multiple proxies judiciously and with caution, as there is nothing to prevent from including colinear variables. Using multiple proxies will result in higher explained variance, but at the expense of degrees of freedom. In these cases, you should also check the stability of the relationship over time and the result of cross-validation. If the metrics on the validation data are much lower than on the calibration data, there is a problem of overfitting and you should exclude some proxies and repeat the analysis. It is highly recommended that you use the adjusted r-squared metric when using the multiproxy approach.
 
 ```{r }
 # Load the dendroTools and brnn R package
@@ -227,7 +227,7 @@ plot(example_PCA, type = 2)
 
 # 6 An example of climate reconstruction
 
-Reconstructions of past climatic conditions include reconstructions of past temperatures, precipitation, vegetation, water flows, sea surface temperatures, and other climatic or climate-related conditions. To reconstruct climate with the dendroTools, we first use *daily_response()* to find the optimal sequence of consecutive days that yields the highest metric, e.g. correlation coefficent. In this example, we use data_TRW and the daily temperatures of Kredarica ('KRE_daily_temperatures'). The temporal stability of the statistical relationship is afterwards analysed with the "progressive" method using 3 splits (*k = 3*). Progressive testing involves splitting the data into *k* splits, calculating the metric for the first split, and then incrementally adding 1 split at a time and calculating the selected metric. The *cross_validation_type* argument is set to "randomised" so that the years are reshuffled before the cross-validation test. 
+Reconstructions of past climatic conditions include reconstructions of past temperatures, precipitation, vegetation, water flows, sea surface temperatures, and other climatic or climate-related conditions. To reconstruct climate with the dendroTools, we first use *daily_response()* to find the optimal sequence of consecutive days that yields the highest metric, e.g. correlation coefficient. In this example, we use data_TRW and the daily temperatures of Kredarica ('KRE_daily_temperatures'). The temporal stability of the statistical relationship is afterwards analysed with the "progressive" method using 3 splits (*k = 3*). Progressive testing involves splitting the data into *k* splits, calculating the metric for the first split, and then incrementally adding 1 split at a time and calculating the selected metric. The *cross_validation_type* argument is set to "randomised" so that the years are reshuffled before the cross-validation test. 
 
 ```{r, results = 'hide'}
 # Load the dendroTools R package

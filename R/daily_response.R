@@ -23,7 +23,7 @@
 #' sum of precipitation etc. If tidy data is passed to the function, set the argument
 #' tidy_env_data to TRUE.
 #' @param method a character string specifying which method to use. Current
-#' possibilities are "cor", "lm" and "brnn".
+#' possibilities are "cor" (default), "lm" and "brnn".
 #' @param cor_method a character string indicating which correlation
 #' coefficient is to be computed. One of "pearson" (default), "kendall", or
 #' "spearman".
@@ -43,8 +43,7 @@
 #' removes unrealistic calculations which are a result of neural net failure.
 #' @param remove_insignificant if set to TRUE, removes all correlations bellow
 #' the significant threshold level, based on a selected alpha. For "lm" and
-#' "brnn" method, squared threshold is used, which corresponds to R squared
-#' statistics.
+#' "brnn" method, squared correlation is used as a threshold
 #' @param alpha significance level used to remove insignificant calculations.
 #' @param row_names_subset if set to TRUE, row.names are used to subset
 #' env_data and response data frames. Only years from both data frames are
@@ -97,8 +96,8 @@
 #' middle day of window calculation. If the reference_window argument is set to
 #' 'end', then each calculation is related to the ending day of window calculation.
 #' For example, if we consider correlations with window from DOY 15 to DOY 35. If
-#' reference window is set to ‘start’, then this calculation will be related to the
-#' DOY 15. If the reference window is set to ‘end’, then this calculation will be
+#' reference window is set to  'start', then this calculation will be related to the
+#' DOY 15. If the reference window is set to 'end', then this calculation will be
 #' related to the DOY 35. If the reference_window is set to 'middle', then this
 #' calculation is related to DOY 25.
 #' The optimal selection, which describes the optimal consecutive days that returns
@@ -132,7 +131,7 @@
 #' for automatic choice by cross-validation (see dplR R package).
 #' @param dc_bass a numeric value controlling the smoothness of the fitted curve
 #' in method "Friedman" (see dplR R package).
-#' @param dc_difference	a logical flag. Compute residuals by substraction if TRUE,
+#' @param dc_difference	a logical flag. Compute residuals by subtraction if TRUE,
 #' otherwise use division (see dplR R package).
 #' @param cor_na_use an optional character string giving a method for computing
 #' covariances in the presence of missing values for correlation coefficients.
@@ -164,7 +163,7 @@
 #' @export
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' # Load the dendroTools R package
 #' library(dendroTools)
 #'
@@ -259,18 +258,18 @@
 #'
 #' # 7 Example with nonlinear brnn estimation
 #' example_brnn <- daily_response(response = data_MVA,
-#'    env_data = LJ_daily_temperatures, method = "brnn", boot = TRUE,
+#'    env_data = LJ_daily_temperatures, method = "brnn", boot = FALSE,
 #'    lower_limit = 100, metric = "adj.r.squared", upper_limit = 101,
 #'    row_names_subset = TRUE, remove_insignificant = TRUE, boot_n = 10)
 #'
 #' summary(example_brnn)
 #' }
 
-daily_response <- function(response, env_data, method = "lm",
+daily_response <- function(response, env_data, method = "cor",
                            metric = "r.squared", cor_method = "pearson",
                            lower_limit = 30, upper_limit = 90, fixed_width = 0,
                            previous_year = FALSE, neurons = 1,
-                           brnn_smooth = TRUE, remove_insignificant = TRUE,
+                           brnn_smooth = TRUE, remove_insignificant = FALSE,
                            alpha = .05, row_names_subset = FALSE,
                            PCA_transformation = FALSE, log_preprocess = TRUE,
                            components_selection = 'automatic',

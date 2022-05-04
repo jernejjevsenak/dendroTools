@@ -145,7 +145,7 @@ kable(example_multiproxy$mean_std)
 
 ## 5. Example of climate reconstruction
 
-Reconstructions of past climate conditions include reconstructions of past temperature, precipitation, vegetation, streamflow, sea surface temperature, and other climatic or climate-dependent conditions. With the *compare_methods()* it is possible to directly reconstruct the dependent variable specified with the *formula* argument. To do so, supply additional complete dataset with tree-ring chronology that goes beyond the observations of instrumental records. 
+Reconstructions of past climate conditions include reconstructions of past temperature, precipitation, vegetation, stream flow, sea surface temperature, and other climatic or climate-dependent conditions. With the *compare_methods()* it is possible to directly reconstruct the dependent variable specified with the *formula* argument. To do so, supply additional complete dataset with tree-ring chronology that goes beyond the observations of instrumental records. 
 
 For the *example_reconstruction*, we use *data_TRW* dataset, which includes a tree-ring width (TRW) chronology of *Pinus nigra* from Albania and mean June-July temperature from Albania. The complete TRW chronology is supplied with the *dataset_TRW_complete*. In this example, we will compare RF and MLR models with 3-fold cross-validation and 1 repeat.
 
