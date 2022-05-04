@@ -2,7 +2,7 @@
 * daily_response() default remove_insignificant argument is set to FALSE
 * updated description
 * default method in daily_response() and monthly_response() is set to 'cor'
-* Corrected all spelling errors
+* corrected all spelling errors
 
 # dendroTools 1.2.7
 * comments are added to the code, which is now more readable

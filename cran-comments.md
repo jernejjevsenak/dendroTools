@@ -14,13 +14,13 @@ Jernej
 ## Test environments
 * local OS X install, R 4.1.1
 
-* rhub Windows Server 2022 (https://builder.r-hub.io/status/original/dendroTools_1.2.7.tar.gz-9a38a5c04747483dbd87c42b10ea73b5)
-* rhub Ubuntu (https://builder.r-hub.io/status/original/dendroTools_1.2.7.tar.gz-91812ea7bef541a8aedc9f2906b0d553)
-* rhub Fedora Linux (https://builder.r-hub.io/status/original/dendroTools_1.2.7.tar.gz-4f2ad668f9bd454ab2aac91736cf1fca)
+* rhub Windows Server 2022 (https://builder.r-hub.io/status/original/dendroTools_1.2.8.tar.gz-f4a774d9cd2542e689a19fe1f765aba0)
+* rhub Ubuntu Linux (https://builder.r-hub.io/status/original/dendroTools_1.2.8.tar.gz-84044c13c7814cfda8c48ab26406c27a)
+* rhub Fedora Linux (https://builder.r-hub.io/status/original/dendroTools_1.2.8.tar.gz-8c79f10f0c874328a8ec674c5b1b5083)
 
-* win-check oldrelease (https://win-builder.r-project.org/bE14YGPKjP0w/00check.log)
-* win-check release (https://win-builder.r-project.org/o4LbYroGIzo0/00check.log)
-* win-check devel (https://win-builder.r-project.org/AONlRRPVa49x/00check.log)
+* win-check oldrelease (https://win-builder.r-project.org/vw6iq59rj7tT/00check.log)
+* win-check release (https://win-builder.r-project.org/F2FFV2Lw7eco/00check.log)
+* win-check devel (https://win-builder.r-project.org/n6527FL1f733/00check.log)
 
 ## R CMD check results
 There were 0 ERRORs, 0 WARNINGs and 0 NOTEs
