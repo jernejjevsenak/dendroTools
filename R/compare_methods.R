@@ -122,7 +122,7 @@
 #' and the final results will be subset based on the methods vector. Setting the
 #' total_reproducibility to TRUE will result in longer optimization phase as well.
 #'
-#' @return a list with 18 elements:
+#' @return a list with 19 elements:
 #' \enumerate{
 #'  \item $mean_std - data frame with calculated metrics for the selected \\ regression methods. For each regression method and each calculated metric, mean and standard deviation are given
 #'  \item $ranks - data frame with ranks of calculated metrics: mean rank and  share of rank_1 are given
@@ -142,6 +142,7 @@
 #'  \item $residuals_vs_fitted_cal - residuals vs fitted values plot for calibration data
 #'  \item $residuals_vs_fitted_holdout - residuals vs fitted values plot for holdout data
 #'  \item $residuals_vs_fitted_edge - residuals vs fitted values plot for edge data
+#'  \item $reconstructions_data - raw data that is used for creating reconstruction plots
 #'}
 #'
 #' @export
@@ -200,7 +201,7 @@
 #' example_1$normal_QQ_cal
 #' example_1$normal_QQ_edge
 #' example_1$normal_QQ_holdout
-#'
+#' example_1$reconstructions_data
 #'
 #' example_2 <- compare_methods(formula = MVA ~  T_APR,
 #' dataset = example_dataset_1, k = 5, repeats = 10, BRNN_neurons = 1,
@@ -238,6 +239,7 @@
 #' comparison_TRW$reconstructions
 #' comparison_TRW$reconstructions_together
 #' comparison_TRW$edge_results
+#' comparison_TRW$reconstructions_data
 #' }
 
 compare_methods <- function(formula, dataset, k = 10, repeats = 2,
@@ -2035,6 +2037,8 @@ names(empty_LIST) <- method_vector
 reconstructions <- do.call(rbind, empty_LIST)
 reconstructions$Year = as.numeric(row.names(dataset_complete))
 
+recon_df <- reconstructions
+
 # Add plots
 plot_3 <- ggplot(reconstructions, aes(x = Year, y = reconstruction, group = method, colour = method)) +
   geom_line() +
@@ -2050,8 +2054,9 @@ plot_4 <- ggplot(reconstructions, aes(x = Year, y = reconstruction, group = meth
   journal_theme +
   theme(legend.position = 'none')
 } else {
-  plot_3 <- "The dataset full argument is not supplied, therefore reconstrucions are not calculated."
-  plot_4 <- "The dataset full argument is not supplied, therefore reconstrucions are not calculated."
+  plot_3 <- "The dataset full argument is not supplied, therefore reconstrucions are not calculated"
+  plot_4 <- "The dataset full argument is not supplied, therefore reconstrucions are not calculated"
+  recon_df <- "The dataset full is not supplied, so reconstructed data is not available"
 }
 
 
@@ -2551,7 +2556,8 @@ if (numIND < 2 & edge_share > 0){
                      normal_QQ_edge = suppressMessages(Normal_QQ_edge1),
                      residuals_vs_fitted_cal = suppressMessages(Residuals_vs_fitted_cal1),
                      residuals_vs_fitted_holdout = suppressMessages(Residuals_vs_fitted_holdout1),
-                     residuals_vs_fitted_edge = suppressMessages(Residuals_vs_fitted_edge1)
+                     residuals_vs_fitted_edge = suppressMessages(Residuals_vs_fitted_edge1),
+                     reconstructions_data = recon_df
                      )
 
 return(final_list) # Return the final list
