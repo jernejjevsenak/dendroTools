@@ -124,8 +124,9 @@ manually enter the number of components to be used as predictors.}
 
 \item{N_components}{number of Principal Components used as predictors}
 
-\item{aggregate_function}{character string specifying how the daily data should be
-aggregated. The default is 'mean', the two other options are 'median' and 'sum'}
+\item{aggregate_function}{character string specifying how the daily data
+should be aggregated. The default is 'mean', the other options are 'median',
+'sum', 'min' and 'max'}
 
 \item{temporal_stability_check}{character string, specifying, how temporal stability
 between the optimal selection and response variable(s) will be analysed. Current

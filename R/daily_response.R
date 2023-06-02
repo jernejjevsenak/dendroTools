@@ -63,8 +63,9 @@
 #' manually enter the number of components to be used as predictors.
 #' @param eigenvalues_threshold threshold for automatic selection of Principal Components
 #' @param N_components number of Principal Components used as predictors
-#' @param aggregate_function character string specifying how the daily data should be
-#' aggregated. The default is 'mean', the two other options are 'median' and 'sum'
+#' @param aggregate_function character string specifying how the daily data
+#' should be aggregated. The default is 'mean', the other options are 'median',
+#' 'sum', 'min' and 'max'
 #' @param temporal_stability_check character string, specifying, how temporal stability
 #' between the optimal selection and response variable(s) will be analysed. Current
 #' possibilities are "sequential", "progressive" and "running_window". Sequential check
@@ -762,9 +763,10 @@ daily_response <- function(response, env_data, method = "cor",
           if (fixed_width == 1){
             x <- env_data[1:nrow(env_data), (1 + j): (j + fixed_width)]
           } else {
+
           x <- apply(data.frame(env_data[1:nrow(env_data),
                               (1 + j): (j + fixed_width)]),1 , sum, na.rm = TRUE)
-}
+        }
         } else if (aggregate_function == 'mean'){
 
           if (fixed_width == 1){
@@ -772,10 +774,34 @@ daily_response <- function(response, env_data, method = "cor",
           } else {
           x <- rowMeans(data.frame(env_data[1:nrow(env_data),
                                  (1 + j): (j + fixed_width)]), na.rm = TRUE)
-          }
-        } else {
-          stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median or sum."))
         }
+          } else if (aggregate_function == 'min'){
+
+            if (fixed_width == 1){
+
+                x <- env_data[1:nrow(env_data), (1 + j): (j + fixed_width)]
+
+                } else {
+
+                x <- apply(data.frame(env_data[1:nrow(env_data),
+                     (1 + j): (j + fixed_width)]),1 , min, na.rm = TRUE) }
+       } else if (aggregate_function == 'max'){
+
+             if (fixed_width == 1){
+
+               x <- env_data[1:nrow(env_data), (1 + j): (j + fixed_width)]
+
+             } else {
+
+               x <- apply(data.frame(env_data[1:nrow(env_data),
+                                              (1 + j): (j + fixed_width)]),1 , max, na.rm = TRUE)
+      }
+
+      } else {
+
+          stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median, sum, min or max."))
+
+          }
 
         if (!is.null(dc_method)){
 
@@ -931,7 +957,7 @@ daily_response <- function(response, env_data, method = "cor",
       } else if (aggregate_function == 'sum'){
 
         if (fixed_width == 1){
-          x <- env_data[1:nrow(env_data), (1 + j): (j + fixed_width)]
+          x <- env_data[1:nrow(env_data), (1 + j) : (j + fixed_width)]
         } else {
         x <- apply(env_data[1:nrow(env_data),
                             (1 + j) : (j + fixed_width)],1 , median, na.rm = TRUE)
@@ -945,8 +971,30 @@ daily_response <- function(response, env_data, method = "cor",
         x <- rowMeans(env_data[1:nrow(env_data),
                                (1 + j) : (j + fixed_width)], na.rm = TRUE)
         }
-      } else {
-        stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median or sum."))
+      } else if (aggregate_function == 'min'){
+
+        if (fixed_width == 1){
+
+          x <- env_data[1:nrow(env_data), (1 + j) : (j + fixed_width)]
+
+        } else {
+
+          x <- apply(data.frame(env_data[1:nrow(env_data),
+                                         (1 + j) : (j + fixed_width)]),1 , min, na.rm = TRUE) }
+      } else if (aggregate_function == 'max'){
+
+          if (fixed_width == 1){
+
+            x <- env_data[1:nrow(env_data), (1 + j): (j + fixed_width)]
+
+          } else {
+
+            x <- apply(data.frame(env_data[1:nrow(env_data),
+                                           (1 + j): (j + fixed_width)]),1 , max, na.rm = TRUE)
+
+          }
+        } else {
+        stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median, sum, min or max."))
       }
 
       if (!is.null(dc_method)){
@@ -1163,8 +1211,29 @@ daily_response <- function(response, env_data, method = "cor",
          x <- rowMeans(env_data[1:nrow(env_data),
                                 (1 + j): (j + fixed_width)], na.rm = TRUE)
          }
-       } else {
-         stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median or sum."))
+       } else if (aggregate_function == 'min'){
+
+         if (fixed_width == 1){
+
+           x <- env_data[1:nrow(env_data), (1 + j): (j + fixed_width)]
+
+         } else {
+
+           x <- apply(data.frame(env_data[1:nrow(env_data),
+                                          (1 + j): (j + fixed_width)]),1 , min, na.rm = TRUE) }
+       } else if (aggregate_function == 'max'){
+
+           if (fixed_width == 1){
+
+             x <- env_data[1:nrow(env_data), (1 + j): (j + fixed_width)]
+
+           } else {
+
+             x <- apply(data.frame(env_data[1:nrow(env_data),
+                                            (1 + j): (j + fixed_width)]),1 , max, na.rm = TRUE)}
+
+           } else {
+         stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median, sum, min or max."))
        }
 
        if (!is.null(dc_method)){
@@ -1399,14 +1468,18 @@ daily_response <- function(response, env_data, method = "cor",
 
     for (j in (0 + offset_start -1): (ncol(env_data) - max((K + offset_end), offset_end))) {
 
-      if (aggregate_function == 'median'){
+        if (aggregate_function == 'median'){
         x <- apply(data.frame(env_data[1:nrow(env_data), (1 + j) : (j + K)]),1 , median, na.rm = TRUE)
       } else if (aggregate_function == 'sum'){
-        x <- apply(data.frame(env_data[1:nrow(env_data), (1 + j) : (j + K)]),1 , sum, na.rm = TRUE)}
-      else if (aggregate_function == 'mean'){
-        x <- rowMeans(data.frame(env_data[1:nrow(env_data), (1 + j) : (j + K)]), na.rm = T)
+        x <- apply(data.frame(env_data[1:nrow(env_data), (1 + j) : (j + K)]),1 , sum, na.rm = TRUE)
+      } else if (aggregate_function == 'mean'){
+        x <- rowMeans(data.frame(env_data[1:nrow(env_data), (1 + j) : (j + K)]), na.rm = TRUE)
+      } else if(aggregate_function == 'min'){
+        x <- apply(data.frame(env_data[1:nrow(env_data), (1 + j) : (j + K)]),1 , min, na.rm = TRUE)
+      } else if (aggregate_function == 'max'){
+        x <- apply(data.frame(env_data[1:nrow(env_data), (1 + j) : (j + K)]),1 , max, na.rm = TRUE)
       } else {
-        stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median or sum."))
+        stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median, sum, min or max."))
       }
 
       if (!is.null(dc_method)){
@@ -1560,12 +1633,16 @@ daily_response <- function(response, env_data, method = "cor",
 
         if (aggregate_function == 'median'){
           x <- apply(data.frame(env_data[1:nrow(env_data), (1 + j) : (j + K)]),1 , median, na.rm = TRUE)
-        } else if(aggregate_function == 'sum'){
+        } else if (aggregate_function == 'sum'){
           x <- apply(data.frame(env_data[1:nrow(env_data), (1 + j) : (j + K)]),1 , sum, na.rm = TRUE)
         } else if (aggregate_function == 'mean'){
-          x <- rowMeans(data.frame(env_data[1:nrow(env_data), (1 + j) : (j + K)]), na.rm = T)
+          x <- rowMeans(data.frame(env_data[1:nrow(env_data), (1 + j) : (j + K)]), na.rm = TRUE)
+        } else if(aggregate_function == 'min'){
+          x <- apply(data.frame(env_data[1:nrow(env_data), (1 + j) : (j + K)]),1 , min, na.rm = TRUE)
+        } else if (aggregate_function == 'max'){
+          x <- apply(data.frame(env_data[1:nrow(env_data), (1 + j) : (j + K)]),1 , max, na.rm = TRUE)
         } else {
-          stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median or sum."))
+          stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median, sum, min or max."))
         }
 
         if (!is.null(dc_method)){
@@ -1768,9 +1845,13 @@ daily_response <- function(response, env_data, method = "cor",
         } else if (aggregate_function == 'sum'){
           x <- apply(data.frame(env_data[1:nrow(env_data), (1 + j) : (j + K)]),1 , sum, na.rm = TRUE)
         } else if (aggregate_function == 'mean'){
-          x <- rowMeans(data.frame(env_data[1:nrow(env_data), (1 + j) : (j + K)]), na.rm = T)
+          x <- rowMeans(data.frame(env_data[1:nrow(env_data), (1 + j) : (j + K)]), na.rm = TRUE)
+        } else if(aggregate_function == 'min'){
+          x <- apply(data.frame(env_data[1:nrow(env_data), (1 + j) : (j + K)]),1 , min, na.rm = TRUE)
+        } else if (aggregate_function == 'max'){
+          x <- apply(data.frame(env_data[1:nrow(env_data), (1 + j) : (j + K)]),1 , max, na.rm = TRUE)
         } else {
-          stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median or sum."))
+          stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median, sum, min or max."))
         }
 
         if (!is.null(dc_method)){
@@ -2061,8 +2142,16 @@ daily_response <- function(response, env_data, method = "cor",
                                             (as.numeric(plot_column) +
                                                as.numeric(row_index) - 1)]),
                                  na.rm = TRUE))
+  } else if (aggregate_function == 'min'){
+    dataf <- data.frame(apply(data.frame(env_data[, as.numeric(plot_column):
+                                                    (as.numeric(plot_column) +
+                                                       as.numeric(row_index) - 1)]),1 , min, na.rm = TRUE))
+  } else if (aggregate_function == 'max'){
+    dataf <- data.frame(apply(data.frame(env_data[, as.numeric(plot_column):
+                                                    (as.numeric(plot_column) +
+                                                       as.numeric(row_index) - 1)]),1 , max, na.rm = TRUE))
   } else {
-    stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median or sum."))
+    stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median, sum, min or max."))
   }
 
     # if detrending was applied, should also be applied here
@@ -2094,8 +2183,19 @@ daily_response <- function(response, env_data, method = "cor",
                                             (as.numeric(plot_column) +
                                                as.numeric(row_index) - 1), drop = FALSE]),
                                  na.rm = TRUE))
+
+  } else if (aggregate_function == 'min'){
+    dataf_original <- data.frame(apply(data.frame(env_data_original[, as.numeric(plot_column):
+                                                                      (as.numeric(plot_column) +
+                                                                         as.numeric(row_index) - 1), drop = FALSE]),1 , min, na.rm = TRUE))
+
+  } else if (aggregate_function == 'max'){
+    dataf_original <- data.frame(apply(data.frame(env_data_original[, as.numeric(plot_column):
+                                                                      (as.numeric(plot_column) +
+                                                                         as.numeric(row_index) - 1), drop = FALSE]),1 , max, na.rm = TRUE))
+
   } else {
-    stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median or sum."))
+    stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median, sum, min or max."))
   }
 
   dataf_full_original <- dataf_original
@@ -2178,8 +2278,17 @@ daily_response <- function(response, env_data, method = "cor",
     } else if (aggregate_function == 'mean'){
       dataf <- data.frame(apply(env_data[, (as.numeric(plot_column) - as.numeric(row_index) + 1):
                                            (as.numeric(plot_column)), drop = FALSE],1 , mean, na.rm = TRUE))
+
+    } else if (aggregate_function == 'min'){
+      dataf <- data.frame(apply(env_data[, (as.numeric(plot_column) - as.numeric(row_index) + 1):
+                                           (as.numeric(plot_column)), drop = FALSE],1 , min, na.rm = TRUE))
+
+    } else if (aggregate_function == 'max'){
+      dataf <- data.frame(apply(env_data[, (as.numeric(plot_column) - as.numeric(row_index) + 1):
+                                           (as.numeric(plot_column)), drop = FALSE],1 , max, na.rm = TRUE))
+
     } else {
-      stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median or sum."))
+      stop(paste0("gate function is ", aggregate_function, ". Instead it should be mean, median, sum, min or max."))
     }
 
       # if detrending was applied, should also be applied here
@@ -2207,6 +2316,14 @@ daily_response <- function(response, env_data, method = "cor",
     } else if (aggregate_function == 'mean'){
       dataf_original <- data.frame(apply(env_data_original[, (as.numeric(plot_column) - (as.numeric(row_index) + 1):
                                                              as.numeric(plot_column)), drop = FALSE],1 , mean, na.rm = TRUE))
+
+    } else if (aggregate_function == 'min'){
+      dataf_original <- data.frame(apply(env_data_original[, (as.numeric(plot_column) - (as.numeric(row_index) + 1):
+                                                                as.numeric(plot_column)), drop = FALSE],1 , min, na.rm = TRUE))
+
+    } else if (aggregate_function == 'max'){
+      dataf_original <- data.frame(apply(env_data_original[, (as.numeric(plot_column) - (as.numeric(row_index) + 1):
+                                                                as.numeric(plot_column)), drop = FALSE],1 , max, na.rm = TRUE))
     } else {
       stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median or sum."))
     }
@@ -2301,8 +2418,18 @@ daily_response <- function(response, env_data, method = "cor",
       dataf <- data.frame(apply(env_data[, (round2((as.numeric(plot_column) - (as.numeric(row_index))/2)) - adjustment_1):
                                            (round2((as.numeric(plot_column) + as.numeric(row_index)/2)) - adjustment_2), drop = FALSE],
                                 1 , mean, na.rm = TRUE))
+
+    } else if (aggregate_function == 'min'){
+      dataf <- data.frame(apply(env_data[, (round2((as.numeric(plot_column) - (as.numeric(row_index))/2)) - adjustment_1):
+                                           (round2((as.numeric(plot_column) + as.numeric(row_index)/2)) - adjustment_2), drop = FALSE],
+                                1 , min, na.rm = TRUE))
+    } else if (aggregate_function == 'max'){
+      dataf <- data.frame(apply(env_data[, (round2((as.numeric(plot_column) - (as.numeric(row_index))/2)) - adjustment_1):
+                                           (round2((as.numeric(plot_column) + as.numeric(row_index)/2)) - adjustment_2), drop = FALSE],
+                                1 , max, na.rm = TRUE))
+
     } else {
-      stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median or sum."))
+      stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median, sum, min or max."))
     }
 
 
@@ -2334,8 +2461,19 @@ daily_response <- function(response, env_data, method = "cor",
       dataf_original <- data.frame(apply(env_data_original[, (round2((as.numeric(plot_column) - (as.numeric(row_index))/2)) - adjustment_1):
                                                              (round2((as.numeric(plot_column) + as.numeric(row_index)/2)) - adjustment_2), drop = FALSE],
                                          1 , mean, na.rm = TRUE))
+
+    } else if (aggregate_function == 'min'){
+      dataf_original <- data.frame(apply(env_data_original[, (round2((as.numeric(plot_column) - (as.numeric(row_index))/2)) - adjustment_1):
+                                                             (round2((as.numeric(plot_column) + as.numeric(row_index)/2)) - adjustment_2), drop = FALSE],
+                                         1 , min, na.rm = TRUE))
+
+    } else if (aggregate_function == 'max'){
+      dataf_original <- data.frame(apply(env_data_original[, (round2((as.numeric(plot_column) - (as.numeric(row_index))/2)) - adjustment_1):
+                                                             (round2((as.numeric(plot_column) + as.numeric(row_index)/2)) - adjustment_2), drop = FALSE],
+                                         1 , max, na.rm = TRUE))
+
     } else {
-      stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median or sum."))
+      stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median, sum, min, max."))
     }
 
     dataf_full_original <- dataf_original

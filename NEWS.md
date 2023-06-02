@@ -1,3 +1,6 @@
+# dendroTools 1.2.9
+* new options for the aggregate function - minimum and maximum
+
 # dendroTools 1.2.8
 * daily_response() default remove_insignificant argument is set to FALSE
 * updated description
