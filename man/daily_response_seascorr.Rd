@@ -121,11 +121,11 @@ manually enter the number of components to be used as predictors.}
 
 \item{aggregate_function_env_data_primary}{character string specifying how the
 daily data from env_data_primary should be aggregated. The default is 'mean',
-the two other options are 'median' and 'sum'}
+the other options are 'median', 'sum', 'min' and 'max'}
 
 \item{aggregate_function_env_data_control}{character string specifying how the
 daily data from env_data_control should be aggregated. The default is 'mean',
-the two other options are 'median' and 'sum'}
+the other options are 'median', 'sum', 'min' and 'max'}
 
 \item{temporal_stability_check}{character string, specifying, how temporal stability
 between the optimal selection and response variable(s) will be analysed. Current

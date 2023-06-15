@@ -1,6 +1,7 @@
 Dear CRAN
 
-This is regular update of the dendroTools R package. There were only minor changes related to default values of function arguments, improved description and correction of spelling errors. 
+This is regular update of the dendroTools R package. 
+I have included additional options related to the aggregate function. 
 
 In previous versions, we agreed to disable vignette checking on some platforms. I believe it makes sense to keep it that way.  
 

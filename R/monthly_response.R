@@ -715,9 +715,6 @@ if (fixed_width != 0){
 
   # A.1 method = "cor"
   if (fixed_width != 0 & method == "cor") {
-
-      # This is an empty matrix, currently filled with NA's
-      # Latter, calculations will be stored in this matrix
       if (reference_window == 'start'){
         temporal_matrix <- matrix(NA, nrow = 1,
                                   ncol = (ncol(env_data) - fixed_width) + 1)
@@ -728,6 +725,9 @@ if (fixed_width != 0){
                                   ncol = round2((ncol(env_data) - fixed_width +
                                                    1 + fixed_width/2 ),0))
       }
+      # This is an empty matrix, currently filled with NA's
+      # Latter, calculations will be stored in this matrix
+
 
       # Here I create two additional temporal matrices, which will be used to store
       # lower and upper limits of bootstrap estimates
@@ -806,6 +806,8 @@ if (fixed_width != 0){
           temporal_upper <- NA
 
           } else if (boot == TRUE){
+
+
           temp_df_boot <- cbind(response[, 1], x[, 1])
           calc <- boot(temp_df_boot, boot_f_cor, cor.type = cor_method, R = boot_n)
 
