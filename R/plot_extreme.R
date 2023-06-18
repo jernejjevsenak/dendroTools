@@ -352,6 +352,18 @@ plot_extreme <- function(result_daily_response, title = TRUE, ylimits = NULL, re
 
   if (type == "monthly"){
 
+
+    if (reference_window == "start"){
+
+      x_lab_reference <- "Starting"
+
+    } else if (reference_window == "end") {
+
+      x_lab_reference <- "Ending"
+
+    }
+
+
     # Plural or singular?
     if (as.numeric(row_index) == 1){
       month_string <- " Month"
@@ -381,6 +393,29 @@ plot_extreme <- function(result_daily_response, title = TRUE, ylimits = NULL, re
     if (reference_window == 'start' &&  plot_column <=  12 && ncol(result_daily_response[[1]]) <=  12){
       reference_string <- paste0("\nStarting Month of Optimal Window Width: Month ",
                                  plot_column_extra)}
+
+
+
+
+
+
+
+
+
+    if (reference_window == 'end' &&  plot_column > 12 && ncol(result_daily_response[[1]]) <= 24){
+      reference_string <- paste0("\nEnding Month of Optimal Window Width: Month ",
+                                 plot_column_extra, " of Current Year")}
+
+    if (reference_window == 'end' &&  plot_column <= 12 && ncol(result_daily_response[[1]]) <= 24){
+      reference_string <- paste0("\nEnding Month of Optimal Window Width: Month ",
+                                 plot_column_extra, " of Previous Year")}
+
+    if (reference_window == 'end' &&  plot_column <=  12 && ncol(result_daily_response[[1]]) <=  12){
+      reference_string <- paste0("\nEnding Month of Optimal Window Width: Month ",
+                                 plot_column_extra)}
+
+
+
 
 
 
@@ -448,6 +483,8 @@ plot_extreme <- function(result_daily_response, title = TRUE, ylimits = NULL, re
     months <- c("J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D")
 
 
+
+
     final_plot <- suppressWarnings(
       ggplot(temporal_vector, aes(y = temporal_vector,
                                   x = seq(1, length(temporal_vector)))) +
@@ -458,7 +495,7 @@ plot_extreme <- function(result_daily_response, title = TRUE, ylimits = NULL, re
         scale_y_continuous(limits = ylimits) +
         annotate("label", label = as.character(calculated_metric),
                  y = calculated_metric, x = plot_column) +
-        xlab(paste0("Starting Month of Calculation and ",as.character(as.numeric(row_index)) ," Consecutive", month_string)) +
+        xlab(paste0(x_lab_reference, " Month of Calculation and ",as.character(as.numeric(row_index)) ," Consecutive", month_string)) +
         ylab(y_lab) +
         ggtitle(paste0(period_string, method_string, optimal_calculation,
                        optimal_window_string, reference_string, Optimal_string)) +
@@ -489,7 +526,7 @@ plot_extreme <- function(result_daily_response, title = TRUE, ylimits = NULL, re
           scale_x_continuous(breaks = sort(c(seq(1, 24, 1)), decreasing = FALSE),
                            labels = months) +
                   annotate("label", label = as.character(calculated_metric), y = calculated_metric, x = plot_column) +
-                    xlab(paste0("Starting Month of Calculation (Including Previous Year) and ",as.character(as.numeric(row_index)) ,
+                    xlab(paste0(x_lab_reference, " Month of Calculation (Including Previous Year) and ",as.character(as.numeric(row_index)) ,
                          " Consecutive", month_string)) +
                     ylab(y_lab) +
           scale_fill_discrete(guide = 'none') +

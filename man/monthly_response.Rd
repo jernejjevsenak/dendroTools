@@ -23,6 +23,7 @@ monthly_response(
   log_preprocess = TRUE,
   components_selection = "automatic",
   eigenvalues_threshold = 1,
+  reference_window = "start",
   N_components = 2,
   aggregate_function = "mean",
   temporal_stability_check = "sequential",
@@ -123,6 +124,13 @@ selection is set to "plot_selection", Scree plot will be shown and a user must
 manually enter the number of components to be used as predictors.}
 
 \item{eigenvalues_threshold}{threshold for automatic selection of Principal Components}
+
+\item{reference_window}{character string, the reference_window argument describes,
+how each calculation is referred. There are two different options: 'start'
+(default) and 'end'. If the reference_window argument is set to 'start',
+then each calculation is related to the starting month of window. If the
+reference_window argument is set to 'end', then each calculation is related
+to the ending day of window calculation.}
 
 \item{N_components}{number of Principal Components used as predictors}
 
@@ -258,10 +266,11 @@ data(LJ_monthly_precipitation)
 
 # 1 Example with tidy precipitation data
 example_tidy_data <- monthly_response(response = data_MVA,
-    lower_limit = 1, upper = 12,
+    lower_limit = 1, upper = 24,
     env_data = LJ_monthly_precipitation, fixed_width = 0,
     method = "cor", row_names_subset = TRUE, metric = "adj.r.squared",
-    remove_insignificant = TRUE, previous_year = FALSE,
+    remove_insignificant = FALSE, previous_year = FALSE,
+    reference_window = "end",
     alpha = 0.05, aggregate_function = 'sum', boot = TRUE,
     tidy_env_data = TRUE, boot_n = 100, month_interval = c(-5, 10))
 

@@ -40,6 +40,12 @@
 #' @param previous_year if set to TRUE, env_data_primary, env_data_control and
 #' response variables will be rearranged in a way, that also previous year will
 #' be used for calculations of selected statistical metric.
+#' @param reference_window character string, the reference_window argument describes,
+#' how each calculation is referred. There are two different options: 'start'
+#' (default) and 'end'. If the reference_window argument is set to 'start',
+#' then each calculation is related to the starting month of window. If the
+#' reference_window argument is set to 'end', then each calculation is related
+#' to the ending day of window calculation.
 #' @param remove_insignificant if set to TRUE, removes all correlations bellow
 #' the significant threshold level, based on a selected alpha.
 #' @param alpha significance level used to remove insignificant calculations.
@@ -168,6 +174,7 @@
 #'    env_data_control = LJ_monthly_precipitation,
 #'    row_names_subset = TRUE,
 #'    remove_insignificant = TRUE,
+#'    reference_window = "start",
 #'    aggregate_function_env_data_primary = 'median',
 #'    aggregate_function_env_data_control = 'median',
 #'    alpha = 0.05, pcor_method = "spearman",
@@ -192,6 +199,7 @@
 #'    aggregate_function_env_data_primary = 'mean',
 #'    aggregate_function_env_data_control = 'mean',
 #'    alpha = 0.05,
+#'    reference_window = "end",
 #'    tidy_env_data_primary = FALSE,
 #'    tidy_env_data_control = TRUE)
 #'
@@ -208,6 +216,7 @@ monthly_response_seascorr <- function(response, env_data_primary, env_data_contr
                            remove_insignificant = TRUE, lower_limit = 1,
                            upper_limit = 12, fixed_width = 0,
                            alpha = .05, row_names_subset = FALSE,
+                           reference_window = "start",
                            PCA_transformation = FALSE, log_preprocess = TRUE,
                            components_selection = 'automatic',
                            eigenvalues_threshold = 1,
@@ -345,7 +354,11 @@ monthly_response_seascorr <- function(response, env_data_primary, env_data_contr
  # lower_limit = 1
  # upper_limit = 12
  # fixed_width = 0
- reference_window = 'start'
+
+ if (reference_window == "middle"){
+
+   stop(paste0("reference_window should be 'start' or 'end'. 'middle' reference_window is not implemented for the monthly_response"))
+ }
 
  # if fixed width is not 0, then change lower and upper limits, just to avoid
  # error messages

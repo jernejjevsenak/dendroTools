@@ -16,6 +16,7 @@ monthly_response_seascorr(
   fixed_width = 0,
   alpha = 0.05,
   row_names_subset = FALSE,
+  reference_window = "start",
   PCA_transformation = FALSE,
   log_preprocess = TRUE,
   components_selection = "automatic",
@@ -99,6 +100,13 @@ months to be used for calculations)}
 \item{row_names_subset}{if set to TRUE, row.names are used to subset
 env_data_primary, env_data_control and response data frames. Only years from
 all three data frames are kept.}
+
+\item{reference_window}{character string, the reference_window argument describes,
+how each calculation is referred. There are two different options: 'start'
+(default) and 'end'. If the reference_window argument is set to 'start',
+then each calculation is related to the starting month of window. If the
+reference_window argument is set to 'end', then each calculation is related
+to the ending day of window calculation.}
 
 \item{PCA_transformation}{if set to TRUE, all variables in the response
 data frame will be transformed using PCA transformation.}
@@ -258,6 +266,7 @@ example_basic <- monthly_response_seascorr(response = data_MVA,
    env_data_control = LJ_monthly_precipitation,
    row_names_subset = TRUE,
    remove_insignificant = TRUE,
+   reference_window = "start",
    aggregate_function_env_data_primary = 'median',
    aggregate_function_env_data_control = 'median',
    alpha = 0.05, pcor_method = "spearman",
@@ -282,6 +291,7 @@ example_extended <- monthly_response_seascorr(response = data_MVA,
    aggregate_function_env_data_primary = 'mean',
    aggregate_function_env_data_control = 'mean',
    alpha = 0.05,
+   reference_window = "end",
    tidy_env_data_primary = FALSE,
    tidy_env_data_control = TRUE)
 

@@ -242,6 +242,19 @@ summary.dmrs <- function(object, ...){
     method_string <- paste0("ANN with Bayesian Regularization")
   }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
   if (type == "monthly"){
 
     # Plural or singular?
@@ -267,6 +280,12 @@ summary.dmrs <- function(object, ...){
       previous_year <- FALSE
     }
 
+
+
+
+
+
+
     if (reference_window == 'start' &&  plot_column > 12 && ncol(result_daily_response[[1]]) > 12){
       reference_string <- paste0("Starting Month of Optimal Window Width: Month ",
                                  plot_column_extra, " of Current Year")}
@@ -278,6 +297,49 @@ summary.dmrs <- function(object, ...){
     if (reference_window == 'start' &&  plot_column <=  12 && ncol(result_daily_response[[1]]) <=  12){
       reference_string <- paste0("Starting Month of Optimal Window Width: Month ",
                                  plot_column_extra)}
+
+
+
+
+
+
+
+    if (reference_window == 'end' &&  plot_column > 12 && ncol(result_daily_response[[1]]) > 12){
+      reference_string <- paste0("Ending Month of Optimal Window Width: Month ",
+                                 plot_column_extra, " of Current Year")}
+
+    if (reference_window == 'end' &&  plot_column <= 12 && ncol(result_daily_response[[1]]) > 12){
+      reference_string <- paste0("Ending Month of Optimal Window Width: Month ",
+                                 plot_column_extra, " of Previous Year")}
+
+    if (reference_window == 'end' &&  plot_column <=  12 && ncol(result_daily_response[[1]]) <=  12){
+      reference_string <- paste0("Ending Month of Optimal Window Width: Month ",
+                                 plot_column_extra)}
+
+
+
+
+
+    if (reference_window == 'middle' &&  plot_column > 12 && ncol(result_daily_response[[1]]) > 12){
+      reference_string <- paste0("Middle Month of Optimal Window Width: Month ",
+                                 plot_column_extra, " of Current Year")}
+
+    if (reference_window == 'middle' &&  plot_column <= 12 && ncol(result_daily_response[[1]]) > 12){
+      reference_string <- paste0("Middle Month of Optimal Window Width: Month ",
+                                 plot_column_extra, " of Previous Year")}
+
+    if (reference_window == 'middle' &&  plot_column <=  12 && ncol(result_daily_response[[1]]) <=  12){
+      reference_string <- paste0("Middle Month of Optimal Window Width: Month ",
+                                 plot_column_extra)}
+
+
+
+
+
+
+
+
+
 
 
 
@@ -304,9 +366,13 @@ summary.dmrs <- function(object, ...){
     } else if (reference_window == "end") {
       Optimal_string <- paste(as.character(date_codes[as.numeric(plot_column_source) - as.numeric(row_index) + 1]),"-",
                               as.character(date_codes[plot_column_source]))
+
     } else if (reference_window == "middle") {
+
       Optimal_string <- paste(as.character(date_codes[(round2((plot_column_source - as.numeric(row_index)/2)) - adjustment_1)]),"-",
                               as.character(date_codes[(round2((plot_column_source + as.numeric(row_index)/2)) - adjustment_2)]))
+
+
     }
 
     if (as.numeric(row_index == 1)){

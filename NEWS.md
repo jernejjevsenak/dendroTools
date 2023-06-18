@@ -1,5 +1,6 @@
 # dendroTools 1.2.9
 * new options for the aggregate function - minimum and maximum
+* additional feature on reference_window in the monthly_response() nad monthly_response_seascorr()
 
 # dendroTools 1.2.8
 * daily_response() default remove_insignificant argument is set to FALSE

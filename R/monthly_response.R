@@ -36,6 +36,12 @@
 #' @param previous_year if set to TRUE, env_data and response variables will be
 #' rearranged in a way, that also previous year will be used for calculations of
 #' selected statistical metric.
+#' @param reference_window character string, the reference_window argument describes,
+#' how each calculation is referred. There are two different options: 'start'
+#' (default) and 'end'. If the reference_window argument is set to 'start',
+#' then each calculation is related to the starting month of window. If the
+#' reference_window argument is set to 'end', then each calculation is related
+#' to the ending day of window calculation.
 #' @param neurons positive integer that indicates the number of neurons used
 #'  for brnn method
 #' @param brnn_smooth if set to TRUE, a smoothing algorithm is applied that
@@ -164,10 +170,11 @@
 #'
 #' # 1 Example with tidy precipitation data
 #' example_tidy_data <- monthly_response(response = data_MVA,
-#'     lower_limit = 1, upper = 12,
+#'     lower_limit = 1, upper = 24,
 #'     env_data = LJ_monthly_precipitation, fixed_width = 0,
 #'     method = "cor", row_names_subset = TRUE, metric = "adj.r.squared",
-#'     remove_insignificant = TRUE, previous_year = FALSE,
+#'     remove_insignificant = FALSE, previous_year = FALSE,
+#'     reference_window = "end",
 #'     alpha = 0.05, aggregate_function = 'sum', boot = TRUE,
 #'     tidy_env_data = TRUE, boot_n = 100, month_interval = c(-5, 10))
 #'
@@ -252,6 +259,7 @@ monthly_response <- function(response, env_data, method = "cor",
                            PCA_transformation = FALSE, log_preprocess = TRUE,
                            components_selection = 'automatic',
                            eigenvalues_threshold = 1,
+                           reference_window = "start",
                            N_components = 2, aggregate_function = 'mean',
                            temporal_stability_check = "sequential", k = 2,
                            k_running_window = 30, cross_validation_type = "blocked",
@@ -277,6 +285,11 @@ monthly_response <- function(response, env_data, method = "cor",
   # 1 day interval is organized
   offset_start <- month_interval[1]
   offset_end <- month_interval[2]
+
+  if (reference_window == "middle"){
+
+    stop(paste0("reference_window should be 'start' or 'end'. 'middle' reference_window is not implemented for the monthly_response"))
+  }
 
   # if both are positive but previous_year = TRUE
   if (offset_start > 0 & offset_end > 0 & previous_year == TRUE){
@@ -372,9 +385,6 @@ if (fixed_width != 0){
   if (fixed_width > 12 & previous_year == FALSE){
     stop(paste0("fixed_width argument can not be greater than 12! Instead, it is ", fixed_width, "!"))
   }
-
-  reference_window = 'start'
-
 
  # Defining global variables
  median <- NULL

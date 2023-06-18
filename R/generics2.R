@@ -17,7 +17,7 @@ if (type == 1){
 
 } else {
 
-  stop(paste0("type should be on of 1,2 or 3, but instead it is ", type, "!"))
+  stop(paste0("type should be on of 1, 2 or 3, but instead it is ", type, "!"))
 }
 
   return(plot_out)

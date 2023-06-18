@@ -222,6 +222,37 @@ plot_heatmap <- function(result_daily_response, reference_window = "start", type
   if (type == "monthly"){
 
 
+    if (reference_window == "start"){
+
+      x_lab_reference <- "Starting"
+
+    } else if (reference_window == "end") {
+
+      x_lab_reference <- "Ending"
+
+    }
+
+
+    if (reference_window == 'start'){
+
+      xlab_string <- "Starting Month of Calculation"
+
+    } else if (reference_window == 'end'){
+
+      xlab_string <- "Ending Month of Calculation"
+
+    } else if (reference_window == 'middle'){
+
+        reference_string <- "NA"
+
+    }
+
+
+
+
+
+
+
 
 
 
@@ -235,7 +266,7 @@ plot_heatmap <- function(result_daily_response, reference_window = "start", type
                                                fill = ~Value)) +
                                      geom_tile() +
                                      ylab("Number of Consecutive Months") +
-                                     xlab("Starting Month of Calculation") +
+                                     xlab(xlab_string) +
                                      scale_x_continuous(expand = c(0, 0), breaks = seq(1,12, by = 1),
                                                         labels = months) +
                                      scale_y_continuous(expand = c(0, 0), breaks = seq(1,12, by = 1)) +
@@ -253,7 +284,7 @@ plot_heatmap <- function(result_daily_response, reference_window = "start", type
                                                fill = ~Value)) +
                                      geom_tile() +
                                      ylab("Number of Consecutive Months") +
-                                     xlab("Starting Month of Calculation (Including Previous Year)") +
+                                     xlab(paste0(x_lab_reference, " Month of Calculation (Including Previous Year)")) +
                                      scale_x_continuous(expand = c(0, 0), breaks = seq(1,24, by = 1),
                                                         labels = months) +
                                      scale_y_continuous(expand = c(0, 0), breaks = seq(1,24, by = 1)) +
