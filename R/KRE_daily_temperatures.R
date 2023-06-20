@@ -374,6 +374,6 @@
 #'   \item{X365}{Temperatures on the day 365 of a year}
 #'   \item{X366}{Temperatures on the day 366 of a year}
 #' }
-#' @source \url{http://meteo.arso.gov.si/met/sl/archive/}
+#' @source \url{https://meteo.arso.gov.si/met/sl/archive/}
 #' @export
 "KRE_daily_temperatures"

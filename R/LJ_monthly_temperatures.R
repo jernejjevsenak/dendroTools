@@ -20,6 +20,6 @@
 #'   \item{Nov}{Mean monthly air temperature for November from 1900 to 2015}
 #'   \item{Dec}{Mean monthly air temperature for December from 1900 to 2015}
 #' }
-#' @source \url{http://meteo.arso.gov.si/met/sl/archive/}
+#' @source \url{https://meteo.arso.gov.si/met/sl/archive/}
 #' @export
 "LJ_monthly_temperatures"

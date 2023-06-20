@@ -22,7 +22,7 @@ A data frame with 116 rows and 12 variables:
 }
 }
 \source{
-\url{http://meteo.arso.gov.si/met/sl/archive/}
+\url{https://meteo.arso.gov.si/met/sl/archive/}
 }
 \usage{
 LJ_monthly_temperatures

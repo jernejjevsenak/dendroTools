@@ -376,7 +376,7 @@ A data frame with 63 rows and 366 variables:
 }
 }
 \source{
-\url{http://meteo.arso.gov.si/met/sl/archive/}
+\url{https://meteo.arso.gov.si/met/sl/archive/}
 }
 \usage{
 KRE_daily_temperatures
