@@ -1,7 +1,8 @@
 Dear CRAN
 
 This is regular update of the dendroTools R package. 
-I have included additional options related to the aggregate function. 
+I have included additional options related to the aggregate function, and additional
+option for the reference window position in the monthly_response()
 
 In previous versions, we agreed to disable vignette checking on some platforms. I believe it makes sense to keep it that way.  
 
