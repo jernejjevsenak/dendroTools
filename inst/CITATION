@@ -2,7 +2,7 @@ citHeader("To cite dendroTools in publications, please use:")
 
 citEntry(entry = "Article",
 title        = "New features in the {dendroTools} R package: Bootstrapped and partial correlation coefficients for monthly and daily climate data",
-author       = as.person("Jevšenak J."),
+author       =  "Jevšenak J.",
 journal      = "Dendrochronologia",
 volume       = "63",
 pages        = "125753",
@@ -19,13 +19,12 @@ paste("Jevšenak J., 2020.",
 
 citEntry(entry = "Article",
 title        = "{dendroTools}: R package for studying linear and nonlinear responses between tree-rings and daily environmental data",
-author       = c(as.person("Jevsenak J."), as.person("Levanic T.")),
+author       = "Jevsenak J., Levanic T.",
 journal      = "Dendrochronologia",
 volume       = "48",
 pages        = "32-39",
 year         = "2018",
 doi          = "10.1016/j.dendro.2018.01.005",
-
 textVersion  =
 paste("Jevsenak J. and Levanic T., 2018.",
     "dendroTools: R package for studying linear and nonlinear responses between tree-rings and daily environmental data.",
@@ -35,13 +34,12 @@ paste("Jevsenak J. and Levanic T., 2018.",
 
 citEntry(entry = "Article",
 title        = "Comparison of an optimal regression method for climate reconstruction with the compare_methods() function from the {dendroTools} R package",
-author       = c(as.person("Jevsenak J."), as.person("Levanic T."), as.person("Dzeroski S.")),
+author       = "Jevsenak J., Levanic T., Dzeroski S.",
 journal      = "Dendrochronologia",
 volume       = "52",
 pages        = "96-104",
 year         = "2018",
 doi          = "10.1016/j.dendro.2018.10.001",
-
 textVersion  =
 paste("Jevsenak J., Levanic T. and Dzeroski S., 2018.",
     "Comparison of an optimal regression method for climate reconstruction with the compare_methods() function from the dendroTools R package.",
