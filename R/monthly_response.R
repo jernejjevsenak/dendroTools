@@ -765,25 +765,25 @@ if (fixed_width != 0){
             x <- env_data[1:nrow(env_data), (1 + j): (j + fixed_width)]
           } else {
             x <- apply(env_data[1:nrow(env_data),
-                                (1 + j): (j + fixed_width)],1 , median, na.rm = TRUE)
+                                (1 + j): (j + fixed_width), drop = FALSE],1 , median, na.rm = TRUE)
             }
 
         } else if (aggregate_function == 'sum'){
 
           if (fixed_width == 1){
-            x <- env_data[1:nrow(env_data), (1 + j): (j + fixed_width)]
+            x <- env_data[1:nrow(env_data), (1 + j): (j + fixed_width), drop = FALSE]
           } else {
             x <- apply(env_data[1:nrow(env_data),
-                                (1 + j): (j + fixed_width)],1 , sum, na.rm = TRUE)
+                                (1 + j): (j + fixed_width), drop = FALSE],1 , sum, na.rm = TRUE)
           }
 
         } else if (aggregate_function == 'mean'){
 
           if (fixed_width == 1){
-            x <- env_data[1:nrow(env_data), (1 + j): (j + fixed_width)]
+            x <- env_data[1:nrow(env_data), (1 + j): (j + fixed_width), drop = FALSE]
           } else {
             x <- rowMeans(env_data[1:nrow(env_data),
-                                   (1 + j): (j + fixed_width)], na.rm = TRUE)
+                                   (1 + j): (j + fixed_width), drop = FALSE], na.rm = TRUE)
           }
 
         } else {
@@ -945,24 +945,24 @@ if (fixed_width != 0){
         } else {
 
         x <- apply(env_data[1:nrow(env_data),
-                               (1 + j) : (j + fixed_width)],1 , median, na.rm = TRUE) }
+                               (1 + j) : (j + fixed_width), drop = FALSE],1 , median, na.rm = TRUE) }
       } else if (aggregate_function == 'sum'){
 
         if (fixed_width == 1){
           x <- env_data[1:nrow(env_data), (1 + j): (j + fixed_width)]
         } else {
         x <- apply(env_data[1:nrow(env_data),
-                            (1 + j) : (j + fixed_width)],1 , median, na.rm = TRUE)
+                            (1 + j) : (j + fixed_width), drop = FALSE],1 , median, na.rm = TRUE)
 
       }
         } else if (aggregate_function == 'mean'){
 
           if (fixed_width == 1){
-            x <- env_data[1:nrow(env_data), (1 + j): (j + fixed_width)]
+            x <- env_data[1:nrow(env_data), (1 + j): (j + fixed_width), drop = FALSE]
           } else {
 
         x <- rowMeans(env_data[1:nrow(env_data),
-                               (1 + j) : (j + fixed_width)], na.rm = TRUE)
+                               (1 + j) : (j + fixed_width), drop = FALSE], na.rm = TRUE)
           }
         } else {
         stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median or sum."))
@@ -1165,26 +1165,26 @@ if (fixed_width != 0){
           } else {
 
          x <- apply(env_data[1:nrow(env_data),
-                                (1 + j): (j + fixed_width)],1 , median, na.rm = TRUE)
+                                (1 + j): (j + fixed_width), drop = FALSE],1 , median, na.rm = TRUE)
           }
         } else if (aggregate_function == 'sum'){
 
           if (fixed_width == 1){
-            x <- env_data[1:nrow(env_data), (1 + j): (j + fixed_width)]
+            x <- env_data[1:nrow(env_data), (1 + j): (j + fixed_width), drop = FALSE]
           } else {
 
           x <- apply(env_data[1:nrow(env_data),
-                              (1 + j): (j + fixed_width)],1 , sum, na.rm = TRUE)
+                              (1 + j): (j + fixed_width), drop = FALSE],1 , sum, na.rm = TRUE)
           }
 
        } else if (aggregate_function == 'mean') {
 
          if (fixed_width == 1){
-           x <- env_data[1:nrow(env_data), (1 + j): (j + fixed_width)]
+           x <- env_data[1:nrow(env_data), (1 + j): (j + fixed_width), drop = FALSE]
          } else {
 
          x <- rowMeans(env_data[1:nrow(env_data),
-                                (1 + j): (j + fixed_width)], na.rm = TRUE)
+                                (1 + j): (j + fixed_width), drop = FALSE], na.rm = TRUE)
          }
 
        } else {
@@ -2113,17 +2113,17 @@ if (fixed_width != 0){
   if (aggregate_function == 'median'){
     dataf <- data.frame(apply(data.frame(env_data[, as.numeric(plot_column):
                                             (as.numeric(plot_column) +
-                                               as.numeric(row_index) - 1)]),1 , median, na.rm = TRUE))
+                                               as.numeric(row_index) - 1), drop = FALSE]),1 , median, na.rm = TRUE))
 
   } else if (aggregate_function == 'sum'){
     dataf <- data.frame(apply(data.frame(env_data[, as.numeric(plot_column):
                                          (as.numeric(plot_column) +
-                                            as.numeric(row_index) - 1)]),1 , sum, na.rm = TRUE))
+                                            as.numeric(row_index) - 1), drop = FALSE]),1 , sum, na.rm = TRUE))
 
   } else if (aggregate_function == 'mean'){
     dataf <- data.frame(rowMeans(data.frame(env_data[, as.numeric(plot_column):
                                             (as.numeric(plot_column) +
-                                               as.numeric(row_index) - 1)]),
+                                               as.numeric(row_index) - 1), drop = FALSE]),
                                  na.rm = TRUE))
   } else {
     stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median or sum."))
@@ -2147,15 +2147,15 @@ if (fixed_width != 0){
   if (aggregate_function == 'median'){
     dataf_original <- data.frame(apply(data.frame(env_data_original[, as.numeric(plot_column):
                                          (as.numeric(plot_column) +
-                                            as.numeric(row_index) - 1)]),1 , median, na.rm = TRUE))
+                                            as.numeric(row_index) - 1), drop = FALSE]),1 , median, na.rm = TRUE))
   } else if (aggregate_function == 'sum'){
     dataf_original <- data.frame(apply(data.frame(env_data_original[, as.numeric(plot_column):
                                                            (as.numeric(plot_column) +
-                                                              as.numeric(row_index) - 1)]),1 , sum, na.rm = TRUE))
+                                                              as.numeric(row_index) - 1), drop = FALSE]),1 , sum, na.rm = TRUE))
   } else if (aggregate_function == 'mean'){
     dataf_original <- data.frame(rowMeans(data.frame(env_data_original[, as.numeric(plot_column):
                                             (as.numeric(plot_column) +
-                                               as.numeric(row_index) - 1)]),
+                                               as.numeric(row_index) - 1), drop = FALSE]),
                                  na.rm = TRUE))
   } else {
     stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median or sum."))
@@ -2173,8 +2173,6 @@ if (fixed_width != 0){
 
   colnames(dataf_full_original) <- "Optimized_return"
   colnames(dataf) <- "Optimized.rowNames"
-
-
 
   # Additional check: (we should get the same metric as before in the loop)
   if (method == "lm" & metric == "r.squared"){
@@ -2232,15 +2230,18 @@ if (fixed_width != 0){
     if (reference_window == 'end'){
 
     if (aggregate_function == 'median'){
+
       dataf <- data.frame(apply(env_data[, (as.numeric(plot_column) - as.numeric(row_index) + 1):
-                                           (as.numeric(plot_column))],1 , median, na.rm = TRUE))
+                                           (as.numeric(plot_column)), drop = FALSE],1 , median, na.rm = TRUE))
+
+
     } else if (aggregate_function == 'sum'){
       dataf <- data.frame(apply(env_data[, (as.numeric(plot_column) - as.numeric(row_index) + 1):
-                                           (as.numeric(plot_column))],1 , sum, na.rm = TRUE))
+                                           (as.numeric(plot_column)), drop = FALSE],1 , sum, na.rm = TRUE))
 
     } else if (aggregate_function == 'mean'){
       dataf <- data.frame(apply(env_data[, (as.numeric(plot_column) - as.numeric(row_index) + 1):
-                                           (as.numeric(plot_column))],1 , mean, na.rm = TRUE))
+                                           (as.numeric(plot_column)), drop = FALSE],1 , mean, na.rm = TRUE))
     } else {
       stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median or sum."))
     }
@@ -2262,13 +2263,13 @@ if (fixed_width != 0){
 
     if (aggregate_function == 'median'){
       dataf_original <- data.frame(apply(env_data_original[, (as.numeric(plot_column) - (as.numeric(row_index) + 1):
-                                                             as.numeric(plot_column))],1 , median, na.rm = TRUE))
+                                                             as.numeric(plot_column)), drop = FALSE],1 , median, na.rm = TRUE))
     } else if (aggregate_function == 'sum'){
       dataf_original <- data.frame(apply(env_data_original[, (as.numeric(plot_column) - (as.numeric(row_index) + 1):
-                                                             as.numeric(plot_column))],1 , sum, na.rm = TRUE))
+                                                             as.numeric(plot_column)), drop = FALSE],1 , sum, na.rm = TRUE))
     } else if (aggregate_function == 'mean'){
       dataf_original <- data.frame(apply(env_data_original[, (as.numeric(plot_column) - (as.numeric(row_index) + 1):
-                                                             as.numeric(plot_column))],1 , mean, na.rm = TRUE))
+                                                             as.numeric(plot_column)), drop = FALSE],1 , mean, na.rm = TRUE))
     } else {
       stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median or sum."))
     }
