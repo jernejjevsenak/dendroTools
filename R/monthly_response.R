@@ -172,8 +172,8 @@
 #' example_tidy_data <- monthly_response(response = data_MVA,
 #'     lower_limit = 1, upper = 24,
 #'     env_data = LJ_monthly_precipitation, fixed_width = 0,
-#'     method = "cor", row_names_subset = TRUE, metric = "adj.r.squared",
-#'     remove_insignificant = FALSE, previous_year = FALSE,
+#'     method = "cor", row_names_subset = TRUE,
+#'     remove_insignificant = TRUE, previous_year = FALSE,
 #'     reference_window = "end",
 #'     alpha = 0.05, aggregate_function = 'sum', boot = TRUE,
 #'     tidy_env_data = TRUE, boot_n = 100, month_interval = c(-5, 10))
@@ -314,6 +314,7 @@ monthly_response <- function(response, env_data, method = "cor",
     }
 
     # if only offset_start is negative
+
   } else if (offset_start < 0 & offset_end > 0){
     offset_end <- offset_end + 12
     offset_start <- abs(offset_start)
@@ -872,6 +873,7 @@ if (fixed_width != 0){
         # to go through all loops and therefore, users might think that R is
         # not responding. But if each calculation is printed, user could be
         # confident, that R is responding.
+
         if (reference_window == 'start'){
           temporal_matrix[1, j + 1] <- temporal_correlation
           temporal_matrix_lower[1, j + 1] <- temporal_lower
@@ -2048,14 +2050,40 @@ if (fixed_width != 0){
   # 2 lm and brnn method
       } else if (method == "lm" | method == "brnn") {
     temporal_matrix[abs(temporal_matrix) < abs(critical_threshold_cor2)] <- NA
-      }
 
-    if(is.finite(mean(temporal_matrix, na.rm = TRUE)) == FALSE){
-      stop("All calculations are insignificant! Please change the alpha argument.")
     }
-
-
   }
+
+
+  if(is.finite(mean(temporal_matrix, na.rm = TRUE)) == FALSE){
+
+    warning("All calculations are insignificant! Please change the alpha argument.")
+
+    final_list <- list(calculations = temporal_matrix,
+                       method = method,
+                       metric = cor_method,
+                       analysed_period = NA,
+                       optimized_return = NA,
+                       optimized_return_all = NA,
+                       transfer_function = NA, temporal_stability = NA,
+                       cross_validation = NA,
+                       plot_heatmap = NA,
+                       plot_extreme = NA,
+                       plot_specific = NA,
+                       PCA_output = NA,
+                       type = "monthly",
+                       reference_window = reference_window,
+                       boot_lower = temporal_matrix_lower,
+                       boot_upper = temporal_matrix_upper,
+                       aggregated_climate = NA )
+
+    class(final_list) <- 'dmrs'
+
+    return(final_list)
+
+  } else {
+
+
 
   ########################################################################
   # PART 4: Final list is being created and returned as a function output#
@@ -2940,6 +2968,7 @@ for (m in 1:length(empty_list_datasets)){
     }
 
     if (method == "cor"){
+
       final_list <- list(calculations = temporal_matrix, method = method,
                          metric = cor_method, analysed_period = analysed_period,
                          optimized_return = dataf_full,
@@ -2960,4 +2989,5 @@ for (m in 1:length(empty_list_datasets)){
     class(final_list) <- 'dmrs'
 
   return(final_list)
+  }
 }

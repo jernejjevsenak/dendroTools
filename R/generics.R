@@ -3,6 +3,13 @@
 
 summary.dmrs <- function(object, ...){
 
+
+  if(is.finite(mean(object[[1]], na.rm = TRUE)) == FALSE){
+
+    return("All calculations are insignificant! No summary output available.")
+
+  } else {
+
   # This needs to be set to provide results in English language
   Sys.setlocale("LC_TIME", "C")
 
@@ -406,5 +413,6 @@ summary.dmrs <- function(object, ...){
                                      as.numeric(row_index)))
   return(output_df)
 
-}
+ }
 
+}

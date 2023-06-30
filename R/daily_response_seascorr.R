@@ -1256,11 +1256,38 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
 
      temporal_matrix[abs(temporal_matrix) < abs(critical_threshold_cor)] <- NA
 
-    if(is.finite(mean(temporal_matrix, na.rm = TRUE)) == FALSE){
-      stop("All calculations are insignificant! Please change the alpha argument.")
-    }
-
   }
+
+
+
+  if(is.finite(mean(temporal_matrix, na.rm = TRUE)) == FALSE){
+
+    warning("All calculations are insignificant! Please change the alpha argument.")
+
+    final_list <- list(calculations = temporal_matrix,
+                       method = "pcor",
+                       metric = pcor_method, analysed_period = NA,
+                       optimized_return = NA,
+                       optimized_return_all = NA,
+                       transfer_function = NA, temporal_stability = NA,
+                       cross_validation = NA,
+                       plot_heatmap = NA,
+                       plot_extreme = NA,
+                       plot_specific = NA,
+                       PCA_output = PCA_result,
+                       type = "daily",
+                       reference_window = reference_window,
+                       boot_lower = temporal_matrix_lower,
+                       boot_upper = temporal_matrix_upper,
+                       aggregated_climate_primary = NA,
+                       aggregated_climate_control = NA)
+
+    class(final_list) <- 'dmrs'
+
+    return(final_list)
+
+  } else {
+
 
   ########################################################################
   # PART 4: Final list is being created and returned as a function output#
@@ -1986,4 +2013,5 @@ for (m in 1:length(empty_list_datasets)){
     class(final_list) <- "dmrs"
 
   return(final_list)
+}
 }

@@ -276,10 +276,10 @@ data(LJ_daily_temperatures)
 # 1 Example with fixed width. Lower and upper limits are ignored.
 example_daily_response <- daily_response(response = data_MVA,
     env_data = LJ_daily_temperatures,
-    method = "cor", fixed_width = 30, cor_method = "spearman",
+    method = "cor", fixed_width = 40, cor_method = "spearman",
     row_names_subset = TRUE, previous_year = TRUE,
     remove_insignificant = TRUE,
-    alpha = 0.05, aggregate_function = 'mean',
+    alpha = 0.0000000000000005, aggregate_function = 'mean',
     reference_window = "start")
 
 summary(example_daily_response)

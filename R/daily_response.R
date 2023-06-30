@@ -179,10 +179,10 @@
 #' # 1 Example with fixed width. Lower and upper limits are ignored.
 #' example_daily_response <- daily_response(response = data_MVA,
 #'     env_data = LJ_daily_temperatures,
-#'     method = "cor", fixed_width = 30, cor_method = "spearman",
+#'     method = "cor", fixed_width = 40, cor_method = "spearman",
 #'     row_names_subset = TRUE, previous_year = TRUE,
 #'     remove_insignificant = TRUE,
-#'     alpha = 0.05, aggregate_function = 'mean',
+#'     alpha = 0.0000000000000005, aggregate_function = 'mean',
 #'     reference_window = "start")
 #'
 #' summary(example_daily_response)
@@ -2056,22 +2056,52 @@ daily_response <- function(response, env_data, method = "cor",
   # To enhance the visualisation, insignificant values
   # are removed if remove_insignificant == TRUE
   if (remove_insignificant == TRUE){
+
     critical_threshold_cor <- critical_r(nrow(response), alpha = alpha)
     critical_threshold_cor2 <- critical_threshold_cor ^ 2
 
   # 1 Method is correlation
    if (method == "cor") {
+
      temporal_matrix[abs(temporal_matrix) < abs(critical_threshold_cor)] <- NA
+
   # 2 lm and brnn method
       } else if (method == "lm" | method == "brnn") {
     temporal_matrix[abs(temporal_matrix) < abs(critical_threshold_cor2)] <- NA
       }
-
-    if(is.finite(mean(temporal_matrix, na.rm = TRUE)) == FALSE){
-      stop("All calculations are insignificant! Please change the alpha argument.")
-    }
-
   }
+
+
+
+
+  if(is.finite(mean(temporal_matrix, na.rm = TRUE)) == FALSE){
+
+    warning("All calculations are insignificant! Please change the alpha argument.")
+
+    final_list <- list(calculations = temporal_matrix,
+                       method = method,
+                       metric = cor_method,
+                       analysed_period = NA,
+                       optimized_return = NA,
+                       optimized_return_all = NA,
+                       transfer_function = NA, temporal_stability = NA,
+                       cross_validation = NA,
+                       plot_heatmap = NA,
+                       plot_extreme = NA,
+                       plot_specific = NA,
+                       PCA_output = NA,
+                       type = "daily",
+                       reference_window = reference_window,
+                       boot_lower = temporal_matrix_lower,
+                       boot_upper = temporal_matrix_upper,
+                       aggregated_climate = NA )
+
+    class(final_list) <- 'dmrs'
+
+    return(final_list)
+
+
+  } else {
 
   ########################################################################
   # PART 4: Final list is being created and returned as a function output#
@@ -3075,4 +3105,6 @@ for (m in 1:length(empty_list_datasets)){
     class(final_list) <- 'dmrs'
 
   return(final_list)
+}
+
 }
