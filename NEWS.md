@@ -1,6 +1,7 @@
 # dendroTools 1.2.10
 * A bug in some special cases for the reference window "end" is now removed
-* In case of no significant correlations, daily_response() now returnes a warning rather than error
+* In case of no significant correlations, daily_response() now returns a warning
+rather than error
 
 # dendroTools 1.2.9
 * new options for the aggregate function - minimum and maximum
