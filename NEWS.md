@@ -1,3 +1,6 @@
+# dendroTools 1.2.11
+* response data frame can now also have a missing value, but only if "cor_na_use" argument is one of "complete.obs", "na.or.complete" or "pairwise.complete.obs"
+
 # dendroTools 1.2.10
 * A bug in some special cases for the reference window "end" is now removed
 * In case of no significant correlations, daily_response() now returns a warning

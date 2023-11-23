@@ -697,8 +697,10 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
     env_data_control <- subset(env_data_control, row.names(env_data_control) %in% subset_seq)
     }
 
+
   # NA values are not allowed and must be removed from response data.frame
-  if (sum(is.na(response)) > 0){
+  # exception if cor_na_us accounts for missing values
+  if (sum(is.na(response)) > 0 & pcor_na_use %in% c("complete.obs", "na.or.complete", "pairwise.complete.obs")){
 
     prob_year <- row.names(response[is.na(response), , drop = F])
 
@@ -706,6 +708,7 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
                 "Problematic year is ", prob_year))
 
   }
+
 
   # PART 2 - the calculation of day-wise correlations
   # A) fixed window approach

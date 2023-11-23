@@ -684,7 +684,8 @@ daily_response <- function(response, env_data, method = "cor",
     }
 
   # NA values are not allowed and must be removed from response data.frame
-  if (sum(is.na(response)) > 0){
+  # exception if cor_na_us accounts for missing values
+  if (sum(is.na(response)) > 0 & cor_na_use %in% c("complete.obs", "na.or.complete", "pairwise.complete.obs")){
 
     prob_year <- row.names(response[is.na(response), , drop = F])
 
