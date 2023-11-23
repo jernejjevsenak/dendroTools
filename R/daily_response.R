@@ -2634,7 +2634,7 @@ daily_response <- function(response, env_data, method = "cor",
   transfer_data = data.frame(proxy = response[,1], optimized_return =dataf[,1])
   lm_model = lm(optimized_return ~ proxy, data = transfer_data)
   capture.output(brnn_model <- try(brnn(optimized_return ~ proxy, data = transfer_data, neurons = neurons), silent = TRUE))
-  full_range = data.frame(proxy = seq(from = min(response[,1]), to = max(response[,1]), length.out = 100))
+  full_range = data.frame(proxy = seq(from = min(response[,1], na.rm = TRUE), to = max(response[,1], na.rm = TRUE), length.out = 100))
 
   if (method == "lm" | method == "cor"){
     full_range$transfer_f = predict(lm_model, full_range)

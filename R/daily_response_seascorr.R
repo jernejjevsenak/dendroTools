@@ -1801,7 +1801,7 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
   # Here, the transfer function is being created
   transfer_data = data.frame(proxy = response[,1], optimized_return =x1[,1])
   lm_model = lm(optimized_return ~ proxy, data = transfer_data)
-  full_range = data.frame(proxy = seq(from = min(response[,1]), to = max(response[,1]), length.out = 100))
+  full_range = data.frame(proxy = seq(from = min(response[,1], na.rm = TRUE), to = max(response[,1], na.rm = TRUE), length.out = 100))
 
   full_range$transfer_f = predict(lm_model, full_range)
 
