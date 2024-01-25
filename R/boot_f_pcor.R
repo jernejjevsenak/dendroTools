@@ -2,13 +2,15 @@
 #'
 #' Generate R bootstrap replicates of a statistic applied to data.
 #'
-#' @param data The data as a vector, matrix or data frame. If it is a matrix or data frame then each
-#' row is considered as one multivariate observation.
-#' @param indices indices to be used for calculation
-#' @param cor.type a character string indicating which correlation
-#' @param fun a function to use in bootstrap procedure
-#' coefficient is to be computed. One of "pearson" (default), "kendall", or
-#' "spearman".
+#' @param data A vector, matrix, or data frame containing the input data.
+#' If a matrix or data frame is provided, each row is treated as a separate
+#' multivariate observation.
+#' @param indices A numeric or integer vector specifying the indices to be
+#' utilized in the calculation. These indices determine which elements or rows
+#' of the 'data' are to be included in the analysis
+#' @param cor.type A string specifying the method of correlation to be applied
+#' in the bootstrap procedure. Available options are "pearson" (default),
+#' "kendall", or "spearman".
 #'
 #' @return A matrix with bootstrapped estimates of partial correlation coefficients
 #'
