@@ -194,8 +194,9 @@ previous growing season days. This argument overwrites the calculation
 limits defined by lower_limit and upper_limit arguments.}
 
 \item{dc_method}{a character string to determine the method to detrend climate
-(environmental) data.  Possible values are c("Spline", "ModNegExp", "Mean",
-"Friedman", "ModHugershoff"). Defaults to "none" (see dplR R package).}
+(environmental) data.  Possible values are "none" (default), "SLD","Spline",
+"ModNegExp", "Mean", "Friedman", "ModHugershoff". "SLD" refers to Simple
+Linear Detrending}
 
 \item{dc_nyrs}{a number giving the rigidity of the smoothing spline, defaults
 to 0.67 of series length if nyrs is NULL (see dplR R package).}

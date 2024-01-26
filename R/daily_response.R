@@ -117,8 +117,9 @@
 #' previous growing season days. This argument overwrites the calculation
 #' limits defined by lower_limit and upper_limit arguments.
 #' @param dc_method a character string to determine the method to detrend climate
-#' (environmental) data.  Possible values are c("Spline", "ModNegExp", "Mean",
-#' "Friedman", "ModHugershoff"). Defaults to "none" (see dplR R package).
+#' (environmental) data.  Possible values are "none" (default), "SLD","Spline",
+#' "ModNegExp", "Mean", "Friedman", "ModHugershoff". "SLD" refers to Simple
+#' Linear Detrending
 #' @param dc_nyrs a number giving the rigidity of the smoothing spline, defaults
 #' to 0.67 of series length if nyrs is NULL (see dplR R package).
 #' @param dc_f a number between 0 and 1 giving the frequency response or wavelength
@@ -1469,7 +1470,7 @@ daily_response <- function(response, env_data, method = "cor",
 
     for (j in (0 + offset_start -1): (ncol(env_data) - max((K + offset_end), offset_end))) {
 
-        if (aggregate_function == 'median'){
+       if (aggregate_function == 'median'){
         x <- apply(data.frame(env_data[1:nrow(env_data), (1 + j) : (j + K)]),1 , median, na.rm = TRUE)
       } else if (aggregate_function == 'sum'){
         x <- apply(data.frame(env_data[1:nrow(env_data), (1 + j) : (j + K)]),1 , sum, na.rm = TRUE)
@@ -1485,9 +1486,23 @@ daily_response <- function(response, env_data, method = "cor",
 
       if (!is.null(dc_method)){
 
-        x <- dplR::detrend(data.frame(x), method = dc_method, nyrs = dc_nyrs, f = dc_f,
-                           pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
-                           span = dc_span, bass = dc_bass,  difference = dc_difference)
+        if (dc_method == "SLD"){
+
+        tmp_model <- lm(x ~ seq(1:length(x)))
+        tmp_pred <- predict(tmp_model)
+        tmp_res <- x - tmp_pred
+
+        tmp_std_res <- tmp_res/sd(tmp_res)
+
+
+        # plot(x, type = "l", main = "raw")
+        # plot(tmp_std_res, type = "l", main = "detrended")
+
+        } else {
+
+          x <- dplR::detrend(data.frame(x), method = dc_method, nyrs = dc_nyrs, f = dc_f,
+                             pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
+                             span = dc_span, bass = dc_bass,  difference = dc_difference)}
 
       } else {
 
@@ -1495,6 +1510,7 @@ daily_response <- function(response, env_data, method = "cor",
 
       }
 
+# }
       x_list <- x
       colnames(x_list) <- paste0(j + 1, "_" ,j + K)
       row.names(x_list) <- row.names(env_data)
