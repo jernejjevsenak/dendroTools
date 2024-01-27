@@ -49,7 +49,9 @@ daily_response(
   dc_span = "cv",
   dc_bass = 0,
   dc_difference = FALSE,
-  cor_na_use = "everything"
+  cor_na_use = "everything",
+  skip_window_length = 1,
+  skip_window_position = 1
 )
 }
 \arguments{
@@ -225,6 +227,28 @@ covariances in the presence of missing values for correlation coefficients.
 This must be (an abbreviation of) one of the strings "everything" (default),
 "all.obs", "complete.obs", "na.or.complete", or "pairwise.complete.obs". See
 also the documentation for the base cor() function.}
+
+\item{skip_window_length}{an integer specifying the frequency of window
+selection for the calculations of climate-growth relationships. The default
+value is 1, indicating that every window is included in the calculations.
+When set to a value greater than 1, the function selectively processes
+windows at regular intervals defined by this parameter. For instance, if
+skip_window_length = 2, the function processes every second window.
+Similarly, if skip_window_length = 3, every third window is processed,
+skipping two windows in between each selected one. This parameter allows for
+controlling the granularity of the analysis and can help in reducing
+computation time by focusing on a subset of the data.}
+
+\item{skip_window_position}{an integer specifying the frequency of window
+positions used in the calculations of climate-growth relationships. The
+default value is 1, indicating that every window position is included in the
+calculations. When set to a value greater than 1, the function selectively
+processes window positions at regular intervals defined by this parameter.
+For instance, if skip_window_position = 2, the function processes every
+second window position. Similarly, if skip_window_position = 3, every third
+window position is processed, skipping two positions in between each selected
+one. This parameter allows for controlling the granularity of the analysis
+and can help in reducing computation time by focusing on a subset of the data.}
 }
 \value{
 a list with 17 elements:

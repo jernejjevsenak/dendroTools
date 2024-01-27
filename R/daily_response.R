@@ -140,6 +140,26 @@
 #' This must be (an abbreviation of) one of the strings "everything" (default),
 #' "all.obs", "complete.obs", "na.or.complete", or "pairwise.complete.obs". See
 #' also the documentation for the base cor() function.
+#' @param skip_window_length an integer specifying the frequency of window
+#' selection for the calculations of climate-growth relationships. The default
+#' value is 1, indicating that every window is included in the calculations.
+#' When set to a value greater than 1, the function selectively processes
+#' windows at regular intervals defined by this parameter. For instance, if
+#' skip_window_length = 2, the function processes every second window.
+#' Similarly, if skip_window_length = 3, every third window is processed,
+#' skipping two windows in between each selected one. This parameter allows for
+#' controlling the granularity of the analysis and can help in reducing
+#' computation time by focusing on a subset of the data.
+#' @param skip_window_position an integer specifying the frequency of window
+#' positions used in the calculations of climate-growth relationships. The
+#' default value is 1, indicating that every window position is included in the
+#' calculations. When set to a value greater than 1, the function selectively
+#' processes window positions at regular intervals defined by this parameter.
+#' For instance, if skip_window_position = 2, the function processes every
+#' second window position. Similarly, if skip_window_position = 3, every third
+#' window position is processed, skipping two positions in between each selected
+#' one. This parameter allows for controlling the granularity of the analysis
+#' and can help in reducing computation time by focusing on a subset of the data.
 #'
 #' @return a list with 17 elements:
 #' \enumerate{
@@ -294,7 +314,9 @@ daily_response <- function(response, env_data, method = "cor",
                            dc_span = "cv",
                            dc_bass = 0,
                            dc_difference = FALSE,
-                           cor_na_use = "everything"
+                           cor_na_use = "everything",
+                           skip_window_length = 1,
+                           skip_window_position = 1
                            ) {
 
   ##############################################################################
@@ -520,9 +542,9 @@ daily_response <- function(response, env_data, method = "cor",
   # Make sure the selected method is appropriate
   if (!is.null(dc_method)){
 
-    if (!(dc_method %in% c("Spline", "ModNegExp", "Mean", "Friedman", "ModHugershoff"))){
+    if (!(dc_method %in% c("Spline", "ModNegExp", "Mean", "Friedman", "ModHugershoff", "SLD"))){
 
-    stop(paste0('dc_method should be one of "Spline", "ModNegExp", "Mean", "Friedman", "ModHugershoff",
+    stop(paste0('dc_method should be one of "Spline", "ModNegExp", "Mean", "Friedman", "ModHugershoff", "SLD",
          but instead it is:',dc_method))
 
     }
@@ -567,13 +589,6 @@ daily_response <- function(response, env_data, method = "cor",
     env_data <- data.frame(env_data)
     row.names(env_data) <- row_names_current
     env_data_original <- env_data
-
-    # response$yearABC <- row.names(response)
-    # response <- dplyr::arrange(response, desc(yearABC))
-    # response <- years_to_rownames(response, "yearABC")
-    # response <- data.frame(response[-nrow(response),,F ])
-    # response <- data.frame(response)
-    # response_original <- response
 
     }
 
@@ -735,7 +750,7 @@ daily_response <- function(response, env_data, method = "cor",
     temporal_matrix_upper <- temporal_matrix
 
       if (fixed_width != max_window){
-        pb <- txtProgressBar(min = 0, max = (ncol(env_data) - fixed_width - offset_end - offset_start + 1),
+        pb <- txtProgressBar(min = 0, max = (ncol(env_data) - fixed_width - offset_end - offset_start + 1)/skip_window_length,
                              style = 3)
       }
 
@@ -747,7 +762,7 @@ daily_response <- function(response, env_data, method = "cor",
       # based on a selected method (cor, lm or brnn). Calculation is stored in
       # temporal matrix.
 
-      for (j in (0 + offset_start -1): (ncol(env_data) - max((fixed_width + offset_end), offset_end))) {
+      for (j in (seq((0 + offset_start -1), (ncol(env_data) - max((fixed_width + offset_end), offset_end)), by = skip_window_position))) {
 
         b = b + 1
 
@@ -807,9 +822,19 @@ daily_response <- function(response, env_data, method = "cor",
 
         if (!is.null(dc_method)){
 
-          x <- dplR::detrend(data.frame(x), method = dc_method, nyrs = dc_nyrs, f = dc_f,
-                             pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
-                            span = dc_span, bass = dc_bass,  difference = dc_difference)
+          if (dc_method == "SLD"){
+
+            tmp_model <- lm(x ~ seq(1:length(x)))
+            tmp_pred <- predict(tmp_model)
+            tmp_res <- x - tmp_pred
+
+            x <- data.frame(x = tmp_res/sd(tmp_res))
+
+          } else {
+
+            x <- dplR::detrend(data.frame(x), method = dc_method, nyrs = dc_nyrs, f = dc_f,
+                               pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
+                               span = dc_span, bass = dc_bass,  difference = dc_difference)}
 
         } else {
 
@@ -938,12 +963,14 @@ daily_response <- function(response, env_data, method = "cor",
     temporal_matrix_upper <- temporal_matrix
 
     if (fixed_width != max_window){
-    pb <- txtProgressBar(min = 0, max = (ncol(env_data) - fixed_width - offset_end - offset_start + 1),
+    pb <- txtProgressBar(min = 0, max = (ncol(env_data) - fixed_width - offset_end - offset_start + 1)/skip_window_length,
                          style = 3)}
 
     b = 0
 
-    for (j in (0 + offset_start -1): (ncol(env_data) - max((fixed_width + offset_end), offset_end))) {
+    for (j in (seq((0 + offset_start -1), (ncol(env_data) - max((fixed_width + offset_end), offset_end)), by = skip_window_position))) {
+
+
 
       b = b + 1
 
@@ -1001,9 +1028,19 @@ daily_response <- function(response, env_data, method = "cor",
 
       if (!is.null(dc_method)){
 
-        x <- dplR::detrend(data.frame(x), method = dc_method, nyrs = dc_nyrs, f = dc_f,
-                           pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
-                           span = dc_span, bass = dc_bass,  difference = dc_difference)
+        if (dc_method == "SLD"){
+
+          tmp_model <- lm(x ~ seq(1:length(x)))
+          tmp_pred <- predict(tmp_model)
+          tmp_res <- x - tmp_pred
+
+          x <- data.frame(x = tmp_res/sd(tmp_res))
+
+        } else {
+
+          x <- dplR::detrend(data.frame(x), method = dc_method, nyrs = dc_nyrs, f = dc_f,
+                             pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
+                             span = dc_span, bass = dc_bass,  difference = dc_difference)}
 
       } else {
 
@@ -1181,12 +1218,12 @@ daily_response <- function(response, env_data, method = "cor",
     temporal_matrix_upper <- temporal_matrix
 
     if (fixed_width != max_window){
-    pb <- txtProgressBar(min = 0, max = (ncol(env_data) - fixed_width - offset_end - offset_start + 1),
+    pb <- txtProgressBar(min = 0, max = (ncol(env_data) - fixed_width - offset_end - offset_start + 1)/skip_window_length,
                          style = 3)}
 
     b = 0
 
-    for (j in (0 + offset_start -1): (ncol(env_data) - max((fixed_width + offset_end), offset_end))) {
+    for (j in (seq((0 + offset_start -1), (ncol(env_data) - max((fixed_width + offset_end), offset_end)), by = skip_window_position))) {
 
        b = b + 1
 
@@ -1240,9 +1277,19 @@ daily_response <- function(response, env_data, method = "cor",
 
        if (!is.null(dc_method)){
 
-         x <- dplR::detrend(data.frame(x), method = dc_method, nyrs = dc_nyrs, f = dc_f,
-                            pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
-                            span = dc_span, bass = dc_bass,  difference = dc_difference)
+         if (dc_method == "SLD"){
+
+           tmp_model <- lm(x ~ seq(1:length(x)))
+           tmp_pred <- predict(tmp_model)
+           tmp_res <- x - tmp_pred
+
+           x <- data.frame(x = tmp_res/sd(tmp_res))
+
+         } else {
+
+           x <- dplR::detrend(data.frame(x), method = dc_method, nyrs = dc_nyrs, f = dc_f,
+                              pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
+                              span = dc_span, bass = dc_bass,  difference = dc_difference)}
 
        } else {
 
@@ -1457,18 +1504,18 @@ daily_response <- function(response, env_data, method = "cor",
 
   if (upper_limit != lower_limit){
 
-    pb <- txtProgressBar(min = 0, max = (upper_limit - lower_limit), style = 3)
+    pb <- txtProgressBar(min = 0, max = (upper_limit - lower_limit)/skip_window_length, style = 3)
   }
 
     b = 0
 
 
 
-  for (K in lower_limit:upper_limit) {
+  for (K in seq(lower_limit, upper_limit, by = skip_window_length)) {
 
     b = b + 1
 
-    for (j in (0 + offset_start -1): (ncol(env_data) - max((K + offset_end), offset_end))) {
+    for (j in seq((0 + offset_start -1), (ncol(env_data) - max((K + offset_end), offset_end)), by = skip_window_position)) {
 
        if (aggregate_function == 'median'){
         x <- apply(data.frame(env_data[1:nrow(env_data), (1 + j) : (j + K)]),1 , median, na.rm = TRUE)
@@ -1492,11 +1539,7 @@ daily_response <- function(response, env_data, method = "cor",
         tmp_pred <- predict(tmp_model)
         tmp_res <- x - tmp_pred
 
-        tmp_std_res <- tmp_res/sd(tmp_res)
-
-
-        # plot(x, type = "l", main = "raw")
-        # plot(tmp_std_res, type = "l", main = "detrended")
+        x <- data.frame(x = tmp_res/sd(tmp_res))
 
         } else {
 
@@ -1637,16 +1680,16 @@ daily_response <- function(response, env_data, method = "cor",
 
     if (upper_limit != lower_limit){
 
-      pb <- txtProgressBar(min = 0, max = (upper_limit - lower_limit), style = 3)
+      pb <- txtProgressBar(min = 0, max = (upper_limit - lower_limit)/skip_window_length, style = 3)
     }
     b = 0
 
-    for (K in lower_limit:upper_limit) {
+    for (K in seq(lower_limit, upper_limit, by = skip_window_length)) {
 
       b = b + 1
 
+      for (j in seq((0 + offset_start -1), (ncol(env_data) - max((K + offset_end), offset_end)), by = skip_window_position)) {
 
-      for (j in (0 + offset_start -1): (ncol(env_data) - max((K + offset_end), offset_end))) {
 
         if (aggregate_function == 'median'){
           x <- apply(data.frame(env_data[1:nrow(env_data), (1 + j) : (j + K)]),1 , median, na.rm = TRUE)
@@ -1664,9 +1707,19 @@ daily_response <- function(response, env_data, method = "cor",
 
         if (!is.null(dc_method)){
 
-          x <- dplR::detrend(data.frame(x), method = dc_method, nyrs = dc_nyrs, f = dc_f,
-                             pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
-                             span = dc_span, bass = dc_bass,  difference = dc_difference)
+          if (dc_method == "SLD"){
+
+            tmp_model <- lm(x ~ seq(1:length(x)))
+            tmp_pred <- predict(tmp_model)
+            tmp_res <- x - tmp_pred
+
+            x <- data.frame(x = tmp_res/sd(tmp_res))
+
+          } else {
+
+            x <- dplR::detrend(data.frame(x), method = dc_method, nyrs = dc_nyrs, f = dc_f,
+                               pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
+                               span = dc_span, bass = dc_bass,  difference = dc_difference)}
 
         } else {
 
@@ -1845,17 +1898,16 @@ daily_response <- function(response, env_data, method = "cor",
 
     if (upper_limit != lower_limit){
 
-      pb <- txtProgressBar(min = 0, max = (upper_limit - lower_limit), style = 3)
+      pb <- txtProgressBar(min = 0, max = (upper_limit - lower_limit)/skip_window_length, style = 3)
     }
 
     b = 0
 
-    for (K in lower_limit:upper_limit) {
+    for (K in seq(lower_limit, upper_limit, by = skip_window_length)) {
 
       b = b + 1
 
-
-      for (j in (0 + offset_start -1): (ncol(env_data) - max((K + offset_end), offset_end))) {
+      for (j in seq((0 + offset_start -1), (ncol(env_data) - max((K + offset_end), offset_end)), by = skip_window_position)) {
 
         if (aggregate_function == 'median'){
           x <- apply(data.frame(env_data[1:nrow(env_data), (1 + j) : (j + K)]),1 , median, na.rm = TRUE)
@@ -1873,9 +1925,19 @@ daily_response <- function(response, env_data, method = "cor",
 
         if (!is.null(dc_method)){
 
-          x <- dplR::detrend(data.frame(x), method = dc_method, nyrs = dc_nyrs, f = dc_f,
-                             pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
-                             span = dc_span, bass = dc_bass,  difference = dc_difference)
+          if (dc_method == "SLD"){
+
+            tmp_model <- lm(x ~ seq(1:length(x)))
+            tmp_pred <- predict(tmp_model)
+            tmp_res <- x - tmp_pred
+
+            x <- data.frame(x = tmp_res/sd(tmp_res))
+
+          } else {
+
+            x <- dplR::detrend(data.frame(x), method = dc_method, nyrs = dc_nyrs, f = dc_f,
+                               pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
+                               span = dc_span, bass = dc_bass,  difference = dc_difference)}
 
         } else {
 
@@ -2189,6 +2251,7 @@ daily_response <- function(response, env_data, method = "cor",
                                             (as.numeric(plot_column) +
                                                as.numeric(row_index) - 1)]),
                                  na.rm = TRUE))
+
   } else if (aggregate_function == 'min'){
     dataf <- data.frame(apply(data.frame(env_data[, as.numeric(plot_column):
                                                     (as.numeric(plot_column) +
@@ -2204,9 +2267,22 @@ daily_response <- function(response, env_data, method = "cor",
     # if detrending was applied, should also be applied here
     if (!is.null(dc_method)){
 
-      dataf <- dplR::detrend(dataf, method = dc_method, nyrs = dc_nyrs, f = dc_f,
-                             pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
-                             span = dc_span, bass = dc_bass,  difference = dc_difference)
+      if (dc_method == "SLD"){
+
+        dataf <- as.numeric(dataf[,1])
+        tmp_model <- lm(dataf ~ seq(1:length(dataf)))
+        tmp_pred <- predict(tmp_model)
+        tmp_res <- dataf - tmp_pred
+
+        dataf <- data.frame(tmp_res/sd(tmp_res))
+
+      } else {
+
+        dataf <- dplR::detrend(dataf, method = dc_method, nyrs = dc_nyrs, f = dc_f,
+                               pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
+                               span = dc_span, bass = dc_bass,  difference = dc_difference)
+
+        }
 
     }
 
@@ -2249,9 +2325,23 @@ daily_response <- function(response, env_data, method = "cor",
 
   if (!is.null(dc_method)){
 
-    dataf_full_original <- dplR::detrend(dataf_full_original, method = dc_method, nyrs = dc_nyrs, f = dc_f,
-                                         pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
-                                         span = dc_span, bass = dc_bass,  difference = dc_difference)
+
+    if (dc_method == "SLD"){
+
+      dataf_full_original <- as.numeric(dataf_full_original[,1])
+      tmp_model <- lm(dataf_full_original ~ seq(1:length(dataf_full_original)))
+      tmp_pred <- predict(tmp_model)
+      tmp_res <- dataf_full_original - tmp_pred
+
+      dataf_full_original <- data.frame(tmp_res/sd(tmp_res))
+
+    } else {
+
+      dataf_full_original <- dplR::detrend(dataf_full_original, method = dc_method, nyrs = dc_nyrs, f = dc_f,
+                                           pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
+                                           span = dc_span, bass = dc_bass,  difference = dc_difference)
+
+    }
 
   }
 
@@ -2341,9 +2431,22 @@ daily_response <- function(response, env_data, method = "cor",
       # if detrending was applied, should also be applied here
       if (!is.null(dc_method)){
 
-        dataf <- dplR::detrend(dataf, method = dc_method, nyrs = dc_nyrs, f = dc_f,
-                               pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
-                               span = dc_span, bass = dc_bass,  difference = dc_difference)
+        if (dc_method == "SLD"){
+
+          dataf <- as.numeric(dataf[,1])
+          tmp_model <- lm(dataf ~ seq(1:length(dataf)))
+          tmp_pred <- predict(tmp_model)
+          tmp_res <- dataf - tmp_pred
+
+          dataf <- data.frame(tmp_res/sd(tmp_res))
+
+        } else {
+
+          dataf <- dplR::detrend(dataf, method = dc_method, nyrs = dc_nyrs, f = dc_f,
+                                 pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
+                                 span = dc_span, bass = dc_bass,  difference = dc_difference)
+
+        }
 
       }
 
@@ -2379,9 +2482,23 @@ daily_response <- function(response, env_data, method = "cor",
 
     if (!is.null(dc_method)){
 
-      dataf_full_original <- dplR::detrend(dataf_full_original, method = dc_method, nyrs = dc_nyrs, f = dc_f,
-                                           pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
-                                           span = dc_span, bass = dc_bass,  difference = dc_difference)
+      if (dc_method == "SLD"){
+
+        dataf_full_original <- as.numeric(dataf_full_original[,1])
+        tmp_model <- lm(dataf_full_original ~ seq(1:length(dataf_full_original)))
+        tmp_pred <- predict(tmp_model)
+        tmp_res <- dataf_full_original - tmp_pred
+
+        dataf_full_original <- data.frame(tmp_res/sd(tmp_res))
+
+      } else {
+
+        dataf_full_original <- dplR::detrend(dataf_full_original, method = dc_method, nyrs = dc_nyrs, f = dc_f,
+                                             pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
+                                             span = dc_span, bass = dc_bass,  difference = dc_difference)
+
+      }
+
 
     }
 
@@ -2483,9 +2600,23 @@ daily_response <- function(response, env_data, method = "cor",
     # if detrending was applied, should also be applied here
     if (!is.null(dc_method)){
 
-      dataf <- dplR::detrend(dataf, method = dc_method, nyrs = dc_nyrs, f = dc_f,
-                         pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
-                         span = dc_span, bass = dc_bass,  difference = dc_difference)
+      if (dc_method == "SLD"){
+
+        dataf <- as.numeric(dataf[,1])
+        tmp_model <- lm(dataf ~ seq(1:length(dataf)))
+        tmp_pred <- predict(tmp_model)
+        tmp_res <- dataf - tmp_pred
+
+        dataf <- data.frame(tmp_res/sd(tmp_res))
+
+      } else {
+
+        dataf <- dplR::detrend(dataf, method = dc_method, nyrs = dc_nyrs, f = dc_f,
+                               pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
+                               span = dc_span, bass = dc_bass,  difference = dc_difference)
+
+      }
+
 
     }
 
@@ -2528,9 +2659,22 @@ daily_response <- function(response, env_data, method = "cor",
 
     if (!is.null(dc_method)){
 
-      dataf_full_original <- dplR::detrend(dataf_full_original, method = dc_method, nyrs = dc_nyrs, f = dc_f,
-                             pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
-                             span = dc_span, bass = dc_bass,  difference = dc_difference)
+      if (dc_method == "SLD"){
+
+        dataf_full_original <- as.numeric(dataf_full_original[,1])
+        tmp_model <- lm(dataf_full_original ~ seq(1:length(dataf_full_original)))
+        tmp_pred <- predict(tmp_model)
+        tmp_res <- dataf_full_original - tmp_pred
+
+        dataf_full_original <- data.frame(tmp_res/sd(tmp_res))
+
+      } else {
+
+        dataf_full_original <- dplR::detrend(dataf_full_original, method = dc_method, nyrs = dc_nyrs, f = dc_f,
+                                             pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
+                                             span = dc_span, bass = dc_bass,  difference = dc_difference)
+
+      }
 
     }
 

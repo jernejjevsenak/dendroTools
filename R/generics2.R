@@ -1,7 +1,7 @@
 #' @method plot dmrs
 #' @export
 
-plot.dmrs <- function(x, ..., type = 1){
+plot.dmrs <- function(x, ..., type = 2){
 
 if (type == 1){
 
