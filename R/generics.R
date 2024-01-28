@@ -16,11 +16,11 @@ summary.dmrs <- function(object, ...){
   # A) Extracting a matrix from a list and converting it into a data frame
   result_daily_response <- object
 
-  type <- data.frame(object[[14]])
+  type <- data.frame(object$type)
 
   result_daily_element1 <- data.frame(object[[1]])
 
-  reference_window <- object[[15]]
+  reference_window <- object$reference_window
 
   # To keep RCMD check happy:
 
