@@ -215,9 +215,11 @@
 #'     env_data = LJ_daily_temperatures, cor_method = "kendall",
 #'     method = "cor", lower_limit = 21, upper_limit = 90,
 #'     row_names_subset = TRUE, previous_year = TRUE,
+#'     plot_specific_window = 60,
 #'     remove_insignificant = TRUE, alpha = 0.05,
-#'     plot_specific_window = 60, subset_years = c(1940, 1980),
-#'     aggregate_function = 'sum')
+#'     subset_years = c(1940, 1980),
+#'     aggregate_function = 'sum', skip_window_length = 2,
+#'     skip_window_position = 4)
 #'
 #' example_MVA_late <- daily_response(response = data_MVA,
 #'     env_data = LJ_daily_temperatures,
@@ -2737,39 +2739,6 @@ daily_response <- function(response, env_data, method = "cor",
   ##############################################################################
   # If detrending was used, it also needs to be applied on optimized return
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
   # Element 5
   # Here we create the fifth element of the final list: Analysed period in the
   # form of min(year) - max(year), e.g. 1950 - 2015
@@ -2825,7 +2794,6 @@ daily_response <- function(response, env_data, method = "cor",
     journal_theme +
     ggtitle(paste("Analysed Period:", analysed_period, "\nMethod:", title_string))
 
-analysed_period
   # If there is more than one independent variable in the model,
   # transfer function is not given, since we should return a 3d model
   if (ncol(response) > 1){

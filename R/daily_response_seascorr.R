@@ -211,8 +211,8 @@
 #'                           reference_window = "end", k = 5,
 #'                           dc_method = "SLD",
 #'                           day_interval = c(-100, 250),
-#'                           skip_window_length = 2,
-#'                           skip_window_position = 4
+#'                           skip_window_length = 1,
+#'                           skip_window_position = 1
 #'                           )
 #' summary(example_basic)
 #' plot(example_basic, type = 1)

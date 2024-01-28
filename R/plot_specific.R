@@ -90,6 +90,10 @@ plot_specific <- function(result_daily_response, window_width, title = TRUE,
   # Removing missing values at the end of tempora_vector
   # It is important to remove missing values only at the end of the
   # temporal_vector!
+
+
+  if (sum(!is.na(temporal_vector)) > 1){
+
   row_count <- nrow(temporal_vector)
   delete_rows <- 0
   while (is.na(temporal_vector[row_count, ] == TRUE)){
@@ -360,4 +364,11 @@ plot_specific <- function(result_daily_response, window_width, title = TRUE,
     ylab(y_lab)
 
   final_plot
+
+  } else {
+
+    return("All calculations have yielded insignificant results; therefore, no plot_specific is available.")
+
+  }
+
 }

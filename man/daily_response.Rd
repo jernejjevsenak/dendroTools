@@ -316,9 +316,11 @@ example_MVA_early <- daily_response(response = data_MVA,
     env_data = LJ_daily_temperatures, cor_method = "kendall",
     method = "cor", lower_limit = 21, upper_limit = 90,
     row_names_subset = TRUE, previous_year = TRUE,
+    plot_specific_window = 60,
     remove_insignificant = TRUE, alpha = 0.05,
-    plot_specific_window = 60, subset_years = c(1940, 1980),
-    aggregate_function = 'sum')
+    subset_years = c(1940, 1980),
+    aggregate_function = 'sum', skip_window_length = 2,
+    skip_window_position = 4)
 
 example_MVA_late <- daily_response(response = data_MVA,
     env_data = LJ_daily_temperatures,
