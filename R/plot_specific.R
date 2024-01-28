@@ -197,9 +197,32 @@ plot_specific <- function(result_daily_response, window_width, title = TRUE,
                             as.character(date_codes[(round2((plot_column_extra + as.numeric(window_width)/2)) - adjustment_2), 2]))
   }
 
+
+
+
+  # Function to find the longest non-NA range
+  max_length <- 0
+  current_length <- 0
+
+  for (value_temp in temporal_vector[,1]) {
+    if (!is.na(value_temp)) {
+      current_length <- current_length + 1
+    } else {
+      if (current_length > max_length) {
+        max_length <- current_length
+      }
+      current_length <- 0
+    }
+  }
+
+  # Check at the end in case the longest sequence is at the end of the vector
+  longest_sequence <- max(max_length, current_length)
+
+  if (longest_sequence > 1){
+
   final_plot <- suppressWarnings(
   ggplot(temporal_vector, aes_(y = ~var1,
-    x = ~ seq(1, nrow(temporal_vector)))) + geom_line(lwd = 1.2) +
+    x = ~ seq(1, nrow(temporal_vector)))) + geom_line(linewidth = 1.2) +
     geom_vline(xintercept = plot_column, col = "red", size = 1) +
     scale_x_continuous(breaks = sort(c(seq(0, nrow(temporal_vector), 50)), decreasing = FALSE),
       labels = sort(c(seq(0, nrow(temporal_vector), 50)))) +
@@ -209,6 +232,24 @@ plot_specific <- function(result_daily_response, window_width, title = TRUE,
     annotate("label", label = paste("Day", as.character(plot_column), sep = " "),
              y = min(temporal_vector, na.rm = TRUE) + 0.2*min(temporal_vector, na.rm = TRUE), x = plot_column + 15) +
     journal_theme)
+
+  } else {
+
+    final_plot <- suppressWarnings(
+      ggplot(temporal_vector, aes_(y = ~var1,
+                                   x = ~ seq(1, nrow(temporal_vector)))) + geom_point() +
+        geom_vline(xintercept = plot_column, col = "red", size = 1) +
+        scale_x_continuous(breaks = sort(c(seq(0, nrow(temporal_vector), 50)), decreasing = FALSE),
+                           labels = sort(c(seq(0, nrow(temporal_vector), 50)))) +
+        scale_y_continuous(limits = ylimits) +
+        annotate("label", label = as.character(calculated_metric),
+                 y = calculated_metric, x = plot_column + 15) +
+        annotate("label", label = paste("Day", as.character(plot_column), sep = " "),
+                 y = min(temporal_vector, na.rm = TRUE) + 0.2*min(temporal_vector, na.rm = TRUE), x = plot_column + 15) +
+        journal_theme)
+
+
+  }
 
   # If previous_year = TRUE, we add a vertical line with labels of
   # previous and current years

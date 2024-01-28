@@ -296,9 +296,9 @@ data(LJ_daily_precipitation)
 example_basic <- daily_response_seascorr(response = data_MVA,
                           env_data_primary = LJ_daily_temperatures,
                           env_data_control = LJ_daily_precipitation,
-                          row_names_subset = TRUE, fixed_width = 25,
+                          row_names_subset = TRUE,
                           lower_limit = 35, upper_limit = 45,
-                          remove_insignificant = TRUE,
+                          remove_insignificant = FALSE,
                           aggregate_function_env_data_primary = 'median',
                           aggregate_function_env_data_control = 'median',
                           alpha = 0.05, pcor_method = "spearman",
@@ -307,7 +307,10 @@ example_basic <- daily_response_seascorr(response = data_MVA,
                           tidy_env_data_control = TRUE, boot_n = 10,
                           reference_window = "end", k = 5,
                           dc_method = "SLD",
-                          day_interval = c(-100, 250))
+                          day_interval = c(-100, 250),
+                          skip_window_length = 2,
+                          skip_window_position = 4
+                          )
 summary(example_basic)
 plot(example_basic, type = 1)
 plot(example_basic, type = 2)
