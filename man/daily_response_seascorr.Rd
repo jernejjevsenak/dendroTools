@@ -47,7 +47,9 @@ daily_response_seascorr(
   dc_span = "cv",
   dc_bass = 0,
   dc_difference = FALSE,
-  pcor_na_use = "pairwise.complete"
+  pcor_na_use = "pairwise.complete",
+  skip_window_length = 1,
+  skip_window_position = 1
 )
 }
 \arguments{
@@ -191,36 +193,59 @@ indicate previous growing season days. This argument overwrites the calculation
 limits defined by lower_limit and upper_limit arguments.}
 
 \item{dc_method}{a character string to determine the method to detrend climate
-(environmental) data.  Possible values are c("Spline", "ModNegExp", "Mean",
-"Friedman", "ModHugershoff"). Defaults to "none" (see dplR R package).}
+(environmental) data.  Possible values are "none" (default), "SLD","Spline",
+"ModNegExp", "Mean", "Friedman", "ModHugershoff". "SLD" refers to Simple
+Linear Detrending}
 
 \item{dc_nyrs}{a number giving the rigidity of the smoothing spline, defaults
-to 0.67 of series length if nyrs is NULL (see dplR R package).}
+to 0.67 of series length if nyrs is NULL (see dplR R package)}
 
 \item{dc_f}{a number between 0 and 1 giving the frequency response or wavelength
-cutoff. Defaults to 0.5 (see dplR R package).}
+cutoff. Defaults to 0.5 (see dplR R package)}
 
 \item{dc_pos.slope}{a logical flag. Will allow for a positive slope to be used
 in method "ModNegExp" and "ModHugershoff". If FALSE the line will be horizontal
-(see dplR R package).}
+(see dplR R package)}
 
 \item{dc_constrain.nls}{a character string which controls the constraints of
 the "ModNegExp" model and the "ModHugershoff"  (see dplR R package).}
 
 \item{dc_span}{a numeric value controlling method "Friedman", or "cv" (default)
-for automatic choice by cross-validation (see dplR R package).}
+for automatic choice by cross-validation (see dplR R package)}
 
 \item{dc_bass}{a numeric value controlling the smoothness of the fitted curve
-in method "Friedman" (see dplR R package).}
+in method "Friedman" (see dplR R package)}
 
 \item{dc_difference}{a logical flag. Compute residuals by subtraction if TRUE,
-otherwise use division (see dplR R package).}
+otherwise use division (see dplR R package)}
 
 \item{pcor_na_use}{an optional character string giving a method for computing
 covariances in the presence of missing values for partial correlation
 coefficients. This must be (an abbreviation of) one of the strings "all.obs",
 "everything", "complete.obs", "na.or.complete", or "pairwise.complete.obs"
 (default). See also the documentation for the base partial.r in psych R package}
+
+\item{skip_window_length}{an integer specifying the frequency of window
+selection for the calculations of climate-growth relationships. The default
+value is 1, indicating that every window is included in the calculations.
+When set to a value greater than 1, the function selectively processes
+windows at regular intervals defined by this parameter. For instance, if
+skip_window_length = 2, the function processes every second window.
+Similarly, if skip_window_length = 3, every third window is processed,
+skipping two windows in between each selected one. This parameter allows for
+controlling the granularity of the analysis and can help in reducing
+computation time by focusing on a subset of the data.}
+
+\item{skip_window_position}{an integer specifying the frequency of window
+positions used in the calculations of climate-growth relationships. The
+default value is 1, indicating that every window position is included in the
+calculations. When set to a value greater than 1, the function selectively
+processes window positions at regular intervals defined by this parameter.
+For instance, if skip_window_position = 2, the function processes every
+second window position. Similarly, if skip_window_position = 3, every third
+window position is processed, skipping two positions in between each selected
+one. This parameter allows for controlling the granularity of the analysis
+and can help in reducing computation time by focusing on a subset of the data.}
 }
 \value{
 a list with 15 elements:
@@ -281,6 +306,7 @@ example_basic <- daily_response_seascorr(response = data_MVA,
                           previous_year = FALSE, boot = TRUE,
                           tidy_env_data_control = TRUE, boot_n = 10,
                           reference_window = "end", k = 5,
+                          dc_method = "SLD",
                           day_interval = c(-100, 250))
 summary(example_basic)
 plot(example_basic, type = 1)
@@ -299,6 +325,7 @@ example_fixed_width <- daily_response_seascorr(response = data_MVA,
                           aggregate_function_env_data_primary = 'mean',
                           aggregate_function_env_data_control = 'mean',
                           alpha = 0.05,
+                          dc_method = "SLD",
                           fixed_width = 45,
                           tidy_env_data_primary = FALSE,
                           tidy_env_data_control = TRUE,
