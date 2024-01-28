@@ -109,6 +109,10 @@
 #' @param dc_method a character string to determine the method to detrend climate
 #' (environmental) data.  Possible values are c("Spline", "ModNegExp", "Mean",
 #' "Friedman", "ModHugershoff"). Defaults to "none" (see dplR R package).
+#' @param dc_method a character string to determine the method to detrend climate
+#' (environmental) data.  Possible values are "none" (default), "SLD", "Spline",
+#' "ModNegExp", "Mean", "Friedman", "ModHugershoff". "SLD" refers to Simple
+#' Linear Detrending
 #' @param dc_nyrs a number giving the rigidity of the smoothing spline, defaults
 #' to 0.67 of series length if nyrs is NULL (see dplR R package).
 #' @param dc_f a number between 0 and 1 giving the frequency response or wavelength
@@ -534,10 +538,9 @@ if (fixed_width != 0){
   # Make sure the selected method is appropriate
   if (!is.null(dc_method)){
 
-    if (!(dc_method %in% c("Spline", "ModNegExp", "Mean", "Friedman", "ModHugershoff"))){
+    if (!(dc_method %in% c("Spline", "ModNegExp", "Mean", "Friedman", "ModHugershoff", "SLD"))){
 
-      stop(paste0('dc_method should be one of "Spline", "ModNegExp", "Mean", "Friedman", "ModHugershoff",
-         but instead it is:',dc_method))
+      stop(paste0('dc_method should be one of SLD, Spline, ModNegExp, Mean, Friedman, ModHugershoff, but instead it is:',dc_method))
 
     }
   }
@@ -794,9 +797,20 @@ if (fixed_width != 0){
 
         if (!is.null(dc_method)){
 
-          x <- dplR::detrend(data.frame(x), method = dc_method, nyrs = dc_nyrs, f = dc_f,
-                             pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
-                             span = dc_span, bass = dc_bass,  difference = dc_difference)
+          if (dc_method == "SLD"){
+
+            tmp_model <- lm(x ~ seq(1:length(x)))
+            tmp_pred <- predict(tmp_model)
+            tmp_res <- x - tmp_pred
+
+            x <- data.frame(x = tmp_res/sd(tmp_res))
+
+          } else {
+
+            x <- dplR::detrend(data.frame(x), method = dc_method, nyrs = dc_nyrs, f = dc_f,
+                               pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
+                               span = dc_span, bass = dc_bass,  difference = dc_difference)}
+
 
         } else {
 
@@ -973,9 +987,19 @@ if (fixed_width != 0){
 
       if (!is.null(dc_method)){
 
-        x <- dplR::detrend(data.frame(x), method = dc_method, nyrs = dc_nyrs, f = dc_f,
-                           pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
-                           span = dc_span, bass = dc_bass,  difference = dc_difference)
+        if (dc_method == "SLD"){
+
+          tmp_model <- lm(x ~ seq(1:length(x)))
+          tmp_pred <- predict(tmp_model)
+          tmp_res <- x - tmp_pred
+
+          x <- data.frame(x = tmp_res/sd(tmp_res))
+
+        } else {
+
+          x <- dplR::detrend(data.frame(x), method = dc_method, nyrs = dc_nyrs, f = dc_f,
+                             pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
+                             span = dc_span, bass = dc_bass,  difference = dc_difference)}
 
       } else {
 
@@ -1196,9 +1220,19 @@ if (fixed_width != 0){
 
        if (!is.null(dc_method)){
 
-         x <- dplR::detrend(data.frame(x), method = dc_method, nyrs = dc_nyrs, f = dc_f,
-                            pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
-                            span = dc_span, bass = dc_bass,  difference = dc_difference)
+         if (dc_method == "SLD"){
+
+           tmp_model <- lm(x ~ seq(1:length(x)))
+           tmp_pred <- predict(tmp_model)
+           tmp_res <- x - tmp_pred
+
+           x <- data.frame(x = tmp_res/sd(tmp_res))
+
+         } else {
+
+           x <- dplR::detrend(data.frame(x), method = dc_method, nyrs = dc_nyrs, f = dc_f,
+                              pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
+                              span = dc_span, bass = dc_bass,  difference = dc_difference)}
 
        } else {
 
@@ -1417,9 +1451,10 @@ if (fixed_width != 0){
   # The position of stored calculation is informative later used for
   # indiciating optimal values.
 
-    if (upper_limit != lower_limit){
-      pb <- txtProgressBar(min = 0, max = (upper_limit - lower_limit), style = 3)
-    }
+  if (upper_limit != lower_limit){
+
+         pb <- txtProgressBar(min = 0, max = (upper_limit - lower_limit), style = 3)
+  }
 
   b = 0
 
@@ -1456,9 +1491,19 @@ if (fixed_width != 0){
 
       if (!is.null(dc_method)){
 
-        x <- dplR::detrend(data.frame(x), method = dc_method, nyrs = dc_nyrs, f = dc_f,
-                           pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
-                           span = dc_span, bass = dc_bass,  difference = dc_difference)
+        if (dc_method == "SLD"){
+
+          tmp_model <- lm(x ~ seq(1:length(x)))
+          tmp_pred <- predict(tmp_model)
+          tmp_res <- x - tmp_pred
+
+          x <- data.frame(x = tmp_res/sd(tmp_res))
+
+        } else {
+
+          x <- dplR::detrend(data.frame(x), method = dc_method, nyrs = dc_nyrs, f = dc_f,
+                             pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
+                             span = dc_span, bass = dc_bass,  difference = dc_difference)}
 
       } else {
 
@@ -1624,9 +1669,19 @@ if (fixed_width != 0){
 
         if (!is.null(dc_method)){
 
-          x <- dplR::detrend(data.frame(x), method = dc_method, nyrs = dc_nyrs, f = dc_f,
-                             pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
-                             span = dc_span, bass = dc_bass,  difference = dc_difference)
+          if (dc_method == "SLD"){
+
+            tmp_model <- lm(x ~ seq(1:length(x)))
+            tmp_pred <- predict(tmp_model)
+            tmp_res <- x - tmp_pred
+
+            x <- data.frame(x = tmp_res/sd(tmp_res))
+
+          } else {
+
+            x <- dplR::detrend(data.frame(x), method = dc_method, nyrs = dc_nyrs, f = dc_f,
+                               pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
+                               span = dc_span, bass = dc_bass,  difference = dc_difference)}
 
         } else {
 
@@ -1843,9 +1898,19 @@ if (fixed_width != 0){
 
         if (!is.null(dc_method)){
 
-          x <- dplR::detrend(data.frame(x), method = dc_method, nyrs = dc_nyrs, f = dc_f,
-                             pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
-                             span = dc_span, bass = dc_bass,  difference = dc_difference)
+          if (dc_method == "SLD"){
+
+            tmp_model <- lm(x ~ seq(1:length(x)))
+            tmp_pred <- predict(tmp_model)
+            tmp_res <- x - tmp_pred
+
+            x <- data.frame(x = tmp_res/sd(tmp_res))
+
+          } else {
+
+            x <- dplR::detrend(data.frame(x), method = dc_method, nyrs = dc_nyrs, f = dc_f,
+                               pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
+                               span = dc_span, bass = dc_bass,  difference = dc_difference)}
 
         } else {
 
@@ -2160,9 +2225,22 @@ if (fixed_width != 0){
 
     if (!is.null(dc_method)){
 
-      dataf <- dplR::detrend(dataf, method = dc_method, nyrs = dc_nyrs, f = dc_f,
-                             pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
-                             span = dc_span, bass = dc_bass,  difference = dc_difference)
+      if (dc_method == "SLD"){
+
+        dataf <- as.numeric(dataf[,1])
+        tmp_model <- lm(dataf ~ seq(1:length(dataf)))
+        tmp_pred <- predict(tmp_model)
+        tmp_res <- dataf - tmp_pred
+
+        dataf <- data.frame(tmp_res/sd(tmp_res))
+
+      } else {
+
+        dataf <- dplR::detrend(dataf, method = dc_method, nyrs = dc_nyrs, f = dc_f,
+                               pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
+                               span = dc_span, bass = dc_bass,  difference = dc_difference)
+
+      }
 
     }
 
@@ -2194,9 +2272,22 @@ if (fixed_width != 0){
 
   if (!is.null(dc_method)){
 
-    dataf_full_original <- dplR::detrend(dataf_full_original, method = dc_method, nyrs = dc_nyrs, f = dc_f,
-                                         pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
-                                         span = dc_span, bass = dc_bass,  difference = dc_difference)
+    if (dc_method == "SLD"){
+
+      dataf_full_original <- as.numeric(dataf_full_original[,1])
+      tmp_model <- lm(dataf_full_original ~ seq(1:length(dataf_full_original)))
+      tmp_pred <- predict(tmp_model)
+      tmp_res <- dataf_full_original - tmp_pred
+
+      dataf_full_original <- data.frame(tmp_res/sd(tmp_res))
+
+    } else {
+
+      dataf_full_original <- dplR::detrend(dataf_full_original, method = dc_method, nyrs = dc_nyrs, f = dc_f,
+                                           pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
+                                           span = dc_span, bass = dc_bass,  difference = dc_difference)
+
+    }
 
   }
 
@@ -2277,9 +2368,22 @@ if (fixed_width != 0){
 
       if (!is.null(dc_method)){
 
-        dataf <- dplR::detrend(dataf, method = dc_method, nyrs = dc_nyrs, f = dc_f,
-                               pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
-                               span = dc_span, bass = dc_bass,  difference = dc_difference)
+        if (dc_method == "SLD"){
+
+          dataf <- as.numeric(dataf[,1])
+          tmp_model <- lm(dataf ~ seq(1:length(dataf)))
+          tmp_pred <- predict(tmp_model)
+          tmp_res <- dataf - tmp_pred
+
+          dataf <- data.frame(tmp_res/sd(tmp_res))
+
+        } else {
+
+          dataf <- dplR::detrend(dataf, method = dc_method, nyrs = dc_nyrs, f = dc_f,
+                                 pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
+                                 span = dc_span, bass = dc_bass,  difference = dc_difference)
+
+        }
 
       }
 
@@ -2307,9 +2411,22 @@ if (fixed_width != 0){
 
     if (!is.null(dc_method)){
 
-      dataf_full_original <- dplR::detrend(dataf_full_original, method = dc_method, nyrs = dc_nyrs, f = dc_f,
-                                           pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
-                                           span = dc_span, bass = dc_bass,  difference = dc_difference)
+      if (dc_method == "SLD"){
+
+        dataf_full_original <- as.numeric(dataf_full_original[,1])
+        tmp_model <- lm(dataf_full_original ~ seq(1:length(dataf_full_original)))
+        tmp_pred <- predict(tmp_model)
+        tmp_res <- dataf_full_original - tmp_pred
+
+        dataf_full_original <- data.frame(tmp_res/sd(tmp_res))
+
+      } else {
+
+        dataf_full_original <- dplR::detrend(dataf_full_original, method = dc_method, nyrs = dc_nyrs, f = dc_f,
+                                             pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
+                                             span = dc_span, bass = dc_bass,  difference = dc_difference)
+
+      }
 
     }
 
@@ -2399,9 +2516,22 @@ if (fixed_width != 0){
 
     if (!is.null(dc_method)){
 
-      dataf <- dplR::detrend(dataf, method = dc_method, nyrs = dc_nyrs, f = dc_f,
-                             pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
-                             span = dc_span, bass = dc_bass,  difference = dc_difference)
+      if (dc_method == "SLD"){
+
+        dataf <- as.numeric(dataf[,1])
+        tmp_model <- lm(dataf ~ seq(1:length(dataf)))
+        tmp_pred <- predict(tmp_model)
+        tmp_res <- dataf - tmp_pred
+
+        dataf <- data.frame(tmp_res/sd(tmp_res))
+
+      } else {
+
+        dataf <- dplR::detrend(dataf, method = dc_method, nyrs = dc_nyrs, f = dc_f,
+                               pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
+                               span = dc_span, bass = dc_bass,  difference = dc_difference)
+
+      }
 
     }
 
@@ -2432,9 +2562,20 @@ if (fixed_width != 0){
 
     if (!is.null(dc_method)){
 
+      dataf_full_original <- as.numeric(dataf_full_original[,1])
+      tmp_model <- lm(dataf_full_original ~ seq(1:length(dataf_full_original)))
+      tmp_pred <- predict(tmp_model)
+      tmp_res <- dataf_full_original - tmp_pred
+
+      dataf_full_original <- data.frame(tmp_res/sd(tmp_res))
+
+    } else {
+
       dataf_full_original <- dplR::detrend(dataf_full_original, method = dc_method, nyrs = dc_nyrs, f = dc_f,
                                            pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
                                            span = dc_span, bass = dc_bass,  difference = dc_difference)
+
+    }
 
     }
 
@@ -2990,5 +3131,5 @@ for (m in 1:length(empty_list_datasets)){
     class(final_list) <- 'dmrs'
 
   return(final_list)
-  }
+
 }

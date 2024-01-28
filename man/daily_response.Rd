@@ -196,7 +196,7 @@ previous growing season days. This argument overwrites the calculation
 limits defined by lower_limit and upper_limit arguments.}
 
 \item{dc_method}{a character string to determine the method to detrend climate
-(environmental) data.  Possible values are "none" (default), "SLD","Spline",
+(environmental) data.  Possible values are "none" (default), "SLD", "Spline",
 "ModNegExp", "Mean", "Friedman", "ModHugershoff". "SLD" refers to Simple
 Linear Detrending}
 
