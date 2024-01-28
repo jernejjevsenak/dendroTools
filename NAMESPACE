@@ -1,7 +1,6 @@
 export(daily_response)
 export(plot_extreme)
 export(plot_heatmap)
-export(plot_specific)
 export(critical_r)
 export(count_ones)
 export(years_to_rownames)

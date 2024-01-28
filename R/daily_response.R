@@ -82,10 +82,8 @@
 #' years will not be shuffled. If the argument is set to "randomized", years will be shuffled.
 #' @param subset_years a subset of years to be analyzed. Should be given in the form of
 #' subset_years = c(1980, 2005)
-#' @param plot_specific_window integer representing window width to be displayed
-#' for plot_specific
-#' @param ylimits limit of the y axes for plot_extreme and plot_specific. It should be
-#' given in the form of: ylimits = c(0,1)
+#' @param ylimits limit of the y axes for plot_extreme. It should be given in
+#' the form of: ylimits = c(0,1)
 #' @param seed optional seed argument for reproducible results
 #' @param tidy_env_data if set to TRUE, env_data should be inserted as a data frame with three
 #' columns: "Year", "DOY", "Precipitation/Temperature/etc."
@@ -174,7 +172,6 @@
 #'  \item $cross_validation - a data frame with cross validation results
 #'  \item $plot_heatmap - ggplot2 object: a heatmap of calculated metrics
 #'  \item $plot_extreme - ggplot2 object: line plot of a row with the highest value in a matrix of calculated metrics
-#'  \item $plot_specific  - ggplot2 object: line plot of a row with a selected window width in a matrix of calculated metrics
 #'  \item $PCA_output - princomp object: the result output of the PCA analysis
 #'  \item $type - the character string describing type of analysis: daily or monthly
 #'  \item $reference_window - character string, which reference window was used for calculations
@@ -215,7 +212,6 @@
 #'     env_data = LJ_daily_temperatures, cor_method = "kendall",
 #'     method = "cor", lower_limit = 21, upper_limit = 90,
 #'     row_names_subset = TRUE, previous_year = TRUE,
-#'     plot_specific_window = 60,
 #'     remove_insignificant = TRUE, alpha = 0.05,
 #'     subset_years = c(1940, 1980),
 #'     aggregate_function = 'sum', skip_window_length = 2,
@@ -226,7 +222,7 @@
 #'     method = "cor", lower_limit = 21, upper_limit = 60,
 #'     row_names_subset = TRUE, previous_year = TRUE,
 #'     remove_insignificant = TRUE, alpha = 0.05,
-#'     plot_specific_window = 60, subset_years = c(1981, 2010),
+#'     subset_years = c(1981, 2010),
 #'     aggregate_function = 'sum')
 #'
 #' plot(example_MVA_early, type = 1)
@@ -301,7 +297,7 @@ daily_response <- function(response, env_data, method = "cor",
                            N_components = 2, aggregate_function = 'mean',
                            temporal_stability_check = "sequential", k = 2,
                            k_running_window = 30, cross_validation_type = "blocked",
-                           subset_years = NULL, plot_specific_window = NULL,
+                           subset_years = NULL,
                            ylimits = NULL, seed = NULL, tidy_env_data = FALSE,
                            reference_window = 'start',  boot = FALSE, boot_n = 1000,
                            boot_ci_type = "norm", boot_conf_int = 0.95,
@@ -2169,7 +2165,6 @@ daily_response <- function(response, env_data, method = "cor",
                        cross_validation = NA,
                        plot_heatmap = NA,
                        plot_extreme = NA,
-                       plot_specific = NA,
                        PCA_output = NA,
                        type = "daily",
                        reference_window = reference_window,
@@ -3174,25 +3169,6 @@ for (m in 1:length(empty_list_datasets)){
     plot_heatmapA <- plot_heatmap(final_list, reference_window = reference_window, type = "daily")
     plot_extremeA <- plot_extreme(final_list, ylimits = ylimits, reference_window = reference_window, type = "daily")
 
-    width_sequence = seq(lower_limit, upper_limit)
-
-    if (is.null(plot_specific_window)){
-      (plot_specificA <- "plot_specific_window is not available. No plot_specific is made!")
-    } else if (fixed_width != 0){
-
-      if (fixed_width != plot_specific_window){
-        warning(paste0("plot_specific_window and fixed_width differ!",
-                       " fixed_wdith will be used to generate plot_specific!"))
-      }
-
-      plot_specific_window = fixed_width
-      plot_specificA <- plot_specific(final_list, window_width = plot_specific_window, ylimits = ylimits,
-                                      reference_window = reference_window)
-    } else if (plot_specific_window %in% width_sequence){
-      plot_specificA <- plot_specific(final_list, window_width = plot_specific_window, ylimits = ylimits,
-                                      reference_window = reference_window)
-    } else (plot_specificA <- "Selected plot_specific_window is not available. No plot_specific is made!")
-
     # Here, for the sake of simplicity, we create final list again
     if (method == "lm" | method == "brnn") {
       final_list <- list(calculations = temporal_matrix, method = method,
@@ -3203,7 +3179,6 @@ for (m in 1:length(empty_list_datasets)){
                          cross_validation = cross_validation,
                          plot_heatmap = plot_heatmapA,
                          plot_extreme = plot_extremeA,
-                         plot_specific = plot_specificA,
                          PCA_output = PCA_result,
                          type = "daily",
                          reference_window = reference_window,
@@ -3222,7 +3197,6 @@ for (m in 1:length(empty_list_datasets)){
                          cross_validation = cross_validation,
                          plot_heatmap = plot_heatmapA,
                          plot_extreme = plot_extremeA,
-                         plot_specific = plot_specificA,
                          PCA_output = PCA_result,
                          type = "daily",
                          reference_window = reference_window,

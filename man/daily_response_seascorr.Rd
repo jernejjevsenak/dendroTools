@@ -27,7 +27,6 @@ daily_response_seascorr(
   k = 2,
   k_running_window = 30,
   subset_years = NULL,
-  plot_specific_window = NULL,
   ylimits = NULL,
   seed = NULL,
   tidy_env_data_primary = FALSE,
@@ -145,11 +144,8 @@ Applicable only if temporal_stability argument is set to running window.}
 \item{subset_years}{a subset of years to be analyzed. Should be given in the form of
 subset_years = c(1980, 2005)}
 
-\item{plot_specific_window}{integer representing window width to be displayed
-for plot_specific}
-
-\item{ylimits}{limit of the y axes for plot_extreme and plot_specific. It should be
-given in the form of: ylimits = c(0,1)}
+\item{ylimits}{limit of the y axes for plot_extreme It should be given in the
+form of: ylimits = c(0,1)}
 
 \item{seed}{optional seed argument for reproducible results}
 
@@ -261,7 +257,6 @@ a list with 15 elements:
  \item $cross_validation - not available for partial correlations
  \item $plot_heatmap - ggplot2 object: a heatmap of calculated metrics
  \item $plot_extreme - ggplot2 object: line plot of a row with the highest value in a matrix of calculated metrics
- \item $plot_specific -  ggplot2 object: line plot of a row with a selected window width in a matrix of calculated metrics
  \item $PCA_output - princomp object: the result output of the PCA analysis
  \item $type - the character string describing type of analysis: daily or monthly
  \item $reference_window - character string, which reference window was used for calculations

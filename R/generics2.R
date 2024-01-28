@@ -11,13 +11,9 @@ if (type == 1){
 
   plot_out <- x[["plot_heatmap"]]
 
-} else if (type == 3){
-
-  plot_out <- x[["plot_specific"]]
-
 } else {
 
-  stop(paste0("type should be on of 1, 2 or 3, but instead it is ", type, "!"))
+  stop(paste0("type should be 1 or 2, but instead it is ", type, "!"))
 }
 
   return(plot_out)

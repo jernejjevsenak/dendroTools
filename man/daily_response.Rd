@@ -30,7 +30,6 @@ daily_response(
   k_running_window = 30,
   cross_validation_type = "blocked",
   subset_years = NULL,
-  plot_specific_window = NULL,
   ylimits = NULL,
   seed = NULL,
   tidy_env_data = FALSE,
@@ -151,11 +150,8 @@ years will not be shuffled. If the argument is set to "randomized", years will b
 \item{subset_years}{a subset of years to be analyzed. Should be given in the form of
 subset_years = c(1980, 2005)}
 
-\item{plot_specific_window}{integer representing window width to be displayed
-for plot_specific}
-
-\item{ylimits}{limit of the y axes for plot_extreme and plot_specific. It should be
-given in the form of: ylimits = c(0,1)}
+\item{ylimits}{limit of the y axes for plot_extreme. It should be given in
+the form of: ylimits = c(0,1)}
 
 \item{seed}{optional seed argument for reproducible results}
 
@@ -264,7 +260,6 @@ a list with 17 elements:
  \item $cross_validation - a data frame with cross validation results
  \item $plot_heatmap - ggplot2 object: a heatmap of calculated metrics
  \item $plot_extreme - ggplot2 object: line plot of a row with the highest value in a matrix of calculated metrics
- \item $plot_specific  - ggplot2 object: line plot of a row with a selected window width in a matrix of calculated metrics
  \item $PCA_output - princomp object: the result output of the PCA analysis
  \item $type - the character string describing type of analysis: daily or monthly
  \item $reference_window - character string, which reference window was used for calculations
@@ -316,7 +311,6 @@ example_MVA_early <- daily_response(response = data_MVA,
     env_data = LJ_daily_temperatures, cor_method = "kendall",
     method = "cor", lower_limit = 21, upper_limit = 90,
     row_names_subset = TRUE, previous_year = TRUE,
-    plot_specific_window = 60,
     remove_insignificant = TRUE, alpha = 0.05,
     subset_years = c(1940, 1980),
     aggregate_function = 'sum', skip_window_length = 2,
@@ -327,7 +321,7 @@ example_MVA_late <- daily_response(response = data_MVA,
     method = "cor", lower_limit = 21, upper_limit = 60,
     row_names_subset = TRUE, previous_year = TRUE,
     remove_insignificant = TRUE, alpha = 0.05,
-    plot_specific_window = 60, subset_years = c(1981, 2010),
+    subset_years = c(1981, 2010),
     aggregate_function = 'sum')
 
 plot(example_MVA_early, type = 1)
