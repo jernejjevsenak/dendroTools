@@ -400,7 +400,7 @@ summary.dmrs <- function(object, ...){
                                         "optimal_time_window",
                                         "optimal_time_window_length"),
 
-                           Value = c(result_daily_response[[14]],
+                           Value = c(result_daily_response$type,
                                      method_string,
                                      y_lab,
                                      result_daily_response[[4]],

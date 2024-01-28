@@ -48,21 +48,6 @@
 #' @param row_names_subset if set to TRUE, row.names are used to subset
 #' env_data and response data frames. Only years from both data frames are
 #' kept.
-#' @param PCA_transformation if set to TRUE, all variables in the response
-#' data frame will be transformed using PCA transformation.
-#' @param log_preprocess if set to TRUE, variables will be transformed with
-#' logarithmic transformation before used in PCA
-#' @param components_selection character string specifying how to select the Principal
-#' Components used as predictors.
-#' There are three options: "automatic", "manual" and "plot_selection". If
-#' argument is set to automatic, all scores with eigenvalues above 1 will be
-#' selected. This threshold could be changed by changing the
-#' eigenvalues_threshold argument. If parameter is set to "manual", user should
-#' set the number of components with N_components argument. If components
-#' selection is set to "plot_selection", Scree plot will be shown and a user must
-#' manually enter the number of components to be used as predictors.
-#' @param eigenvalues_threshold threshold for automatic selection of Principal Components
-#' @param N_components number of Principal Components used as predictors
 #' @param aggregate_function character string specifying how the daily data
 #' should be aggregated. The default is 'mean', the other options are 'median',
 #' 'sum', 'min' and 'max'
@@ -115,24 +100,8 @@
 #' previous growing season days. This argument overwrites the calculation
 #' limits defined by lower_limit and upper_limit arguments.
 #' @param dc_method a character string to determine the method to detrend climate
-#' (environmental) data.  Possible values are "none" (default), "SLD", "Spline",
-#' "ModNegExp", "Mean", "Friedman", "ModHugershoff". "SLD" refers to Simple
+#' data.  Possible values are "none" (default) and "SLD" which refers to Simple
 #' Linear Detrending
-#' @param dc_nyrs a number giving the rigidity of the smoothing spline, defaults
-#' to 0.67 of series length if nyrs is NULL (see dplR R package).
-#' @param dc_f a number between 0 and 1 giving the frequency response or wavelength
-#' cutoff. Defaults to 0.5 (see dplR R package).
-#' @param dc_pos.slope a logical flag. Will allow for a positive slope to be used
-#' in method "ModNegExp" and "ModHugershoff". If FALSE the line will be horizontal
-#' (see dplR R package).
-#' @param dc_constrain.nls a character string which controls the constraints of
-#' the "ModNegExp" model and the "ModHugershoff"  (see dplR R package).
-#' @param dc_span a numeric value controlling method "Friedman", or "cv" (default)
-#' for automatic choice by cross-validation (see dplR R package).
-#' @param dc_bass a numeric value controlling the smoothness of the fitted curve
-#' in method "Friedman" (see dplR R package).
-#' @param dc_difference	a logical flag. Compute residuals by subtraction if TRUE,
-#' otherwise use division (see dplR R package).
 #' @param cor_na_use an optional character string giving a method for computing
 #' covariances in the presence of missing values for correlation coefficients.
 #' This must be (an abbreviation of) one of the strings "everything" (default),
@@ -172,7 +141,6 @@
 #'  \item $cross_validation - a data frame with cross validation results
 #'  \item $plot_heatmap - ggplot2 object: a heatmap of calculated metrics
 #'  \item $plot_extreme - ggplot2 object: line plot of a row with the highest value in a matrix of calculated metrics
-#'  \item $PCA_output - princomp object: the result output of the PCA analysis
 #'  \item $type - the character string describing type of analysis: daily or monthly
 #'  \item $reference_window - character string, which reference window was used for calculations
 #'  \item $boot_lower - matrix with lower limit of confidence intervals of bootstrap calculations
@@ -230,19 +198,8 @@
 #' plot(example_MVA_early, type = 2)
 #' plot(example_MVA_late, type = 2)
 #'
-#' # 3 Example PCA
-#' example_PCA <- daily_response(response = example_proxies_individual,
-#'     env_data = LJ_daily_temperatures, method = "lm",
-#'     lower_limit = 21, upper_limit = 180,
-#'     row_names_subset = TRUE, remove_insignificant = TRUE,
-#'     alpha = 0.01, PCA_transformation = TRUE,
-#'     components_selection = "manual", N_components = 2)
 #'
-#' summary(example_PCA$PCA_output)
-#' summary(example_PCA)
-#' plot(example_PCA, type = 2)
-#'
-#' # 4 Example negative correlations
+#' # 3 Example negative correlations
 #' example_neg_cor <- daily_response(response = data_TRW_1,
 #'     env_data = LJ_daily_temperatures, previous_year = TRUE,
 #'     method = "cor", lower_limit = 21, upper_limit = 90,
@@ -254,7 +211,7 @@
 #' plot(example_neg_cor, type = 2)
 #' example_neg_cor$temporal_stability
 #'
-#' # 5 Example of multiproxy analysis
+#' # 4 Example of multiproxy analysis
 #' summary(example_proxies_1)
 #' cor(example_proxies_1)
 #'
@@ -267,7 +224,7 @@
 #'
 #' plot(example_multiproxy, type = 1)
 #'
-#' # 6 Example to test the temporal stability
+#' # 5 Example to test the temporal stability
 #' example_MVA_ts <- daily_response(response = data_MVA,
 #'    env_data = LJ_daily_temperatures, method = "brnn",
 #'    lower_limit = 100, metric = "adj.r.squared", upper_limit = 180,
@@ -276,7 +233,7 @@
 #'
 #' example_MVA_ts$temporal_stability
 #'
-#' # 7 Example with nonlinear brnn estimation
+#' # 6 Example with nonlinear brnn estimation
 #' example_brnn <- daily_response(response = data_MVA,
 #'    env_data = LJ_daily_temperatures, method = "brnn", boot = FALSE,
 #'    lower_limit = 100, metric = "adj.r.squared", upper_limit = 101,
@@ -291,10 +248,7 @@ daily_response <- function(response, env_data, method = "cor",
                            previous_year = FALSE, neurons = 1,
                            brnn_smooth = TRUE, remove_insignificant = FALSE,
                            alpha = .05, row_names_subset = FALSE,
-                           PCA_transformation = FALSE, log_preprocess = TRUE,
-                           components_selection = 'automatic',
-                           eigenvalues_threshold = 1,
-                           N_components = 2, aggregate_function = 'mean',
+                           aggregate_function = 'mean',
                            temporal_stability_check = "sequential", k = 2,
                            k_running_window = 30, cross_validation_type = "blocked",
                            subset_years = NULL,
@@ -305,13 +259,6 @@ daily_response <- function(response, env_data, method = "cor",
                                                    previous_year == TRUE),
                                                    c(-1, 366), c(1, 366)),
                            dc_method = NULL,
-                           dc_nyrs = NULL,
-                           dc_f = 0.5,
-                           dc_pos.slope = FALSE,
-                           dc_constrain.nls = c("never", "when.fail", "always"),
-                           dc_span = "cv",
-                           dc_bass = 0,
-                           dc_difference = FALSE,
                            cor_na_use = "everything",
                            skip_window_length = 1,
                            skip_window_position = 1
@@ -540,10 +487,9 @@ daily_response <- function(response, env_data, method = "cor",
   # Make sure the selected method is appropriate
   if (!is.null(dc_method)){
 
-    if (!(dc_method %in% c("Spline", "ModNegExp", "Mean", "Friedman", "ModHugershoff", "SLD"))){
+    if (!(dc_method %in% c("SLD"))){
 
-    stop(paste0('dc_method should be one of "Spline", "ModNegExp", "Mean", "Friedman", "ModHugershoff", "SLD",
-         but instead it is:',dc_method))
+    stop(paste0('dc_method should be SLD but instead it is:',dc_method))
 
     }
   }
@@ -627,48 +573,6 @@ daily_response <- function(response, env_data, method = "cor",
                 "At least three characters needed!"))
   }
 
-
-  # If PCA_transformation = TRUE, PCA is performed
-  if (PCA_transformation == TRUE) {
-
-    # Logarithmic transformation before PCA
-    if (log_preprocess == TRUE) {
-
-      if (sum(response <= 0) > 1){
-        stop("your response data contains negative observations. Please set the argument log_preprocess to FALSE")
-      }
-
-      response <- data.frame(log(response))
-    }
-
-    PCA_result <- princomp(response, cor = TRUE)
-
-    if (components_selection == 'automatic'){
-      subset_vector <- PCA_result$sdev > eigenvalues_threshold
-      response <- as.data.frame(PCA_result$scores[, subset_vector])
-    }
-
-    if (components_selection == 'manual'){
-      response <- as.data.frame(PCA_result$scores[, 1:N_components])
-    }
-
-    if (components_selection == 'plot_selection'){
-      plot(PCA_result, type = 'l')
-
-      fun <- function(){
-        N_PC <- readline("What number of PC scores should be used as predictors? ")
-        return(N_PC)
-      }
-
-      N_PC <- fun()
-      response <- as.data.frame(PCA_result$scores[, 1:as.numeric(N_PC)])
-    }
-
-    number_PC <- ncol(response)
-    df_names <-  paste( "PC_", seq(1:number_PC), sep = "")
-    colnames(response) <- df_names
-
-  } else (PCA_result <- "No PCA result avalialbe !")
 
   # Subset of years
   if (!is.null(subset_years)){
@@ -828,11 +732,7 @@ daily_response <- function(response, env_data, method = "cor",
 
             x <- data.frame(x = tmp_res/sd(tmp_res))
 
-          } else {
-
-            x <- dplR::detrend(data.frame(x), method = dc_method, nyrs = dc_nyrs, f = dc_f,
-                               pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
-                               span = dc_span, bass = dc_bass,  difference = dc_difference)}
+          }
 
         } else {
 
@@ -1034,11 +934,7 @@ daily_response <- function(response, env_data, method = "cor",
 
           x <- data.frame(x = tmp_res/sd(tmp_res))
 
-        } else {
-
-          x <- dplR::detrend(data.frame(x), method = dc_method, nyrs = dc_nyrs, f = dc_f,
-                             pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
-                             span = dc_span, bass = dc_bass,  difference = dc_difference)}
+        }
 
       } else {
 
@@ -1283,11 +1179,7 @@ daily_response <- function(response, env_data, method = "cor",
 
            x <- data.frame(x = tmp_res/sd(tmp_res))
 
-         } else {
-
-           x <- dplR::detrend(data.frame(x), method = dc_method, nyrs = dc_nyrs, f = dc_f,
-                              pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
-                              span = dc_span, bass = dc_bass,  difference = dc_difference)}
+         }
 
        } else {
 
@@ -1539,11 +1431,7 @@ daily_response <- function(response, env_data, method = "cor",
 
         x <- data.frame(x = tmp_res/sd(tmp_res))
 
-        } else {
-
-          x <- dplR::detrend(data.frame(x), method = dc_method, nyrs = dc_nyrs, f = dc_f,
-                             pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
-                             span = dc_span, bass = dc_bass,  difference = dc_difference)}
+        }
 
       } else {
 
@@ -1713,11 +1601,7 @@ daily_response <- function(response, env_data, method = "cor",
 
             x <- data.frame(x = tmp_res/sd(tmp_res))
 
-          } else {
-
-            x <- dplR::detrend(data.frame(x), method = dc_method, nyrs = dc_nyrs, f = dc_f,
-                               pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
-                               span = dc_span, bass = dc_bass,  difference = dc_difference)}
+          }
 
         } else {
 
@@ -1931,11 +1815,7 @@ daily_response <- function(response, env_data, method = "cor",
 
             x <- data.frame(x = tmp_res/sd(tmp_res))
 
-          } else {
-
-            x <- dplR::detrend(data.frame(x), method = dc_method, nyrs = dc_nyrs, f = dc_f,
-                               pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
-                               span = dc_span, bass = dc_bass,  difference = dc_difference)}
+          }
 
         } else {
 
@@ -2165,7 +2045,6 @@ daily_response <- function(response, env_data, method = "cor",
                        cross_validation = NA,
                        plot_heatmap = NA,
                        plot_extreme = NA,
-                       PCA_output = NA,
                        type = "daily",
                        reference_window = reference_window,
                        boot_lower = temporal_matrix_lower,
@@ -2273,13 +2152,7 @@ daily_response <- function(response, env_data, method = "cor",
 
         dataf <- data.frame(tmp_res/sd(tmp_res))
 
-      } else {
-
-        dataf <- dplR::detrend(dataf, method = dc_method, nyrs = dc_nyrs, f = dc_f,
-                               pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
-                               span = dc_span, bass = dc_bass,  difference = dc_difference)
-
-        }
+      }
 
     }
 
@@ -2331,12 +2204,6 @@ daily_response <- function(response, env_data, method = "cor",
       tmp_res <- dataf_full_original - tmp_pred
 
       dataf_full_original <- data.frame(tmp_res/sd(tmp_res))
-
-    } else {
-
-      dataf_full_original <- dplR::detrend(dataf_full_original, method = dc_method, nyrs = dc_nyrs, f = dc_f,
-                                           pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
-                                           span = dc_span, bass = dc_bass,  difference = dc_difference)
 
     }
 
@@ -2437,12 +2304,6 @@ daily_response <- function(response, env_data, method = "cor",
 
           dataf <- data.frame(tmp_res/sd(tmp_res))
 
-        } else {
-
-          dataf <- dplR::detrend(dataf, method = dc_method, nyrs = dc_nyrs, f = dc_f,
-                                 pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
-                                 span = dc_span, bass = dc_bass,  difference = dc_difference)
-
         }
 
       }
@@ -2488,14 +2349,7 @@ daily_response <- function(response, env_data, method = "cor",
 
         dataf_full_original <- data.frame(tmp_res/sd(tmp_res))
 
-      } else {
-
-        dataf_full_original <- dplR::detrend(dataf_full_original, method = dc_method, nyrs = dc_nyrs, f = dc_f,
-                                             pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
-                                             span = dc_span, bass = dc_bass,  difference = dc_difference)
-
       }
-
 
     }
 
@@ -2606,14 +2460,7 @@ daily_response <- function(response, env_data, method = "cor",
 
         dataf <- data.frame(tmp_res/sd(tmp_res))
 
-      } else {
-
-        dataf <- dplR::detrend(dataf, method = dc_method, nyrs = dc_nyrs, f = dc_f,
-                               pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
-                               span = dc_span, bass = dc_bass,  difference = dc_difference)
-
       }
-
 
     }
 
@@ -2664,12 +2511,6 @@ daily_response <- function(response, env_data, method = "cor",
         tmp_res <- dataf_full_original - tmp_pred
 
         dataf_full_original <- data.frame(tmp_res/sd(tmp_res))
-
-      } else {
-
-        dataf_full_original <- dplR::detrend(dataf_full_original, method = dc_method, nyrs = dc_nyrs, f = dc_f,
-                                             pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
-                                             span = dc_span, bass = dc_bass,  difference = dc_difference)
 
       }
 
@@ -3179,7 +3020,6 @@ for (m in 1:length(empty_list_datasets)){
                          cross_validation = cross_validation,
                          plot_heatmap = plot_heatmapA,
                          plot_extreme = plot_extremeA,
-                         PCA_output = PCA_result,
                          type = "daily",
                          reference_window = reference_window,
                          boot_lower = temporal_matrix_lower,
@@ -3197,7 +3037,6 @@ for (m in 1:length(empty_list_datasets)){
                          cross_validation = cross_validation,
                          plot_heatmap = plot_heatmapA,
                          plot_extreme = plot_extremeA,
-                         PCA_output = PCA_result,
                          type = "daily",
                          reference_window = reference_window,
                          boot_lower = temporal_matrix_lower,

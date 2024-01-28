@@ -192,40 +192,9 @@ example_multiproxy <- daily_response(response = example_proxies_1,
 plot(example_multiproxy, type = 2)
 ```
 
-# 5 Principal component analysis in combination with the *daily_response()*
 
-Principal Component Analysis (PCA) is typically used on tree ring data to reduce the full set of original tree ring chronologies to a more manageable set of transformed variables. These transformed variables, the set of principal component scores, are then used as predictors in climate reconstruction models. PCA is also used to amplify the common climate response at the regional scale within a group of tree-ring chronologies by concentrating the common signal in the components with the largest eigenvalues. 
 
-To use PCA regression within the *daily_response()*, set the *PCA_transformation* argument to TRUE. All variables in the *response* data frame are transformed using the PCA transformation. If the *log_preprocess* parameter is set to TRUE, the variables are transformed using a logarithmic transformation before being used in PCA. With the argument *components_selection* we specify how to select the PC scores, which will be used as predictors. There are three options: "automatic", "manual" and "plot_selection". If the argument is set to "automatic", all PC scores with eigenvalues above 1 will be selected. This threshold can be changed by changing the *eigenvalues_threshold* argument. If the argument is set to "manual", the user should specify the number of components with the *N_components* argument. If *components_selection* is set to "plot_selection", a scree plot is displayed and the user has to manually enter the number of components to use as predictors. The latter seems to me to be the most reasonable choice. 
-
-In our example, we use PCA for 10 individual Mean Vessel Area (MVA) chronologies (example_proxies_individual). For the climate data, we use the data from LJ_daily_temperatures. Component selection is set to "manual", *N_components* of the components to be used in the later analysis is set to 2. All window widths between 64 and 66 days are considered. It is important that the argument *row_names_subset* is set to TRUE. This argument automatically subsets both data frames (i.e. *env_data* and *response*) and only keeps matching years that are used for the calculations. To use this feature, the years must be specified as row names. All insignificant correlations are removed by setting the *remove_insignificant* argument to TRUE. The threshold for significance is controlled by the *alpha* argument.
-
-```{r, results = 'hide'}
-# Load the dendroTools R package
-library(dendroTools)
-
-# Load data
-data(example_proxies_individual)
-data(LJ_daily_temperatures)
-
-# Example PCA
-example_PCA <- daily_response(response = example_proxies_individual, 
-                              env_data = LJ_daily_temperatures, method = "lm", 
-                              lower_limit = 64, upper_limit = 66, metric = "adj.r.squared",
-                              row_names_subset = TRUE, remove_insignificant = TRUE,
-                              alpha = 0.001, PCA_transformation = TRUE,
-                              components_selection = "manual", N_components = 2)
-```
-```{r }
-# Get the summary statistics for the PCA
-summary(example_PCA$PCA_output)
-```
-```{r, fig.align='center', warning=FALSE, fig.width=10, fig.height=8, fig.cap=paste("Figure 8: The temporal pattern for the r-squared. The highest coefficients of determination were calculated for DOY around 90 with time span of two months."), message=FALSE, warning=FALSE, include=TRUE}
-
-plot(example_PCA, type = 2)
-```
-
-# 6 An example of climate reconstruction
+# 5 An example of climate reconstruction
 
 Reconstructions of past climatic conditions include reconstructions of past temperatures, precipitation, vegetation, water flows, sea surface temperatures, and other climatic or climate-related conditions. To reconstruct climate with the dendroTools, we first use *daily_response()* to find the optimal sequence of consecutive days that yields the highest metric, e.g. correlation coefficient. In this example, we use data_TRW and the daily temperatures of Kredarica ('KRE_daily_temperatures'). The temporal stability of the statistical relationship is afterwards analysed with the "progressive" method using 3 splits (*k = 3*). Progressive testing involves splitting the data into *k* splits, calculating the metric for the first split, and then incrementally adding 1 split at a time and calculating the selected metric. The *cross_validation_type* argument is set to "randomised" so that the years are reshuffled before the cross-validation test. 
 
@@ -272,7 +241,7 @@ plot(row.names(data_TRW), reconstruction$predictions, type = "l", xlab = "Year",
 
 To reconstruct climate using the nonlinear brnn model, use the argument method = "brnn" (see the examples in published paper in Dendrochronologia journal).
 
-# 7 The calculation of partial correlations with *daily_response_seascorr()* 
+# 6 The calculation of partial correlations with *daily_response_seascorr()* 
 
 A partial correlation coefﬁcient describes the strength of the linear relationship between two variables, holding constant a number of other variables. It is often used in dendroclimatological investigations to analyse the effect of temperature on a tree-ring parameter while at the same time controlling for the precipitation effect, or vice versa. Partial correlations in dendroTools can be calculated using *daily_response_seascorr()* and *monthly_response_seascorr()*. To analyse partial correlations, three data frames are needed: 1) a tree-ring proxy, 2) primary climate data and 3) secondary climate data for control. The tree-ring proxy must be organized as a data frame with one column representing proxy values, while years are indicated as row names. Primary climate data is assigned to the *env_data_primary* argument, while secondary climate data is assigned to *env_data_control*.
 

@@ -1,4 +1,6 @@
 # dendroTools 1.2.12
+* PCA option is removed from the daily_response and other similar functions
+* plot specific options is also removed
 * New climate detrending option is implemented, 'SLD', which stands for 'Simple Linear Detrending' and should be preferred
 * Two new arguments are implemented, 'skip_window_position' and 'skip_window_length' which allow for controlling the granularity of the analysis and can help in reducing computation time by focusing on a subset of the data
 

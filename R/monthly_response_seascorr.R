@@ -4,8 +4,8 @@
 #' tree-ring chronology and monthly environmental (usually climate) data.
 #' All calculated (partial) correlation coefficients are stored in a matrix.
 #' The location of stored correlation in the matrix is indicating a window
-#' width (row names) and a location in a
-#' matrix of monthly sequences of environmental data (column names).
+#' width (row names) and a location in a matrix of monthly sequences of
+#' environmental data (column names).
 #'
 #' @param response a data frame with tree-ring proxy variable and (optional)
 #' years as row names. Row.names should be matched with those from env_data_primary
@@ -52,21 +52,6 @@
 #' @param row_names_subset if set to TRUE, row.names are used to subset
 #' env_data_primary, env_data_control and response data frames. Only years from
 #' all three data frames are kept.
-#' @param PCA_transformation if set to TRUE, all variables in the response
-#' data frame will be transformed using PCA transformation.
-#' @param log_preprocess if set to TRUE, variables will be transformed with
-#' logarithmic transformation before used in PCA
-#' @param components_selection character string specifying how to select the Principal
-#' Components used as predictors.
-#' There are three options: "automatic", "manual" and "plot_selection". If
-#' argument is set to automatic, all scores with eigenvalues above 1 will be
-#' selected. This threshold could be changed by changing the
-#' eigenvalues_threshold argument. If parameter is set to "manual", user should
-#' set the number of components with N_components argument. If components
-#' selection is set to "plot_selection", Scree plot will be shown and a user must
-#' manually enter the number of components to be used as predictors.
-#' @param eigenvalues_threshold threshold for automatic selection of Principal Components
-#' @param N_components number of Principal Components used as predictors
 #' @param aggregate_function_env_data_primary character string specifying how the
 #' monthly data from env_data_primary should be aggregated. The default is 'mean',
 #' the two other options are 'median' and 'sum'
@@ -105,23 +90,8 @@
 #' previous growing season months. This argument overwrites the calculation
 #' limits defined by lower_limit and upper_limit arguments.
 #' @param dc_method a character string to determine the method to detrend climate
-#' (environmental) data.  Possible values are c("Spline", "ModNegExp", "Mean",
-#' "Friedman", "ModHugershoff"). Defaults to "none" (see dplR R package).
-#' @param dc_nyrs a number giving the rigidity of the smoothing spline, defaults
-#' to 0.67 of series length if nyrs is NULL (see dplR R package).
-#' @param dc_f a number between 0 and 1 giving the frequency response or wavelength
-#' cutoff. Defaults to 0.5 (see dplR R package).
-#' @param dc_pos.slope a logical flag. Will allow for a positive slope to be used
-#' in method "ModNegExp" and "ModHugershoff". If FALSE the line will be horizontal
-#' (see dplR R package).
-#' @param dc_constrain.nls a character string which controls the constraints of
-#' the "ModNegExp" model and the "ModHugershoff"  (see dplR R package).
-#' @param dc_span a numeric value controlling method "Friedman", or "cv" (default)
-#' for automatic choice by cross-validation (see dplR R package).
-#' @param dc_bass a numeric value controlling the smoothness of the fitted curve
-#' in method "Friedman" (see dplR R package).
-#' @param dc_difference	a logical flag. Compute residuals by subtraction if TRUE,
-#' otherwise use division (see dplR R package).
+#' data.  Possible values are "none" (default) and "SLD" which refers to Simple
+#' Linear Detrending
 #' @param pcor_na_use an optional character string giving a method for computing
 #' covariances in the presence of missing values for partial correlation
 #' coefficients. This must be (an abbreviation of) one of the strings "all.obs",
@@ -141,7 +111,6 @@
 #'  \item $cross_validation - not available for partial correlation method
 #'  \item $plot_heatmap - ggplot2 object: a heatmap of calculated metrics
 #'  \item $plot_extreme - ggplot2 object: line plot of a row with the highest value in a matrix of calculated metrics
-#'  \item $PCA_output - princomp object: the result output of the PCA analysis
 #'  \item $type - the character string describing type of analysis: monthly or monthly
 #'  \item $reference_window - character string, which reference window was used for calculations
 #'  \item $aggregated_climate_primary - matrix with all aggregated climate series of primary data
@@ -182,7 +151,6 @@
 #' summary(example_basic)
 #' plot(example_basic, type = 1)
 #' plot(example_basic, type = 2)
-#' plot(example_basic, type = 3)
 #' example_basic$optimized_return
 #' example_basic$optimized_return_all
 #' example_basic$temporal_stability
@@ -214,10 +182,6 @@ monthly_response_seascorr <- function(response, env_data_primary, env_data_contr
                            upper_limit = 12, fixed_width = 0,
                            alpha = .05, row_names_subset = FALSE,
                            reference_window = "start",
-                           PCA_transformation = FALSE, log_preprocess = TRUE,
-                           components_selection = 'automatic',
-                           eigenvalues_threshold = 1,
-                           N_components = 2,
                            aggregate_function_env_data_primary = 'mean',
                            aggregate_function_env_data_control = 'mean',
                            temporal_stability_check = "sequential", k = 2,
@@ -230,13 +194,6 @@ monthly_response_seascorr <- function(response, env_data_primary, env_data_contr
                                                      previous_year == TRUE),
                                                    c(-1, 12), c(1, 12)),
                            dc_method = NULL,
-                           dc_nyrs = NULL,
-                           dc_f = 0.5,
-                           dc_pos.slope = FALSE,
-                           dc_constrain.nls = c("never", "when.fail", "always"),
-                           dc_span = "cv",
-                           dc_bass = 0,
-                           dc_difference = FALSE,
                            pcor_na_use = "pairwise.complete") {
 
   ##############################################################################
@@ -523,12 +480,12 @@ monthly_response_seascorr <- function(response, env_data_primary, env_data_contr
     stop("upper_limit out of bounds! It should be between 1 and 365")
 
   # Make sure the selected method is appropriate
+  # Make sure the selected method is appropriate
   if (!is.null(dc_method)){
 
-    if (!(dc_method %in% c("Spline", "ModNegExp", "Mean", "Friedman", "ModHugershoff"))){
+    if (!(dc_method %in% c("SLD"))){
 
-      stop(paste0('dc_method should be one of "Spline", "ModNegExp", "Mean", "Friedman", "ModHugershoff",
-         but instead it is:',dc_method))
+      stop(paste0('dc_method should be SLD but instead it is:',dc_method))
 
     }
   }
@@ -647,48 +604,6 @@ monthly_response_seascorr <- function(response, env_data_primary, env_data_contr
     stop(paste("row.names does not appear to be years!",
                 "At least three characters needed!"))
   }
-
-  # If PCA_transformation = TRUE, PCA is performed
-  if (PCA_transformation == TRUE) {
-
-    # Logarithmic transformation before PCA
-    if (log_preprocess == TRUE) {
-
-      if (sum(response <= 0) > 1){
-        stop("your response data contains negative observations. Please set the argument log_preprocess to FALSE")
-      }
-
-      response <- data.frame(log(response))
-    }
-
-    PCA_result <- princomp(response, cor = TRUE)
-
-    if (components_selection == 'automatic'){
-      subset_vector <- PCA_result$sdev > eigenvalues_threshold
-      response <- as.data.frame(PCA_result$scores[, subset_vector])
-    }
-
-    if (components_selection == 'manual'){
-      response <- as.data.frame(PCA_result$scores[, 1:N_components])
-    }
-
-    if (components_selection == 'plot_selection'){
-      plot(PCA_result, type = 'l')
-
-      fun <- function(){
-        N_PC <- readline("What number of PC scores should be used as predictors? ")
-        return(N_PC)
-      }
-
-      N_PC <- fun()
-      response <- as.data.frame(PCA_result$scores[, 1:as.numeric(N_PC)])
-    }
-
-    number_PC <- ncol(response)
-    df_names <-  paste( "PC_", seq(1:number_PC), sep = "")
-    colnames(response) <- df_names
-
-  } else (PCA_result <- "No PCA result avalialbe !")
 
   # Subset of years
   if (!is.null(subset_years)){
@@ -822,9 +737,15 @@ monthly_response_seascorr <- function(response, env_data_primary, env_data_contr
 
         if (!is.null(dc_method)){
 
-          x1 <- dplR::detrend(data.frame(x1), method = dc_method, nyrs = dc_nyrs, f = dc_f,
-                              pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
-                              span = dc_span, bass = dc_bass,  difference = dc_difference)
+          if (dc_method == "SLD"){
+
+          tmp_model <- lm(x1 ~ seq(1:length(x1)))
+          tmp_pred <- predict(tmp_model)
+          tmp_res <- x1 - tmp_pred
+
+          x1 <- data.frame(x1 = tmp_res/sd(tmp_res))
+
+          }
 
         } else {
 
@@ -834,9 +755,15 @@ monthly_response_seascorr <- function(response, env_data_primary, env_data_contr
 
         if (!is.null(dc_method)){
 
-          x2 <- dplR::detrend(data.frame(x2), method = dc_method, nyrs = dc_nyrs, f = dc_f,
-                              pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
-                              span = dc_span, bass = dc_bass,  difference = dc_difference)
+          if (dc_method == "SLD"){
+
+            tmp_model <- lm(x2 ~ seq(1:length(x2)))
+            tmp_pred <- predict(tmp_model)
+            tmp_res <- x2 - tmp_pred
+
+            x2 <- data.frame(x2 = tmp_res/sd(tmp_res))
+
+          }
 
         } else {
 
@@ -1072,9 +999,15 @@ monthly_response_seascorr <- function(response, env_data_primary, env_data_contr
 
       if (!is.null(dc_method)){
 
-        x1 <- dplR::detrend(data.frame(x1), method = dc_method, nyrs = dc_nyrs, f = dc_f,
-                            pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
-                            span = dc_span, bass = dc_bass,  difference = dc_difference)
+        if (dc_method == "SLD"){
+
+          tmp_model <- lm(x1 ~ seq(1:length(x1)))
+          tmp_pred <- predict(tmp_model)
+          tmp_res <- x1 - tmp_pred
+
+          x1 <- data.frame(x1 = tmp_res/sd(tmp_res))
+
+        }
 
       } else {
 
@@ -1084,9 +1017,15 @@ monthly_response_seascorr <- function(response, env_data_primary, env_data_contr
 
       if (!is.null(dc_method)){
 
-        x2 <- dplR::detrend(data.frame(x2), method = dc_method, nyrs = dc_nyrs, f = dc_f,
-                            pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
-                            span = dc_span, bass = dc_bass,  difference = dc_difference)
+        if (dc_method == "SLD"){
+
+          tmp_model <- lm(x2 ~ seq(1:length(x2)))
+          tmp_pred <- predict(tmp_model)
+          tmp_res <- x2 - tmp_pred
+
+          x2 <- data.frame(x2 = tmp_res/sd(tmp_res))
+
+        }
 
       } else {
 
@@ -1237,7 +1176,6 @@ monthly_response_seascorr <- function(response, env_data_primary, env_data_contr
                        cross_validation = NA,
                        plot_heatmap = NA,
                        plot_extreme = NA,
-                       PCA_output = PCA_result,
                        type = "monthly",
                        reference_window = reference_window,
                        boot_lower = temporal_matrix_lower,
@@ -1557,13 +1495,21 @@ monthly_response_seascorr <- function(response, env_data_primary, env_data_contr
 
   if (!is.null(dc_method)){
 
-    x1 <- dplR::detrend(x1, method = dc_method, nyrs = dc_nyrs, f = dc_f,
-                        pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
-                        span = dc_span, bass = dc_bass,  difference = dc_difference)
+    if (dc_method == "SLD"){
 
-    x2 <- dplR::detrend(x2, method = dc_method, nyrs = dc_nyrs, f = dc_f,
-                        pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
-                        span = dc_span, bass = dc_bass,  difference = dc_difference)
+      x1 <- x1[,1]
+      tmp_model <- lm(x1 ~ seq(1:length(x1)))
+      tmp_pred <- predict(tmp_model)
+      tmp_res <- x1 - tmp_pred
+      x1 <- data.frame(x1 = tmp_res/sd(tmp_res))
+
+      x2 <- x2[,1]
+      tmp_model <- lm(x2 ~ seq(1:length(x2)))
+      tmp_pred <- predict(tmp_model)
+      tmp_res <- x2 - tmp_pred
+      x2 <- data.frame(x2 = tmp_res/sd(tmp_res))
+
+    }
   }
 
 
@@ -1579,13 +1525,21 @@ monthly_response_seascorr <- function(response, env_data_primary, env_data_contr
 
   if (!is.null(dc_method)){
 
-    x1_original <- dplR::detrend(x1_original, method = dc_method, nyrs = dc_nyrs, f = dc_f,
-                                 pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
-                                 span = dc_span, bass = dc_bass,  difference = dc_difference)
+    if (dc_method == "SLD"){
 
-    x2_original <- dplR::detrend(x2_original, method = dc_method, nyrs = dc_nyrs, f = dc_f,
-                                 pos.slope = dc_pos.slope, constrain.nls = dc_constrain.nls,
-                                 span = dc_span, bass = dc_bass,  difference = dc_difference)
+      x1_original <- x1_original[,1]
+      tmp_model <- lm(x1_original ~ seq(1:length(x1_original)))
+      tmp_pred <- predict(tmp_model)
+      tmp_res <- x1_original - tmp_pred
+      x1_original <- data.frame(x1_original = tmp_res/sd(tmp_res))
+
+      x2_original <- x2_original[,1]
+      tmp_model <- lm(x2_original ~ seq(1:length(x2_original)))
+      tmp_pred <- predict(tmp_model)
+      tmp_res <- x2_original - tmp_pred
+      x2_original <- data.frame(x2_original = tmp_res/sd(tmp_res))
+
+    }
   }
 
   x1_full_original <- merge(x1_original, x2_original, by = 0, all = TRUE)
@@ -1805,7 +1759,6 @@ monthly_response_seascorr <- function(response, env_data_primary, env_data_contr
                          cross_validation = NA,
                          plot_heatmap = plot_heatmapA,
                          plot_extreme = plot_extremeA,
-                         PCA_output = PCA_result,
                          type = "monthly",
                          reference_window = reference_window,
                          boot_lower = temporal_matrix_lower,

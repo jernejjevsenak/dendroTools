@@ -103,4 +103,5 @@ expect_equal(test8[[1]], test9[[1]], check.environment=FALSE)
 
 
 # There should be 17 elements in a list returned by daily_response()
-expect_equal(length(test8), 18, check.environment=FALSE)
+expect_equal(length(test8), 16, check.environment=FALSE)
+

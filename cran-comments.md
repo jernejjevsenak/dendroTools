@@ -1,5 +1,11 @@
 Dear CRAN
 
+
+This is already for the new version: 
+- some less important features were removed from the package to make it more efficient
+- based on the user suggestions, new detrending method was introduced, i.e. Simple Linear Detrending
+- also two new features were implemented that allow for skipping specific windows and thus speed up the calculation of correlation coefficients
+
 This is a regular update of the dendroTools R package. Approximately three days ago, the CRAN team requested the removal of certain NOTES that appeared during CRAN checks. Specifically, this NOTE pertained to an undocumented argument in one of the internal functions. I have addressed this issue, ensuring that the argument is now properly documented. Alongside this major fix, the update includes several minor enhancements to improve the overall functionality and user experience of the package.
 
 In previous versions, we agreed to disable vignette checking on some platforms. I believe it makes sense to keep it that way.  

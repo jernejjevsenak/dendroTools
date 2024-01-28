@@ -16,11 +16,6 @@ daily_response_seascorr(
   remove_insignificant = TRUE,
   alpha = 0.05,
   row_names_subset = FALSE,
-  PCA_transformation = FALSE,
-  log_preprocess = TRUE,
-  components_selection = "automatic",
-  eigenvalues_threshold = 1,
-  N_components = 2,
   aggregate_function_env_data_primary = "mean",
   aggregate_function_env_data_control = "mean",
   temporal_stability_check = "sequential",
@@ -39,13 +34,6 @@ daily_response_seascorr(
   day_interval = ifelse(c(previous_year == TRUE, previous_year == TRUE), c(-1, 366),
     c(1, 366)),
   dc_method = NULL,
-  dc_nyrs = NULL,
-  dc_f = 0.5,
-  dc_pos.slope = FALSE,
-  dc_constrain.nls = c("never", "when.fail", "always"),
-  dc_span = "cv",
-  dc_bass = 0,
-  dc_difference = FALSE,
   pcor_na_use = "pairwise.complete",
   skip_window_length = 1,
   skip_window_position = 1
@@ -99,26 +87,6 @@ the significant threshold level, based on a selected alpha.}
 \item{row_names_subset}{if set to TRUE, row.names are used to subset
 env_data_primary, env_data_control and response data frames. Only years from
 all three data frames are kept.}
-
-\item{PCA_transformation}{if set to TRUE, all variables in the response
-data frame will be transformed using PCA transformation.}
-
-\item{log_preprocess}{if set to TRUE, variables will be transformed with
-logarithmic transformation before used in PCA}
-
-\item{components_selection}{character string specifying how to select the Principal
-Components used as predictors.
-There are three options: "automatic", "manual" and "plot_selection". If
-argument is set to automatic, all scores with eigenvalues above 1 will be
-selected. This threshold could be changed by changing the
-eigenvalues_threshold argument. If parameter is set to "manual", user should
-set the number of components with N_components argument. If components
-selection is set to "plot_selection", Scree plot will be shown and a user must
-manually enter the number of components to be used as predictors.}
-
-\item{eigenvalues_threshold}{threshold for automatic selection of Principal Components}
-
-\item{N_components}{number of Principal Components used as predictors}
 
 \item{aggregate_function_env_data_primary}{character string specifying how the
 daily data from env_data_primary should be aggregated. The default is 'mean',
@@ -189,31 +157,8 @@ indicate previous growing season days. This argument overwrites the calculation
 limits defined by lower_limit and upper_limit arguments.}
 
 \item{dc_method}{a character string to determine the method to detrend climate
-(environmental) data.  Possible values are "none" (default), "SLD","Spline",
-"ModNegExp", "Mean", "Friedman", "ModHugershoff". "SLD" refers to Simple
+data.  Possible values are "none" (default) and "SLD" which refers to Simple
 Linear Detrending}
-
-\item{dc_nyrs}{a number giving the rigidity of the smoothing spline, defaults
-to 0.67 of series length if nyrs is NULL (see dplR R package)}
-
-\item{dc_f}{a number between 0 and 1 giving the frequency response or wavelength
-cutoff. Defaults to 0.5 (see dplR R package)}
-
-\item{dc_pos.slope}{a logical flag. Will allow for a positive slope to be used
-in method "ModNegExp" and "ModHugershoff". If FALSE the line will be horizontal
-(see dplR R package)}
-
-\item{dc_constrain.nls}{a character string which controls the constraints of
-the "ModNegExp" model and the "ModHugershoff"  (see dplR R package).}
-
-\item{dc_span}{a numeric value controlling method "Friedman", or "cv" (default)
-for automatic choice by cross-validation (see dplR R package)}
-
-\item{dc_bass}{a numeric value controlling the smoothness of the fitted curve
-in method "Friedman" (see dplR R package)}
-
-\item{dc_difference}{a logical flag. Compute residuals by subtraction if TRUE,
-otherwise use division (see dplR R package)}
 
 \item{pcor_na_use}{an optional character string giving a method for computing
 covariances in the presence of missing values for partial correlation
@@ -257,7 +202,6 @@ a list with 15 elements:
  \item $cross_validation - not available for partial correlations
  \item $plot_heatmap - ggplot2 object: a heatmap of calculated metrics
  \item $plot_extreme - ggplot2 object: line plot of a row with the highest value in a matrix of calculated metrics
- \item $PCA_output - princomp object: the result output of the PCA analysis
  \item $type - the character string describing type of analysis: daily or monthly
  \item $reference_window - character string, which reference window was used for calculations
  \item $aggregated_climate_primary - matrix with all aggregated climate series of primary data
@@ -309,7 +253,6 @@ example_basic <- daily_response_seascorr(response = data_MVA,
 summary(example_basic)
 plot(example_basic, type = 1)
 plot(example_basic, type = 2)
-plot(example_basic, type = 3)
 example_basic$optimized_return
 example_basic$optimized_return_all
 example_basic$temporal_stability
