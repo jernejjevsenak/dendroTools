@@ -237,6 +237,26 @@ data(example_proxies_individual)
 data(example_proxies_1)
 data(LJ_daily_temperatures)
 
+
+example_basic <- daily_response(response = data_MVA,
+                          env_data = LJ_daily_temperatures,
+                          row_names_subset = TRUE,
+                          fixed_width = 25,
+                          lower_limit = 35, upper_limit = 45,
+                          remove_insignificant = FALSE,
+                          aggregate_function = 'median',
+                          alpha = 0.05, cor_method = "spearman",
+                          previous_year = FALSE, boot = TRUE,
+                          boot_n = 10,
+                          skip_window_position = 2,
+                          reference_window = "end", k = 5,
+                          dc_method = "SLD",
+                          day_interval = c(-100, 250)
+                          )
+
+
+
+
 # 1 Example with fixed width. Lower and upper limits are ignored.
 example_daily_response <- daily_response(response = data_MVA,
     env_data = LJ_daily_temperatures,
@@ -244,7 +264,8 @@ example_daily_response <- daily_response(response = data_MVA,
     row_names_subset = TRUE, previous_year = TRUE,
     remove_insignificant = TRUE, boot = TRUE,
     alpha = 0.005, aggregate_function = 'mean',
-    reference_window = "start")
+    day_interval = c(-100, 250), skip_window_length = 10,
+    reference_window = "start", skip_window_position = 10)
 
 summary(example_daily_response)
 plot(example_daily_response, type = 1)
@@ -253,12 +274,13 @@ plot(example_daily_response, type = 2)
 # 2 Example for past and present. Use subset_years argument.
 example_MVA_early <- daily_response(response = data_MVA,
     env_data = LJ_daily_temperatures, cor_method = "kendall",
-    method = "cor", lower_limit = 21, upper_limit = 90,
+    method = "lm", lower_limit = 21, upper_limit = 91,
     row_names_subset = TRUE, previous_year = TRUE,
     remove_insignificant = TRUE, alpha = 0.05,
     subset_years = c(1940, 1980),
-    aggregate_function = 'sum', skip_window_length = 2,
-    skip_window_position = 4)
+    fixed_width = 45,
+    aggregate_function = 'sum', skip_window_length = 4,
+    skip_window_position = 1)
 
 example_MVA_late <- daily_response(response = data_MVA,
     env_data = LJ_daily_temperatures,

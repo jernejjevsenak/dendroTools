@@ -232,23 +232,25 @@ data(LJ_daily_temperatures)
 data(LJ_daily_precipitation)
 
 # 1 Basic example
+
 example_basic <- daily_response_seascorr(response = data_MVA,
                           env_data_primary = LJ_daily_temperatures,
                           env_data_control = LJ_daily_precipitation,
                           row_names_subset = TRUE,
+                          fixed_width = 25,
                           lower_limit = 35, upper_limit = 45,
                           remove_insignificant = FALSE,
-                          aggregate_function_env_data_primary = 'median',
-                          aggregate_function_env_data_control = 'median',
-                          alpha = 0.05, pcor_method = "spearman",
+                          aggregate_function_env_data_primary = 'mean',
+                          aggregate_function_env_data_control = 'mean',
                           tidy_env_data_primary = FALSE,
+                          tidy_env_data_control = TRUE,
+                          alpha = 0.05, pcor_method = "spearman",
                           previous_year = FALSE, boot = TRUE,
-                          tidy_env_data_control = TRUE, boot_n = 10,
+                          boot_n = 10,
                           reference_window = "end", k = 5,
                           dc_method = "SLD",
                           day_interval = c(-100, 250),
-                          skip_window_length = 1,
-                          skip_window_position = 1
+                          skip_window_position = 2, skip_window_length= 3,
                           )
 summary(example_basic)
 plot(example_basic, type = 1)
@@ -270,7 +272,7 @@ example_fixed_width <- daily_response_seascorr(response = data_MVA,
                           fixed_width = 45,
                           tidy_env_data_primary = FALSE,
                           tidy_env_data_control = TRUE,
-                          reference_window = "end")
+                          reference_window = "end", skip_window_length = 3)
 
 summary(example_fixed_width)
 plot(example_fixed_width, type = 1)
