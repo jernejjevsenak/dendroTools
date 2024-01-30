@@ -176,11 +176,7 @@
 #'                           skip_window_position = 2,
 #'                           reference_window = "end", k = 5,
 #'                           dc_method = "SLD",
-#'                           day_interval = c(-100, 250)
-#'                           )
-#'
-#'
-#'
+#'                           day_interval = c(-100, 250))
 #'
 #' # 1 Example with fixed width. Lower and upper limits are ignored.
 #' example_daily_response <- daily_response(response = data_MVA,
@@ -219,7 +215,6 @@
 #' plot(example_MVA_late, type = 1)
 #' plot(example_MVA_early, type = 2)
 #' plot(example_MVA_late, type = 2)
-#'
 #'
 #' # 3 Example negative correlations
 #' example_neg_cor <- daily_response(response = data_TRW_1,
