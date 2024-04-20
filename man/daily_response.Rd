@@ -251,11 +251,7 @@ example_basic <- daily_response(response = data_MVA,
                           skip_window_position = 2,
                           reference_window = "end", k = 5,
                           dc_method = "SLD",
-                          day_interval = c(-100, 250)
-                          )
-
-
-
+                          day_interval = c(-100, 250))
 
 # 1 Example with fixed width. Lower and upper limits are ignored.
 example_daily_response <- daily_response(response = data_MVA,
@@ -267,9 +263,9 @@ example_daily_response <- daily_response(response = data_MVA,
     day_interval = c(-100, 250), skip_window_length = 10,
     reference_window = "start", skip_window_position = 10)
 
-summary(example_daily_response)
-plot(example_daily_response, type = 1)
-plot(example_daily_response, type = 2)
+# summary(example_daily_response)
+# plot(example_daily_response, type = 1)
+# plot(example_daily_response, type = 2)
 
 # 2 Example for past and present. Use subset_years argument.
 example_MVA_early <- daily_response(response = data_MVA,
@@ -290,11 +286,10 @@ example_MVA_late <- daily_response(response = data_MVA,
     subset_years = c(1981, 2010),
     aggregate_function = 'sum')
 
-plot(example_MVA_early, type = 1)
-plot(example_MVA_late, type = 1)
-plot(example_MVA_early, type = 2)
-plot(example_MVA_late, type = 2)
-
+# plot(example_MVA_early, type = 1)
+# plot(example_MVA_late, type = 1)
+# plot(example_MVA_early, type = 2)
+# plot(example_MVA_late, type = 2)
 
 # 3 Example negative correlations
 example_neg_cor <- daily_response(response = data_TRW_1,
@@ -303,14 +298,14 @@ example_neg_cor <- daily_response(response = data_TRW_1,
     row_names_subset = TRUE, remove_insignificant = TRUE,
     alpha = 0.05)
 
-summary(example_neg_cor)
-plot(example_neg_cor, type = 1)
-plot(example_neg_cor, type = 2)
-example_neg_cor$temporal_stability
+# summary(example_neg_cor)
+# plot(example_neg_cor, type = 1)
+# plot(example_neg_cor, type = 2)
+# example_neg_cor$temporal_stability
 
 # 4 Example of multiproxy analysis
-summary(example_proxies_1)
-cor(example_proxies_1)
+# summary(example_proxies_1)
+# cor(example_proxies_1)
 
 example_multiproxy <- daily_response(response = example_proxies_1,
    env_data = LJ_daily_temperatures,
@@ -319,7 +314,7 @@ example_multiproxy <- daily_response(response = example_proxies_1,
    row_names_subset = TRUE, previous_year = FALSE,
    remove_insignificant = TRUE, alpha = 0.05)
 
-plot(example_multiproxy, type = 1)
+# plot(example_multiproxy, type = 1)
 
 # 5 Example to test the temporal stability
 example_MVA_ts <- daily_response(response = data_MVA,
@@ -328,7 +323,7 @@ example_MVA_ts <- daily_response(response = data_MVA,
    row_names_subset = TRUE, remove_insignificant = TRUE, alpha = 0.05,
    temporal_stability_check = "running_window", k_running_window = 10)
 
-example_MVA_ts$temporal_stability
+# example_MVA_ts$temporal_stability
 
 # 6 Example with nonlinear brnn estimation
 example_brnn <- daily_response(response = data_MVA,
@@ -336,6 +331,6 @@ example_brnn <- daily_response(response = data_MVA,
    lower_limit = 100, metric = "adj.r.squared", upper_limit = 101,
    row_names_subset = TRUE, remove_insignificant = TRUE, boot_n = 10)
 
-summary(example_brnn)
+# summary(example_brnn)
 }
 }

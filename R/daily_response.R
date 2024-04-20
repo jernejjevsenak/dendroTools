@@ -188,9 +188,9 @@
 #'     day_interval = c(-100, 250), skip_window_length = 10,
 #'     reference_window = "start", skip_window_position = 10)
 #'
-#' summary(example_daily_response)
-#' plot(example_daily_response, type = 1)
-#' plot(example_daily_response, type = 2)
+#' # summary(example_daily_response)
+#' # plot(example_daily_response, type = 1)
+#' # plot(example_daily_response, type = 2)
 #'
 #' # 2 Example for past and present. Use subset_years argument.
 #' example_MVA_early <- daily_response(response = data_MVA,
@@ -211,10 +211,10 @@
 #'     subset_years = c(1981, 2010),
 #'     aggregate_function = 'sum')
 #'
-#' plot(example_MVA_early, type = 1)
-#' plot(example_MVA_late, type = 1)
-#' plot(example_MVA_early, type = 2)
-#' plot(example_MVA_late, type = 2)
+#' # plot(example_MVA_early, type = 1)
+#' # plot(example_MVA_late, type = 1)
+#' # plot(example_MVA_early, type = 2)
+#' # plot(example_MVA_late, type = 2)
 #'
 #' # 3 Example negative correlations
 #' example_neg_cor <- daily_response(response = data_TRW_1,
@@ -223,14 +223,14 @@
 #'     row_names_subset = TRUE, remove_insignificant = TRUE,
 #'     alpha = 0.05)
 #'
-#' summary(example_neg_cor)
-#' plot(example_neg_cor, type = 1)
-#' plot(example_neg_cor, type = 2)
-#' example_neg_cor$temporal_stability
+#' # summary(example_neg_cor)
+#' # plot(example_neg_cor, type = 1)
+#' # plot(example_neg_cor, type = 2)
+#' # example_neg_cor$temporal_stability
 #'
 #' # 4 Example of multiproxy analysis
-#' summary(example_proxies_1)
-#' cor(example_proxies_1)
+#' # summary(example_proxies_1)
+#' # cor(example_proxies_1)
 #'
 #' example_multiproxy <- daily_response(response = example_proxies_1,
 #'    env_data = LJ_daily_temperatures,
@@ -239,7 +239,7 @@
 #'    row_names_subset = TRUE, previous_year = FALSE,
 #'    remove_insignificant = TRUE, alpha = 0.05)
 #'
-#' plot(example_multiproxy, type = 1)
+#' # plot(example_multiproxy, type = 1)
 #'
 #' # 5 Example to test the temporal stability
 #' example_MVA_ts <- daily_response(response = data_MVA,
@@ -248,7 +248,7 @@
 #'    row_names_subset = TRUE, remove_insignificant = TRUE, alpha = 0.05,
 #'    temporal_stability_check = "running_window", k_running_window = 10)
 #'
-#' example_MVA_ts$temporal_stability
+#' # example_MVA_ts$temporal_stability
 #'
 #' # 6 Example with nonlinear brnn estimation
 #' example_brnn <- daily_response(response = data_MVA,
@@ -256,7 +256,7 @@
 #'    lower_limit = 100, metric = "adj.r.squared", upper_limit = 101,
 #'    row_names_subset = TRUE, remove_insignificant = TRUE, boot_n = 10)
 #'
-#' summary(example_brnn)
+#' # summary(example_brnn)
 #' }
 
 daily_response <- function(response, env_data, method = "cor",
@@ -668,10 +668,14 @@ daily_response <- function(response, env_data, method = "cor",
     temporal_matrix_lower <- temporal_matrix
     temporal_matrix_upper <- temporal_matrix
 
+    if(interactive()){
+
       if (fixed_width != max_window){
         pb <- txtProgressBar(min = 0, max = ceiling((ncol(env_data) - fixed_width - offset_end - offset_start + 1)/(skip_window_position)),
                              style = 3)
       }
+
+    }
 
       b = 0
 
@@ -839,9 +843,16 @@ daily_response <- function(response, env_data, method = "cor",
           temporal_matrix_lower[1, round2(j + 1 + fixed_width/2, 0)] <- temporal_lower
           temporal_matrix_upper[1, round2(j + 1 + fixed_width/2, 0)] <- temporal_upper
         }
+
+        if(interactive()){
         if (fixed_width != max_window){setTxtProgressBar(pb, b)}
+        }
       }
+
+
+      if(interactive()){
       if (fixed_width != max_window){close(pb)}
+      }
 
      # temporal_matrix is given rownames and colnames. Rownames represent a
      # window width used fot calculations. Colnames represent the position of
@@ -879,8 +890,11 @@ daily_response <- function(response, env_data, method = "cor",
 
     if (fixed_width != max_window){
 
+      if(interactive()){
+
     pb <- txtProgressBar(min = 0, max = ceiling((ncol(env_data) - fixed_width - offset_end - offset_start + 1)/(skip_window_position)),
                          style = 3)}
+      }
 
     b = 0
 
@@ -1092,11 +1106,15 @@ daily_response <- function(response, env_data, method = "cor",
         }
       }
 
-
+      if(interactive()){
       if (fixed_width != max_window){setTxtProgressBar(pb, b)}
+      }
     }
 
-    if (fixed_width != max_window){close(pb)}
+    if(interactive()){
+      if (fixed_width != max_window){close(pb)}
+    }
+
 
     row.names(temporal_matrix) <- fixed_width
     row.names(temporal_matrix_lower) <- fixed_width
@@ -1130,9 +1148,12 @@ daily_response <- function(response, env_data, method = "cor",
     temporal_matrix_upper <- temporal_matrix
 
     if (fixed_width != max_window){
+
+      if(interactive()){
+
     pb <- txtProgressBar(min = 0, max = ceiling((ncol(env_data) - fixed_width - offset_end - offset_start + 1)/(skip_window_position)),
                          style = 3)}
-
+      }
     b = 0
 
     for (j in (seq((0 + offset_start -1), (ncol(env_data) - max((fixed_width + offset_end), offset_end)), by = skip_window_position))) {
@@ -1357,11 +1378,14 @@ daily_response <- function(response, env_data, method = "cor",
           temporal_matrix_upper[1, round2(j + 1 + fixed_width/2, 0)] <- temporal_adj_r_squared_upper
         }
       }
-
+       if(interactive()){
       if (fixed_width != max_window){setTxtProgressBar(pb, b)}
+       }
      }
 
-    if (fixed_width != max_window){close(pb)}
+    if(interactive()){
+      if (fixed_width != max_window){close(pb)}
+    }
 
     row.names(temporal_matrix) <- fixed_width
     row.names(temporal_matrix_lower) <- fixed_width
@@ -1412,8 +1436,12 @@ daily_response <- function(response, env_data, method = "cor",
 
   if (upper_limit != lower_limit){
 
+    if(interactive()){
+
     pb <- txtProgressBar(min = 0, max = ceiling((upper_limit - lower_limit)/(skip_window_length*skip_window_position)), style = 3)
-  }
+
+      }
+    }
 
     b = 0
 
@@ -1538,11 +1566,14 @@ daily_response <- function(response, env_data, method = "cor",
 
     }
 
+      if(interactive()){
     if (upper_limit != lower_limit){setTxtProgressBar(pb, b)}
-
+      }
   }
 
+  if(interactive()){
     if (upper_limit != lower_limit){close(pb)}
+  }
 
   # temporal_matrix is given rownames and colnames. Rownames represent a
   # window width used fot calculations. Colnames represent the position of
@@ -1583,8 +1614,9 @@ daily_response <- function(response, env_data, method = "cor",
     temporal_matrix_upper <- temporal_matrix
 
     if (upper_limit != lower_limit){
-
+      if(interactive()){
       pb <- txtProgressBar(min = 0, max = ceiling((upper_limit - lower_limit)/(skip_window_length*skip_window_position)), style = 3)
+      }
     }
     b = 0
 
@@ -1759,10 +1791,14 @@ daily_response <- function(response, env_data, method = "cor",
 
           }
       }
+      if(interactive()){
       if (upper_limit != lower_limit){setTxtProgressBar(pb, b)}
+      }
     }
 
-    if (upper_limit != lower_limit){close(pb)}
+    if(interactive()){
+      if (upper_limit != lower_limit){close(pb)}
+    }
 
     temporal_rownames <- as.vector(seq(from = lower_limit, to = upper_limit, by = 1))
     row.names(temporal_matrix) <- temporal_rownames
@@ -1797,8 +1833,9 @@ daily_response <- function(response, env_data, method = "cor",
     temporal_matrix_upper <- temporal_matrix
 
     if (upper_limit != lower_limit){
-
+      if(interactive()){
       pb <- txtProgressBar(min = 0, max = ceiling((upper_limit - lower_limit)/(skip_window_length*skip_window_position)), style = 3)
+      }
     }
 
     b = 0
@@ -1997,10 +2034,14 @@ daily_response <- function(response, env_data, method = "cor",
         }
 
       }
+      if(interactive()){
       if (upper_limit != lower_limit){setTxtProgressBar(pb, b)}
+      }
     }
 
-    if (upper_limit != lower_limit){close(pb)}
+    if(interactive()){
+      if (upper_limit != lower_limit){close(pb)}
+    }
 
     temporal_rownames <- as.vector(seq(from = lower_limit, to = upper_limit, by = 1))
     row.names(temporal_matrix) <- temporal_rownames

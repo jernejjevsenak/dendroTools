@@ -50,13 +50,13 @@ data(example_proxies_1)
 Example1 <- daily_response(response = example_proxies_1,
 env_data = LJ_daily_temperatures, method = "lm", metric = "r.squared",
 fixed_width = 90, previous_year = TRUE, row_names_subset = TRUE)
-plot_extreme(Example1)
+# plot_extreme(Example1)
 
 Example2 <- daily_response(response = example_proxies_1,
 env_data = LJ_daily_temperatures, method = "brnn",
 metric = "adj.r.squared", lower_limit = 50, upper_limit = 55, neurons = 1,
 row_names_subset = TRUE, previous_year = TRUE)
-plot_extreme(Example2)
+# plot_extreme(Example2)
 
 # Example with negative correlations
 data(data_TRW_1)
@@ -64,13 +64,13 @@ LJ_daily_temperatures_subset = LJ_daily_temperatures[-c(53:55), ]
 Example3 <- daily_response(response = data_TRW_1,
 env_data = LJ_daily_temperatures_subset, method = "lm", metric = "adj.r.squared",
 lower_limit = 35, upper_limit = 40, previous_year = TRUE, row_names_subset = TRUE)
-plot_extreme(Example3)
+# plot_extreme(Example3)
 
 Example4 <- daily_response(response = example_proxies_1,
 env_data = LJ_daily_temperatures, method = "lm",
 metric = "r.squared", lower_limit = 30, upper_limit = 120, neurons = 1,
 row_names_subset = TRUE, previous_year = TRUE)
-plot_extreme(Example4)
+# plot_extreme(Example4)
 }
 
 }

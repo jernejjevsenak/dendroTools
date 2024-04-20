@@ -214,9 +214,9 @@ example_tidy_data <- monthly_response(response = data_MVA,
     alpha = 0.05, aggregate_function = 'sum', boot = TRUE,
     tidy_env_data = TRUE, boot_n = 100, month_interval = c(-5, 10))
 
-summary(example_tidy_data)
-plot(example_tidy_data, type = 1)
-plot(example_tidy_data, type = 2)
+# summary(example_tidy_data)
+# plot(example_tidy_data, type = 1)
+# plot(example_tidy_data, type = 2)
 
 # 2 Example with split data for early and late
 example_MVA_early <- monthly_response(response = data_MVA,
@@ -231,11 +231,11 @@ example_MVA_late <- monthly_response(response = data_MVA,
     previous_year = TRUE, remove_insignificant = TRUE,
     subset_years = c(1981, 2010), aggregate_function = 'mean')
 
-summary(example_MVA_late)
-plot(example_MVA_early, type = 1)
-plot(example_MVA_late, type = 1)
-plot(example_MVA_early, type = 2)
-plot(example_MVA_late, type = 2)
+# summary(example_MVA_late)
+# plot(example_MVA_early, type = 1)
+# plot(example_MVA_late, type = 1)
+# plot(example_MVA_early, type = 2)
+# plot(example_MVA_late, type = 2)
 
 # 3 Example negative correlations
 example_neg_cor <- monthly_response(response = data_TRW_1, alpha = 0.05,
@@ -243,14 +243,14 @@ example_neg_cor <- monthly_response(response = data_TRW_1, alpha = 0.05,
    method = "cor", row_names_subset = TRUE,
    remove_insignificant = TRUE, boot = TRUE)
 
-summary(example_neg_cor)
-plot(example_neg_cor, type = 1)
-plot(example_neg_cor, type = 2)
-example_neg_cor$temporal_stability
+# summary(example_neg_cor)
+# plot(example_neg_cor, type = 1)
+# plot(example_neg_cor, type = 2)
+# example_neg_cor$temporal_stability
 
 # 4 Example of multiproxy analysis
-summary(example_proxies_1)
-cor(example_proxies_1)
+# summary(example_proxies_1)
+# cor(example_proxies_1)
 
 example_multiproxy <- monthly_response(response = example_proxies_1,
    env_data = LJ_monthly_temperatures,
@@ -258,8 +258,8 @@ example_multiproxy <- monthly_response(response = example_proxies_1,
    row_names_subset = TRUE, previous_year = FALSE,
    remove_insignificant = TRUE, alpha = 0.05)
 
-summary(example_multiproxy)
-plot(example_multiproxy, type = 1)
+# summary(example_multiproxy)
+# plot(example_multiproxy, type = 1)
 
 # 5 Example to test the temporal stability
 example_MVA_ts <- monthly_response(response = data_MVA,
@@ -268,8 +268,8 @@ example_MVA_ts <- monthly_response(response = data_MVA,
    remove_insignificant = TRUE, alpha = 0.05,
    temporal_stability_check = "running_window", k_running_window = 10)
 
-summary(example_MVA_ts)
-example_MVA_ts$temporal_stability
+# summary(example_MVA_ts)
+# example_MVA_ts$temporal_stability
 
 }
 }

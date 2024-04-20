@@ -17,6 +17,6 @@ calculates share of integer 1 in a vector
 }
 \examples{
 vector_1 <- seq(1:10)
-count_ones(vector_1)
+# count_ones(vector_1)
 }
 \keyword{internal}

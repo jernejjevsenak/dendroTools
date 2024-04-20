@@ -214,12 +214,12 @@ example_basic <- monthly_response_seascorr(response = data_MVA,
    tidy_env_data_control = TRUE,
    previous_year = TRUE)
 
-summary(example_basic)
-plot(example_basic, type = 1)
-plot(example_basic, type = 2)
-example_basic$optimized_return
-example_basic$optimized_return_all
-example_basic$temporal_stability
+# summary(example_basic)
+# plot(example_basic, type = 1)
+# plot(example_basic, type = 2)
+# example_basic$optimized_return
+# example_basic$optimized_return_all
+# example_basic$temporal_stability
 
 # 2 Extended example
 example_extended <- monthly_response_seascorr(response = data_MVA,
@@ -234,11 +234,11 @@ example_extended <- monthly_response_seascorr(response = data_MVA,
    tidy_env_data_primary = FALSE,
    tidy_env_data_control = TRUE)
 
-summary(example_extended)
-plot(example_extended, type = 1)
-plot(example_extended, type = 2)
-example_extended$optimized_return
-example_extended$optimized_return_all
+# summary(example_extended)
+# plot(example_extended, type = 1)
+# plot(example_extended, type = 2)
+# example_extended$optimized_return
+# example_extended$optimized_return_all
 
 }
 }

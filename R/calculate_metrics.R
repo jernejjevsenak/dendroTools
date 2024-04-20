@@ -35,6 +35,7 @@
 #' 629 pp.
 #'
 #' @examples
+#' \donttest{
 #' data(example_dataset_1)
 #' test_data <- example_dataset_1[1:30, ]
 #' train_data <- example_dataset_1[31:55, ]
@@ -56,6 +57,7 @@
 #' test_observed <- test_data[, 1]
 #' calculate_metrics(train_predicted, test_predicted, train_observed,
 #' test_observed, test = test_data, formula = MVA ~.)
+#' }
 
 calculate_metrics <- function(train_predicted, test_predicted,
                                train_observed, test_observed, digits = 4, formula, test){

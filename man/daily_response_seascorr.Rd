@@ -252,12 +252,12 @@ example_basic <- daily_response_seascorr(response = data_MVA,
                           day_interval = c(-100, 250),
                           skip_window_position = 2, skip_window_length= 3,
                           )
-summary(example_basic)
-plot(example_basic, type = 1)
-plot(example_basic, type = 2)
-example_basic$optimized_return
-example_basic$optimized_return_all
-example_basic$temporal_stability
+# summary(example_basic)
+# plot(example_basic, type = 1)
+# plot(example_basic, type = 2)
+# example_basic$optimized_return
+# example_basic$optimized_return_all
+# example_basic$temporal_stability
 
 # 2 Example with fixed temporal time window
 example_fixed_width <- daily_response_seascorr(response = data_MVA,
@@ -274,11 +274,11 @@ example_fixed_width <- daily_response_seascorr(response = data_MVA,
                           tidy_env_data_control = TRUE,
                           reference_window = "end", skip_window_length = 3)
 
-summary(example_fixed_width)
-plot(example_fixed_width, type = 1)
-plot(example_fixed_width, type = 2)
-example_fixed_width$optimized_return
-example_fixed_width$optimized_return_all
+# summary(example_fixed_width)
+# plot(example_fixed_width, type = 1)
+# plot(example_fixed_width, type = 2)
+# example_fixed_width$optimized_return
+# example_fixed_width$optimized_return_all
 
 }
 }

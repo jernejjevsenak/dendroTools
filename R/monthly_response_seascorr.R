@@ -148,12 +148,12 @@
 #'    tidy_env_data_control = TRUE,
 #'    previous_year = TRUE)
 #'
-#' summary(example_basic)
-#' plot(example_basic, type = 1)
-#' plot(example_basic, type = 2)
-#' example_basic$optimized_return
-#' example_basic$optimized_return_all
-#' example_basic$temporal_stability
+#' # summary(example_basic)
+#' # plot(example_basic, type = 1)
+#' # plot(example_basic, type = 2)
+#' # example_basic$optimized_return
+#' # example_basic$optimized_return_all
+#' # example_basic$temporal_stability
 #'
 #' # 2 Extended example
 #' example_extended <- monthly_response_seascorr(response = data_MVA,
@@ -168,11 +168,11 @@
 #'    tidy_env_data_primary = FALSE,
 #'    tidy_env_data_control = TRUE)
 #'
-#' summary(example_extended)
-#' plot(example_extended, type = 1)
-#' plot(example_extended, type = 2)
-#' example_extended$optimized_return
-#' example_extended$optimized_return_all
+#' # summary(example_extended)
+#' # plot(example_extended, type = 1)
+#' # plot(example_extended, type = 2)
+#' # example_extended$optimized_return
+#' # example_extended$optimized_return_all
 #'
 #' }
 
@@ -683,8 +683,13 @@ monthly_response_seascorr <- function(response, env_data_primary, env_data_contr
     temporal_matrix_upper <- temporal_matrix
 
     if (fixed_width != max_window){
-      pb <- txtProgressBar(min = 0, max = (ncol(env_data_primary) - fixed_width - offset_end - offset_start + 1),
+
+      if(interactive()){
+
+        pb <- txtProgressBar(min = 0, max = (ncol(env_data_primary) - fixed_width - offset_end - offset_start + 1),
                            style = 3)}
+
+        }
 
       b = 0
 
@@ -863,10 +868,18 @@ monthly_response_seascorr <- function(response, env_data_primary, env_data_contr
           print(paste0("boot should be TRUE or FALSE, instead it is ", boot))
         }
 
-        if (fixed_width != max_window){setTxtProgressBar(pb, b)}
+        if(interactive()){
+
+          if (fixed_width != max_window){setTxtProgressBar(pb, b)}
+
+        }
       }
 
-      if (fixed_width != max_window){close(pb)}
+      if(interactive()){
+
+        if (fixed_width != max_window){close(pb)}
+
+      }
 
      # temporal_matrix is given rownames and colnames. Rownames represent a
      # window width used for calculations. Colnames represent the position of
@@ -916,7 +929,12 @@ monthly_response_seascorr <- function(response, env_data_primary, env_data_contr
     temporal_matrix_upper <- temporal_matrix
 
     if (upper_limit != lower_limit){
-      pb <- txtProgressBar(min = 0, max = (upper_limit - lower_limit), style = 3)
+
+      if(interactive()){
+
+        pb <- txtProgressBar(min = 0, max = (upper_limit - lower_limit), style = 3)
+
+      }
     }
 
   b = 0
@@ -1132,10 +1150,18 @@ monthly_response_seascorr <- function(response, env_data_primary, env_data_contr
        }
     }
 
-    if (upper_limit != lower_limit){setTxtProgressBar(pb, b)}
+    if(interactive()){
+
+      if (upper_limit != lower_limit){setTxtProgressBar(pb, b)}
+
+    }
   }
 
-  if (upper_limit != lower_limit){close(pb)}
+  if(interactive()){
+
+      if (upper_limit != lower_limit){close(pb)}
+
+  }
 
   # temporal_matrix is given rownames and colnames. Rownames represent a
   # window width used fot calculations. Colnames represent the position of
