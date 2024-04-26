@@ -192,6 +192,10 @@ environmental data (column names).
 }
 \examples{
 \donttest{
+
+# The examples below are enclosed within donttest{} to minimize the execution
+# time during R package checks.
+
 # Load the dendroTools R package
 library(dendroTools)
 
@@ -211,7 +215,7 @@ example_tidy_data <- monthly_response(response = data_MVA,
     method = "cor", row_names_subset = TRUE,
     remove_insignificant = TRUE, previous_year = FALSE,
     reference_window = "end",
-    alpha = 0.05, aggregate_function = 'sum', boot = TRUE,
+    alpha = 0.05, aggregate_function = 'sum', boot = FALSE,
     tidy_env_data = TRUE, boot_n = 100, month_interval = c(-5, 10))
 
 # summary(example_tidy_data)
@@ -241,7 +245,7 @@ example_MVA_late <- monthly_response(response = data_MVA,
 example_neg_cor <- monthly_response(response = data_TRW_1, alpha = 0.05,
    env_data = LJ_monthly_temperatures,
    method = "cor", row_names_subset = TRUE,
-   remove_insignificant = TRUE, boot = TRUE)
+   remove_insignificant = TRUE, boot = FALSE)
 
 # summary(example_neg_cor)
 # plot(example_neg_cor, type = 1)

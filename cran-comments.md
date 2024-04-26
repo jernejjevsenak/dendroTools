@@ -1,27 +1,18 @@
-Dear CRAN
+Dear CRAN Team,
 
-I am submitting an updated dendroTools R package after receiving an email from Prof. Brian Ripley specifically pointing out the problems associated with progress bars in non-interactive use. I wrapped all progress bars in interacitve(), which should now fix the problem.
+I am resubmitting the dendroTools R package in response to the feedback received on April 25. Your comments highlighted concerns regarding the execution speed of the example() function, particularly the parts within \donttest. You also noted the importance of including explanations for the use of \donttest.
 
-Since »Additional issues « appeared only after my last update, I assume they are related to the additional features that were implemented after the last update. Therefore, I have removed all features and dependencies that were introduced in my last update.
+The dendroTools package is designed primarily for aggregating daily climate data and calculating correlation coefficients with tree growth data. The examples in our package are inherently slow due to their need to process approximately 60,000 iterations of consecutive day combinations. Although the execution time is considerable, this functionality has significantly benefited dendroclimatological scientific community, leading to new research projects, numerous publications, workshops, etc.
 
-Some Additional issues were related to testthat(), which has now been reduced.
-Some Additional issues were also related to the extensive examples, which have now been reduced to a minimum.
+Understanding CRAN’s need to manage the resources used during R package checks, I have introduced new arguments to reduce the number of iterations, which has halved the execution time of package tests on my local setup—from 12 minutes to 6 minutes. I am prepared to further reduce the number of examples if required.
 
-In addition:
-- some less important features were removed from the package to make it more efficient
-- based on the user suggestions, new detrending method was introduced, i.e. Simple Linear Detrending (SLD)
-- also two new features were implemented that allow for skipping specific windows and thus speed up the calculation of correlation coefficients
+Additionally, I have updated all function documentation to explain the necessity of \donttest{}. For example, documentation now states: “The examples below are enclosed within donttest{} to minimize execution time during R package checks. These examples use the parameters skip_window_length and skip_window_position to limit the number of evaluated combinations in climate-growth correlation studies. For comprehensive testing, users should set both parameters to 1.”
 
-After the modifications, the dendroTools R package has been successfully tested on the local machine and on all standard platforms, rhub, win_devel, win_oldrelease, wind_release.
+Thank you for your consideration.
 
-I hope that these updates fulfill the criteria to keep the dendroTools R package on CRAN. 
-
-If there are any further requests, I will be happy to take action immediately.
-
-In previous versions, we agreed to disable vignette checking on some platforms. I believe it makes sense to keep it that way.  
-
-Best,   
+Best regards,
 Jernej
+
 
 ##  Resubmission
 * This is a resubmission of the package dendroTools.
@@ -29,9 +20,9 @@ Jernej
 ## Test environments
 * local OS X install, R 4.1.1
 
-* win-check oldrelease (https://win-builder.r-project.org/w3602oi8zKg8/00check.log)
-* win-check release (https://win-builder.r-project.org/7q8SV3vgTPXR/00check.log)
-* win-check devel (https://win-builder.r-project.org/PfaxzKj6BnV1/00check.log)
+* win-check oldrelease (https://win-builder.r-project.org/QMP70hMtqFqx/00check.log)
+* win-check release (https://win-builder.r-project.org/cB0w916b3FhG/00check.log)
+* win-check devel (https://win-builder.r-project.org/O3b5AFUnNzOU/00check.log)
 
 ## R CMD check results
 There were 0 ERRORs, 0 WARNINGs and 0 NOTEs

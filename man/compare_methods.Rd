@@ -253,62 +253,47 @@ separately for calibration, holdout and edge data, if applicable.
 \examples{
 \donttest{
 
+# The examples below are enclosed within donttest{} to minimize the execution
+# time during R package checks. #'
+
 # An example with default settings of machine learning algorithms
 library(dendroTools)
+library(ggplot2)
+
 data(example_dataset_1)
-example_1 <- compare_methods(formula = MVA~., dataset = example_dataset_1,
-edge_share = 0, holdout = "late")
+data(dataset_TRW)
+
+example_1 <- compare_methods(formula = MVA ~  T_APR,
+dataset = example_dataset_1, k = 5, repeats = 1, BRNN_neurons = 1,
+RF_ntree = 100, RF_mtry = 2, RF_maxnodes = 35, seed_factor = 5)
+
 # example_1$mean_std
-# example_1$holdout_results
-# example_1$edge_results
 # example_1$ranks
 # example_1$bias_cal
-# example_1$bias_val
 # example_1$transfer_functions
 # example_1$transfer_functions_together
 # example_1$PCA_output
 # example_1$parameter_values
-# example_1$residuals_vs_fitted_cal
-# example_1$residuals_vs_fitted_edge
-# example_1$residuals_vs_fitted_holdout
-# example_1$normal_QQ_cal
-# example_1$normal_QQ_edge
-# example_1$normal_QQ_holdout
-# example_1$reconstructions_data
 
-example_2 <- compare_methods(formula = MVA ~  T_APR,
-dataset = example_dataset_1, k = 5, repeats = 10, BRNN_neurons = 1,
-RF_ntree = 100, RF_mtry = 2, RF_maxnodes = 35, seed_factor = 5)
-# example_2$mean_std
-# example_2$ranks
-# example_2$bias_cal
-# example_2$transfer_functions
-# example_2$transfer_functions_together
-# example_2$PCA_output
-# example_2$parameter_values
-
-example_3 <- compare_methods(formula = MVA ~ .,
-dataset = example_dataset_1, k = 2, repeats = 5,
+example_2 <- compare_methods(formula = MVA ~ .,
+dataset = example_dataset_1, k = 2, repeats = 2,
 methods = c("MLR", "BRNN", "MT"),
 optimize = TRUE, MLR_stepwise = TRUE)
-# example_3$mean_std
-# example_3$ranks
-# example_3$bias_val
-# example_3$transfer_functions
-# example_3$transfer_functions_together
-# example_3$parameter_values
+# example_2$mean_std
+# example_2$ranks
+# example_2$bias_val
+# example_2$transfer_functions
+# example_2$transfer_functions_together
+# example_2$parameter_values
 
-library(dendroTools)
-library(ggplot2)
-data(dataset_TRW)
 comparison_TRW <- compare_methods(formula = T_Jun_Jul ~ TRW, dataset = dataset_TRW,
-k = 3, repeats = 10, optimize = FALSE, methods = c("MLR", "BRNN", "RF", "MT"),
+k = 3, repeats = 5, optimize = FALSE, methods = c("MLR", "BRNN", "RF", "MT"),
 seed_factor = 5, dataset_complete = dataset_TRW_complete, MLR_stepwise = TRUE,
 stepwise_direction = "backward")
+
 # comparison_TRW$mean_std
 # comparison_TRW$bias_val
-# comparison_TRW$transfer_functions + xlab(expression(paste('TRW'))) +
-# ylab("June-July Mean Temperature [°C]")
+# comparison_TRW$transfer_functions
 # comparison_TRW$reconstructions
 # comparison_TRW$reconstructions_together
 # comparison_TRW$edge_results

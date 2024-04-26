@@ -219,6 +219,13 @@ matrix of daily sequences of environmental data (column names).
 }
 \examples{
 \donttest{
+
+# The examples below are enclosed within donttest{} to minimize the execution
+# time during R package checks. Additionally, all examples include the
+# parameters `skip_window_length` and `skip_window_position`, which limit the
+# number of combinations evaluated in climate-growth correlation calculations.
+# To explore all possible combinations, users should set both parameters to 1.
+
 # Load the dendroTools R package
 library(dendroTools)
 
@@ -231,8 +238,7 @@ data(example_proxies_1)
 data(LJ_daily_temperatures)
 data(LJ_daily_precipitation)
 
-# 1 Basic example
-
+# 1 Basic example using the partial correlation coefficient
 example_basic <- daily_response_seascorr(response = data_MVA,
                           env_data_primary = LJ_daily_temperatures,
                           env_data_control = LJ_daily_precipitation,
@@ -250,7 +256,8 @@ example_basic <- daily_response_seascorr(response = data_MVA,
                           reference_window = "end", k = 5,
                           dc_method = "SLD",
                           day_interval = c(-100, 250),
-                          skip_window_position = 2, skip_window_length= 3,
+                          skip_window_position = 50,
+                          skip_window_length= 50
                           )
 # summary(example_basic)
 # plot(example_basic, type = 1)
@@ -272,7 +279,9 @@ example_fixed_width <- daily_response_seascorr(response = data_MVA,
                           fixed_width = 45,
                           tidy_env_data_primary = FALSE,
                           tidy_env_data_control = TRUE,
-                          reference_window = "end", skip_window_length = 3)
+                          reference_window = "end",
+                          skip_window_position = 50,
+                          skip_window_length= 50)
 
 # summary(example_fixed_width)
 # plot(example_fixed_width, type = 1)

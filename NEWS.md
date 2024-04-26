@@ -1,3 +1,7 @@
+# dendroTools 1.2.13
+* all examples have been streamlined to shorten the time required for executing R package checks
+* added detailed explanations for the necessity of using donttest{}
+
 # dendroTools 1.2.12
 * PCA option is removed from the daily_response and other similar functions
 * plot specific options is also removed

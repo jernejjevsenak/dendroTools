@@ -151,6 +151,13 @@
 #'
 #' @examples
 #' \donttest{
+#'
+#' # The examples below are enclosed within donttest{} to minimize the execution
+#' # time during R package checks. Additionally, all examples include the
+#' # parameters `skip_window_length` and `skip_window_position`, which limit the
+#' # number of combinations evaluated in climate-growth correlation calculations.
+#' # To explore all possible combinations, users should set both parameters to 1.
+#'
 #' # Load the dendroTools R package
 #' library(dendroTools)
 #'
@@ -162,7 +169,6 @@
 #' data(example_proxies_1)
 #' data(LJ_daily_temperatures)
 #'
-#'
 #' example_basic <- daily_response(response = data_MVA,
 #'                           env_data = LJ_daily_temperatures,
 #'                           row_names_subset = TRUE,
@@ -173,7 +179,8 @@
 #'                           alpha = 0.05, cor_method = "spearman",
 #'                           previous_year = FALSE, boot = TRUE,
 #'                           boot_n = 10,
-#'                           skip_window_position = 2,
+#'                           skip_window_length = 50,
+#'                           skip_window_position = 50,
 #'                           reference_window = "end", k = 5,
 #'                           dc_method = "SLD",
 #'                           day_interval = c(-100, 250))
@@ -185,8 +192,8 @@
 #'     row_names_subset = TRUE, previous_year = TRUE,
 #'     remove_insignificant = TRUE, boot = TRUE,
 #'     alpha = 0.005, aggregate_function = 'mean',
-#'     day_interval = c(-100, 250), skip_window_length = 10,
-#'     reference_window = "start", skip_window_position = 10)
+#'     day_interval = c(-100, 250), skip_window_length = 100,
+#'     reference_window = "start", skip_window_position = 100)
 #'
 #' # summary(example_daily_response)
 #' # plot(example_daily_response, type = 1)
@@ -200,8 +207,9 @@
 #'     remove_insignificant = TRUE, alpha = 0.05,
 #'     subset_years = c(1940, 1980),
 #'     fixed_width = 45,
-#'     aggregate_function = 'sum', skip_window_length = 4,
-#'     skip_window_position = 1)
+#'     aggregate_function = 'sum',
+#'     skip_window_length = 50,
+#'     skip_window_position = 50)
 #'
 #' example_MVA_late <- daily_response(response = data_MVA,
 #'     env_data = LJ_daily_temperatures,
@@ -209,24 +217,25 @@
 #'     row_names_subset = TRUE, previous_year = TRUE,
 #'     remove_insignificant = TRUE, alpha = 0.05,
 #'     subset_years = c(1981, 2010),
-#'     aggregate_function = 'sum')
+#'     skip_window_length = 50,
+#'     skip_window_position = 50)
 #'
 #' # plot(example_MVA_early, type = 1)
 #' # plot(example_MVA_late, type = 1)
 #' # plot(example_MVA_early, type = 2)
 #' # plot(example_MVA_late, type = 2)
 #'
-#' # 3 Example negative correlations
+#' # 3 Example with negative correlations
 #' example_neg_cor <- daily_response(response = data_TRW_1,
 #'     env_data = LJ_daily_temperatures, previous_year = TRUE,
 #'     method = "cor", lower_limit = 21, upper_limit = 90,
 #'     row_names_subset = TRUE, remove_insignificant = TRUE,
-#'     alpha = 0.05)
+#'     alpha = 0.05, skip_window_length = 50,
+#'     skip_window_position = 50)
 #'
 #' # summary(example_neg_cor)
 #' # plot(example_neg_cor, type = 1)
 #' # plot(example_neg_cor, type = 2)
-#' # example_neg_cor$temporal_stability
 #'
 #' # 4 Example of multiproxy analysis
 #' # summary(example_proxies_1)
@@ -237,7 +246,9 @@
 #'    method = "lm", metric = "adj.r.squared",
 #'    lower_limit = 21, upper_limit = 180,
 #'    row_names_subset = TRUE, previous_year = FALSE,
-#'    remove_insignificant = TRUE, alpha = 0.05)
+#'    remove_insignificant = TRUE, alpha = 0.05,
+#'    skip_window_length = 50,
+#'    skip_window_position = 50)
 #'
 #' # plot(example_multiproxy, type = 1)
 #'
@@ -246,15 +257,18 @@
 #'    env_data = LJ_daily_temperatures, method = "brnn",
 #'    lower_limit = 100, metric = "adj.r.squared", upper_limit = 180,
 #'    row_names_subset = TRUE, remove_insignificant = TRUE, alpha = 0.05,
-#'    temporal_stability_check = "running_window", k_running_window = 10)
+#'    temporal_stability_check = "running_window", k_running_window = 10,
+#'    skip_window_length = 50, skip_window_position = 50)
 #'
+#' # Check the results for temporal stability
 #' # example_MVA_ts$temporal_stability
 #'
 #' # 6 Example with nonlinear brnn estimation
 #' example_brnn <- daily_response(response = data_MVA,
 #'    env_data = LJ_daily_temperatures, method = "brnn", boot = FALSE,
 #'    lower_limit = 100, metric = "adj.r.squared", upper_limit = 101,
-#'    row_names_subset = TRUE, remove_insignificant = TRUE, boot_n = 10)
+#'    row_names_subset = TRUE, remove_insignificant = TRUE, boot_n = 10,
+#'    skip_window_length = 50, skip_window_position = 50)
 #'
 #' # summary(example_brnn)
 #' }
