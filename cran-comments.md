@@ -1,13 +1,13 @@
 Dear CRAN Team,
 
-This is a regular updated of the dendroTools R package.
+This is a routine update (version 1.2.14) of the dendroTools R package.
 
-There was a minor bug related to the aggregation function, which happened in extreme rare cases. This is now removed. 
+A minor bug in the aggregation function—which only occurred in extremely rare cases—has been fixed. In addition, per CRAN’s feedback, an Authors@R field has been added to DESCRIPTION.
 
 Thank you for your consideration.
 
-Best,
-Jernej
+Best regards,
+Jernej Jevsenak
 
 
 ##  Resubmission
@@ -16,9 +16,9 @@ Jernej
 ## Test environments
 * local OS X install, R 4.1.1
 
-* win-check oldrelease (https://win-builder.r-project.org/b9eog3DluMi2/00check.log)
-* win-check release (https://win-builder.r-project.org/cB0w916b3FhG/00check.log)
-* win-check devel (https://win-builder.r-project.org/BMS664tLiUhC/00check.log)
+* win-check oldrelease (https://win-builder.r-project.org/L5YTfGvWjQRI/00check.log)
+* win-check release (https://win-builder.r-project.org/qIF8a5g6fwhd/00check.log)
+* win-check devel (https://win-builder.r-project.org/UMrBwfc463BZ/00check.log)
 
 ## R CMD check results
 There were 0 ERRORs, 0 WARNINGs and 0 NOTEs
