@@ -2389,22 +2389,22 @@ daily_response <- function(response, env_data, method = "cor",
     # for the analysed period.
 
     if (aggregate_function == 'median'){
-      dataf_original <- data.frame(apply(env_data_original[, (as.numeric(plot_column) - (as.numeric(row_index) + 1):
-                                                             as.numeric(plot_column)), drop = FALSE],1 , median, na.rm = TRUE))
+      dataf_original <- data.frame(apply(env_data_original[, (as.numeric(plot_column) - as.numeric(row_index) + 1):
+                                                             (as.numeric(plot_column)), drop = FALSE],1 , median, na.rm = TRUE))
     } else if (aggregate_function == 'sum'){
-      dataf_original <- data.frame(apply(env_data_original[, (as.numeric(plot_column) - (as.numeric(row_index) + 1):
-                                                             as.numeric(plot_column)), drop = FALSE],1 , sum, na.rm = TRUE))
+      dataf_original <- data.frame(apply(env_data_original[, (as.numeric(plot_column) - as.numeric(row_index) + 1):
+                                                             (as.numeric(plot_column)), drop = FALSE],1 , sum, na.rm = TRUE))
     } else if (aggregate_function == 'mean'){
-      dataf_original <- data.frame(apply(env_data_original[, (as.numeric(plot_column) - (as.numeric(row_index) + 1):
-                                                             as.numeric(plot_column)), drop = FALSE],1 , mean, na.rm = TRUE))
+      dataf_original <- data.frame(apply(env_data_original[, (as.numeric(plot_column) - as.numeric(row_index) + 1):
+                                                             (as.numeric(plot_column)), drop = FALSE],1 , mean, na.rm = TRUE))
 
     } else if (aggregate_function == 'min'){
-      dataf_original <- data.frame(apply(env_data_original[, (as.numeric(plot_column) - (as.numeric(row_index) + 1):
-                                                                as.numeric(plot_column)), drop = FALSE],1 , min, na.rm = TRUE))
+      dataf_original <- data.frame(apply(env_data_original[, (as.numeric(plot_column) - as.numeric(row_index) + 1):
+                                                                (as.numeric(plot_column)), drop = FALSE],1 , min, na.rm = TRUE))
 
     } else if (aggregate_function == 'max'){
-      dataf_original <- data.frame(apply(env_data_original[, (as.numeric(plot_column) - (as.numeric(row_index) + 1):
-                                                                as.numeric(plot_column)), drop = FALSE],1 , max, na.rm = TRUE))
+      dataf_original <- data.frame(apply(env_data_original[, (as.numeric(plot_column) - as.numeric(row_index) + 1):
+                                                                (as.numeric(plot_column)), drop = FALSE],1 , max, na.rm = TRUE))
     } else {
       stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median or sum."))
     }
