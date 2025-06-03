@@ -16,9 +16,9 @@ Jernej
 ## Test environments
 * local OS X install, R 4.1.1
 
-* win-check oldrelease (https://win-builder.r-project.org/QMP70hMtqFqx/00check.log)
+* win-check oldrelease (https://win-builder.r-project.org/b9eog3DluMi2/00check.log)
 * win-check release (https://win-builder.r-project.org/cB0w916b3FhG/00check.log)
-* win-check devel (https://win-builder.r-project.org/O3b5AFUnNzOU/00check.log)
+* win-check devel (https://win-builder.r-project.org/BMS664tLiUhC/00check.log)
 
 ## R CMD check results
 There were 0 ERRORs, 0 WARNINGs and 0 NOTEs
