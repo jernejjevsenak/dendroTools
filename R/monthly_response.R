@@ -708,7 +708,7 @@ if (fixed_width != 0){
             tmp_pred <- predict(tmp_model)
             tmp_res <- x - tmp_pred
 
-            x <- data.frame(x = tmp_res/sd(tmp_res))
+            x <- data.frame(x = tmp_res/sd(tmp_res, na.rm = TRUE))
 
           }
 
@@ -906,7 +906,7 @@ if (fixed_width != 0){
           tmp_pred <- predict(tmp_model)
           tmp_res <- x - tmp_pred
 
-          x <- data.frame(x = tmp_res/sd(tmp_res))
+          x <- data.frame(x = tmp_res/sd(tmp_res, na.rm = TRUE))
 
         }
 
@@ -1146,7 +1146,7 @@ if (fixed_width != 0){
            tmp_pred <- predict(tmp_model)
            tmp_res <- x - tmp_pred
 
-           x <- data.frame(x = tmp_res/sd(tmp_res))
+           x <- data.frame(x = tmp_res/sd(tmp_res, na.rm = TRUE))
 
          }
 
@@ -1405,16 +1405,18 @@ if (fixed_width != 0){
         } else {
 
         x <- apply(data.frame(env_data[1:nrow(env_data), (1 + j) : (j + K)]),1 , sum, na.rm = TRUE)}
-        }
-      else if (aggregate_function == 'mean'){
+        } else if (aggregate_function == 'mean'){
 
         if (K == 1){
           x <- env_data[,K+j]
         } else {
 
         x <- rowMeans(data.frame(env_data[1:nrow(env_data), (1 + j) : (j + K)]), na.rm = T)}
+
       } else {
+
         stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median or sum."))
+
       }
 
       if (!is.null(dc_method)){
@@ -1425,7 +1427,7 @@ if (fixed_width != 0){
           tmp_pred <- predict(tmp_model)
           tmp_res <- x - tmp_pred
 
-          x <- data.frame(x = tmp_res/sd(tmp_res))
+          x <- data.frame(x = tmp_res/sd(tmp_res, na.rm = TRUE))
 
         }
 
@@ -1613,7 +1615,7 @@ if (fixed_width != 0){
             tmp_pred <- predict(tmp_model)
             tmp_res <- x - tmp_pred
 
-            x <- data.frame(x = tmp_res/sd(tmp_res))
+            x <- data.frame(x = tmp_res/sd(tmp_res, na.rm =TRUE))
 
           }
 
@@ -1852,7 +1854,7 @@ if (fixed_width != 0){
             tmp_pred <- predict(tmp_model)
             tmp_res <- x - tmp_pred
 
-            x <- data.frame(x = tmp_res/sd(tmp_res))
+            x <- data.frame(x = tmp_res/sd(tmp_res, na.rm = TRUE))
 
           }
 
@@ -2183,7 +2185,7 @@ if (fixed_width != 0){
         tmp_pred <- predict(tmp_model)
         tmp_res <- dataf - tmp_pred
 
-        dataf <- data.frame(tmp_res/sd(tmp_res))
+        dataf <- data.frame(tmp_res/sd(tmp_res, na.rm = TRUE))
 
       }
 
@@ -2224,7 +2226,7 @@ if (fixed_width != 0){
       tmp_pred <- predict(tmp_model)
       tmp_res <- dataf_full_original - tmp_pred
 
-      dataf_full_original <- data.frame(tmp_res/sd(tmp_res))
+      dataf_full_original <- data.frame(tmp_res/sd(tmp_res, na.rm = TRUE))
 
     }
 
@@ -2314,7 +2316,7 @@ if (fixed_width != 0){
           tmp_pred <- predict(tmp_model)
           tmp_res <- dataf - tmp_pred
 
-          dataf <- data.frame(tmp_res/sd(tmp_res))
+          dataf <- data.frame(tmp_res/sd(tmp_res, na.rm = TRUE))
 
         }
 
@@ -2355,7 +2357,7 @@ if (fixed_width != 0){
         tmp_pred <- predict(tmp_model)
         tmp_res <- dataf_full_original - tmp_pred
 
-        dataf_full_original <- data.frame(tmp_res/sd(tmp_res))
+        dataf_full_original <- data.frame(tmp_res/sd(tmp_res, na.rm = TRUE))
 
       }
 
@@ -2454,7 +2456,7 @@ if (fixed_width != 0){
         tmp_pred <- predict(tmp_model)
         tmp_res <- dataf - tmp_pred
 
-        dataf <- data.frame(tmp_res/sd(tmp_res))
+        dataf <- data.frame(tmp_res/sd(tmp_res, na.rm = TRUE))
 
       }
 
@@ -2492,7 +2494,7 @@ if (fixed_width != 0){
       tmp_pred <- predict(tmp_model)
       tmp_res <- dataf_full_original - tmp_pred
 
-      dataf_full_original <- data.frame(tmp_res/sd(tmp_res))
+      dataf_full_original <- data.frame(tmp_res/sd(tmp_res, na.rm = TRUE))
 
       }
 
