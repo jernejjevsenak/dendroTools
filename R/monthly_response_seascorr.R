@@ -159,11 +159,11 @@
 #' example_extended <- monthly_response_seascorr(response = data_MVA,
 #'    env_data_primary = LJ_monthly_temperatures,
 #'    env_data_control = LJ_monthly_precipitation,
-#'    row_names_subset = TRUE,
-#'    remove_insignificant = TRUE,
+#'    row_names_subset = TRUE, dc_method = "SLD",
+#'    remove_insignificant = FALSE,
 #'    aggregate_function_env_data_primary = 'mean',
 #'    aggregate_function_env_data_control = 'mean',
-#'    alpha = 0.05,
+#'    alpha = 0.05, pcor_na_use = "pairwise.complete",
 #'    reference_window = "end",
 #'    tidy_env_data_primary = FALSE,
 #'    tidy_env_data_control = TRUE)
@@ -744,11 +744,16 @@ monthly_response_seascorr <- function(response, env_data_primary, env_data_contr
 
           if (dc_method == "SLD"){
 
-          tmp_model <- lm(x1 ~ seq(1:length(x1)))
-          tmp_pred <- predict(tmp_model)
-          tmp_res <- x1 - tmp_pred
+            tmp_model <- lm(x1 ~ seq(1:length(x1)))
+            tmp_pred <- predict(tmp_model)
 
-          x1 <- data.frame(x1 = tmp_res/sd(tmp_res))
+            if (length(x1) != length(tmp_pred)) {
+              warning("Note missing values in your env_data")
+            }
+
+            tmp_res <- suppressWarnings(x1 - tmp_pred)
+
+            x1 <- data.frame(x1 = tmp_res/sd(tmp_res, na.rm = TRUE))
 
           }
 
@@ -764,9 +769,14 @@ monthly_response_seascorr <- function(response, env_data_primary, env_data_contr
 
             tmp_model <- lm(x2 ~ seq(1:length(x2)))
             tmp_pred <- predict(tmp_model)
-            tmp_res <- x2 - tmp_pred
 
-            x2 <- data.frame(x2 = tmp_res/sd(tmp_res))
+            if (length(x2) != length(tmp_pred)) {
+              warning("Note missing values in your env_data")
+            }
+
+            tmp_res <- suppressWarnings(x2 - tmp_pred)
+
+            x2 <- data.frame(x2 = tmp_res/sd(tmp_res, na.rm = TRUE))
 
           }
 
@@ -1021,9 +1031,14 @@ monthly_response_seascorr <- function(response, env_data_primary, env_data_contr
 
           tmp_model <- lm(x1 ~ seq(1:length(x1)))
           tmp_pred <- predict(tmp_model)
-          tmp_res <- x1 - tmp_pred
 
-          x1 <- data.frame(x1 = tmp_res/sd(tmp_res))
+          if (length(x1) != length(tmp_pred)) {
+            warning("Note missing values in your env_data")
+          }
+
+          tmp_res <- suppressWarnings(x1 - tmp_pred)
+
+          x1 <- data.frame(x1 = tmp_res/sd(tmp_res, na.rm = TRUE))
 
         }
 
@@ -1039,9 +1054,14 @@ monthly_response_seascorr <- function(response, env_data_primary, env_data_contr
 
           tmp_model <- lm(x2 ~ seq(1:length(x2)))
           tmp_pred <- predict(tmp_model)
-          tmp_res <- x2 - tmp_pred
 
-          x2 <- data.frame(x2 = tmp_res/sd(tmp_res))
+          if (length(x2) != length(tmp_pred)) {
+            warning("Note missing values in your env_data")
+          }
+
+          tmp_res <- suppressWarnings(x2 - tmp_pred)
+
+          x2 <- data.frame(x2 = tmp_res/sd(tmp_res, na.rm = TRUE))
 
         }
 
@@ -1529,14 +1549,26 @@ monthly_response_seascorr <- function(response, env_data_primary, env_data_contr
       x1 <- x1[,1]
       tmp_model <- lm(x1 ~ seq(1:length(x1)))
       tmp_pred <- predict(tmp_model)
-      tmp_res <- x1 - tmp_pred
-      x1 <- data.frame(x1 = tmp_res/sd(tmp_res))
+
+      if (length(x1) != length(tmp_pred)) {
+        warning("Note missing values in your env_data")
+      }
+
+      tmp_res <- suppressWarnings(x1 - tmp_pred)
+
+      x1 <- data.frame(x1 = tmp_res/sd(tmp_res, na.rm = TRUE))
 
       x2 <- x2[,1]
       tmp_model <- lm(x2 ~ seq(1:length(x2)))
       tmp_pred <- predict(tmp_model)
+
+      if (length(x2) != length(tmp_pred)) {
+        warning("Note missing values in your env_data")
+      }
+
       tmp_res <- x2 - tmp_pred
-      x2 <- data.frame(x2 = tmp_res/sd(tmp_res))
+
+      x2 <- data.frame(x2 = tmp_res/sd(tmp_res, na.rm = TRUE))
 
     }
   }
@@ -1559,14 +1591,14 @@ monthly_response_seascorr <- function(response, env_data_primary, env_data_contr
       x1_original <- x1_original[,1]
       tmp_model <- lm(x1_original ~ seq(1:length(x1_original)))
       tmp_pred <- predict(tmp_model)
-      tmp_res <- x1_original - tmp_pred
-      x1_original <- data.frame(x1_original = tmp_res/sd(tmp_res))
+      tmp_res <- suppressWarnings(x1_original - tmp_pred)
+      x1_original <- data.frame(x1_original = tmp_res/sd(tmp_res, na.rm = TRUE))
 
       x2_original <- x2_original[,1]
       tmp_model <- lm(x2_original ~ seq(1:length(x2_original)))
       tmp_pred <- predict(tmp_model)
-      tmp_res <- x2_original - tmp_pred
-      x2_original <- data.frame(x2_original = tmp_res/sd(tmp_res))
+      tmp_res <- suppressWarnings(x2_original - tmp_pred)
+      x2_original <- data.frame(x2_original = tmp_res/sd(tmp_res, na.rm = TRUE))
 
     }
   }

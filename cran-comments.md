@@ -1,8 +1,8 @@
 Dear CRAN Team,
 
-This is a routine update (version 1.2.14) of the dendroTools R package.
+This is a routine update (version 1.2.15) of the dendroTools R package.
 
-A minor bug in the aggregation function—which only occurred in extremely rare cases—has been fixed. In addition, per CRAN’s feedback, an Authors@R field has been added to DESCRIPTION.
+A minor bug in the sd() resulted in missing correlation values when detrending was applied.
 
 Thank you for your consideration.
 

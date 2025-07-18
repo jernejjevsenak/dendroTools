@@ -765,7 +765,7 @@ daily_response <- function(response, env_data, method = "cor",
             tmp_pred <- predict(tmp_model)
             tmp_res <- x - tmp_pred
 
-            x <- data.frame(x = tmp_res/sd(tmp_res))
+            x <- data.frame(x = tmp_res/sd(tmp_res, na.rm = TRUE))
 
           }
 
@@ -978,7 +978,7 @@ daily_response <- function(response, env_data, method = "cor",
           tmp_pred <- predict(tmp_model)
           tmp_res <- x - tmp_pred
 
-          x <- data.frame(x = tmp_res/sd(tmp_res))
+          x <- data.frame(x = tmp_res/sd(tmp_res, na.rm = TRUE))
 
         }
 
@@ -1230,7 +1230,7 @@ daily_response <- function(response, env_data, method = "cor",
            tmp_pred <- predict(tmp_model)
            tmp_res <- x - tmp_pred
 
-           x <- data.frame(x = tmp_res/sd(tmp_res))
+           x <- data.frame(x = tmp_res/sd(tmp_res, na.rm = TRUE))
 
          }
 
@@ -1489,7 +1489,7 @@ daily_response <- function(response, env_data, method = "cor",
         tmp_pred <- predict(tmp_model)
         tmp_res <- x - tmp_pred
 
-        x <- data.frame(x = tmp_res/sd(tmp_res))
+        x <- data.frame(x = tmp_res/sd(tmp_res, na.rm = TRUE))
 
         }
 
@@ -1663,7 +1663,7 @@ daily_response <- function(response, env_data, method = "cor",
             tmp_pred <- predict(tmp_model)
             tmp_res <- x - tmp_pred
 
-            x <- data.frame(x = tmp_res/sd(tmp_res))
+            x <- data.frame(x = tmp_res/sd(tmp_res, na.rm = TRUE))
 
           }
 
@@ -1882,7 +1882,7 @@ daily_response <- function(response, env_data, method = "cor",
             tmp_pred <- predict(tmp_model)
             tmp_res <- x - tmp_pred
 
-            x <- data.frame(x = tmp_res/sd(tmp_res))
+            x <- data.frame(x = tmp_res/sd(tmp_res, na.rm = TRUE))
 
           }
 
@@ -2223,7 +2223,7 @@ daily_response <- function(response, env_data, method = "cor",
         tmp_pred <- predict(tmp_model)
         tmp_res <- dataf - tmp_pred
 
-        dataf <- data.frame(tmp_res/sd(tmp_res))
+        dataf <- data.frame(tmp_res/sd(tmp_res, na.rm = TRUE))
 
       }
 
@@ -2276,7 +2276,7 @@ daily_response <- function(response, env_data, method = "cor",
       tmp_pred <- predict(tmp_model)
       tmp_res <- dataf_full_original - tmp_pred
 
-      dataf_full_original <- data.frame(tmp_res/sd(tmp_res))
+      dataf_full_original <- data.frame(tmp_res/sd(tmp_res, na.rm = TRUE))
 
     }
 
@@ -2375,7 +2375,7 @@ daily_response <- function(response, env_data, method = "cor",
           tmp_pred <- predict(tmp_model)
           tmp_res <- dataf - tmp_pred
 
-          dataf <- data.frame(tmp_res/sd(tmp_res))
+          dataf <- data.frame(tmp_res/sd(tmp_res, na.rm = TRUE))
 
         }
 
@@ -2420,7 +2420,7 @@ daily_response <- function(response, env_data, method = "cor",
         tmp_pred <- predict(tmp_model)
         tmp_res <- dataf_full_original - tmp_pred
 
-        dataf_full_original <- data.frame(tmp_res/sd(tmp_res))
+        dataf_full_original <- data.frame(tmp_res/sd(tmp_res, na.rm = TRUE))
 
       }
 
@@ -2531,7 +2531,7 @@ daily_response <- function(response, env_data, method = "cor",
         tmp_pred <- predict(tmp_model)
         tmp_res <- dataf - tmp_pred
 
-        dataf <- data.frame(tmp_res/sd(tmp_res))
+        dataf <- data.frame(tmp_res/sd(tmp_res, na.rm = TRUE))
 
       }
 
@@ -2583,7 +2583,7 @@ daily_response <- function(response, env_data, method = "cor",
         tmp_pred <- predict(tmp_model)
         tmp_res <- dataf_full_original - tmp_pred
 
-        dataf_full_original <- data.frame(tmp_res/sd(tmp_res))
+        dataf_full_original <- data.frame(tmp_res/sd(tmp_res, na.rm = TRUE))
 
       }
 

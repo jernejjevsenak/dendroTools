@@ -140,10 +140,10 @@
 #'
 #' # 1 Example with tidy precipitation data
 #' example_tidy_data <- monthly_response(response = data_MVA,
-#'     lower_limit = 1, upper = 24,
+#'     lower_limit = 1, upper = 24, dc_method = "SLD",
 #'     env_data = LJ_monthly_precipitation, fixed_width = 0,
 #'     method = "cor", row_names_subset = TRUE,
-#'     remove_insignificant = TRUE, previous_year = FALSE,
+#'     remove_insignificant = FALSE, previous_year = FALSE,
 #'     reference_window = "end",
 #'     alpha = 0.05, aggregate_function = 'sum', boot = FALSE,
 #'     tidy_env_data = TRUE, boot_n = 100, month_interval = c(-5, 10))
@@ -706,7 +706,12 @@ if (fixed_width != 0){
 
             tmp_model <- lm(x ~ seq(1:length(x)))
             tmp_pred <- predict(tmp_model)
-            tmp_res <- x - tmp_pred
+
+            if (length(x) != length(tmp_pred)) {
+              warning("Note missing values in your env_data")
+            }
+
+            tmp_res <- suppressWarnings(x - tmp_pred)
 
             x <- data.frame(x = tmp_res/sd(tmp_res, na.rm = TRUE))
 
@@ -904,7 +909,12 @@ if (fixed_width != 0){
 
           tmp_model <- lm(x ~ seq(1:length(x)))
           tmp_pred <- predict(tmp_model)
-          tmp_res <- x - tmp_pred
+
+          if (length(x) != length(tmp_pred)) {
+            warning("Note missing values in your env_data")
+          }
+
+          tmp_res <- suppressWarnings(x - tmp_pred)
 
           x <- data.frame(x = tmp_res/sd(tmp_res, na.rm = TRUE))
 
@@ -1144,7 +1154,12 @@ if (fixed_width != 0){
 
            tmp_model <- lm(x ~ seq(1:length(x)))
            tmp_pred <- predict(tmp_model)
-           tmp_res <- x - tmp_pred
+
+           if (length(x) != length(tmp_pred)) {
+             warning("Note missing values in your env_data")
+           }
+
+           tmp_res <- suppressWarnings(x - tmp_pred)
 
            x <- data.frame(x = tmp_res/sd(tmp_res, na.rm = TRUE))
 
@@ -1425,7 +1440,12 @@ if (fixed_width != 0){
 
           tmp_model <- lm(x ~ seq(1:length(x)))
           tmp_pred <- predict(tmp_model)
-          tmp_res <- x - tmp_pred
+
+          if (length(x) != length(tmp_pred)) {
+            warning("Note missing values in your env_data")
+          }
+
+          tmp_res <- suppressWarnings(x - tmp_pred)
 
           x <- data.frame(x = tmp_res/sd(tmp_res, na.rm = TRUE))
 
@@ -1613,9 +1633,14 @@ if (fixed_width != 0){
 
             tmp_model <- lm(x ~ seq(1:length(x)))
             tmp_pred <- predict(tmp_model)
-            tmp_res <- x - tmp_pred
 
-            x <- data.frame(x = tmp_res/sd(tmp_res, na.rm =TRUE))
+            if (length(x) != length(tmp_pred)) {
+              warning("Note missing values in your env_data")
+            }
+
+            tmp_res <- suppressWarnings(x - tmp_pred)
+
+            x <- data.frame(x = tmp_res/sd(tmp_res, na.rm = TRUE))
 
           }
 
@@ -1852,7 +1877,12 @@ if (fixed_width != 0){
 
             tmp_model <- lm(x ~ seq(1:length(x)))
             tmp_pred <- predict(tmp_model)
-            tmp_res <- x - tmp_pred
+
+            if (length(x) != length(tmp_pred)) {
+              warning("Note missing values in your env_data")
+            }
+
+            tmp_res <- suppressWarnings(x - tmp_pred)
 
             x <- data.frame(x = tmp_res/sd(tmp_res, na.rm = TRUE))
 

@@ -210,10 +210,10 @@ data(LJ_monthly_precipitation)
 
 # 1 Example with tidy precipitation data
 example_tidy_data <- monthly_response(response = data_MVA,
-    lower_limit = 1, upper = 24,
+    lower_limit = 1, upper = 24, dc_method = "SLD",
     env_data = LJ_monthly_precipitation, fixed_width = 0,
     method = "cor", row_names_subset = TRUE,
-    remove_insignificant = TRUE, previous_year = FALSE,
+    remove_insignificant = FALSE, previous_year = FALSE,
     reference_window = "end",
     alpha = 0.05, aggregate_function = 'sum', boot = FALSE,
     tidy_env_data = TRUE, boot_n = 100, month_interval = c(-5, 10))

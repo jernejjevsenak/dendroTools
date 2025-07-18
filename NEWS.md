@@ -1,3 +1,6 @@
+# dendroTools 1.2.15
+* there was a minor bug in sd(), which returned NA in case of missing values in climate data. This is now corrected and users are informed about the missing values with specific warning
+
 # dendroTools 1.2.14
 * there was a minor bug in aggregating climate-data when creatng the dataset for optimized_return
 * Authors@R field was added to DESCRIPTION 

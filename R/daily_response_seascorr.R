@@ -783,7 +783,7 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
             tmp_pred <- predict(tmp_model)
             tmp_res <- x1 - tmp_pred
 
-            x1 <- data.frame(x1 = tmp_res/sd(tmp_res))
+            x1 <- data.frame(x1 = tmp_res/sd(tmp_res, na.rm = TRUE))
 
           }
 
@@ -802,7 +802,7 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
             tmp_pred <- predict(tmp_model)
             tmp_res <- x2 - tmp_pred
 
-            x2 <- data.frame(x2 = tmp_res/sd(tmp_res))
+            x2 <- data.frame(x2 = tmp_res/sd(tmp_res, na.rm = TRUE))
 
           }
 
@@ -1095,7 +1095,7 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
           tmp_pred <- predict(tmp_model)
           tmp_res <- x1 - tmp_pred
 
-          x1 <- data.frame(x1 = tmp_res/sd(tmp_res))
+          x1 <- data.frame(x1 = tmp_res/sd(tmp_res, na.rm = TRUE))
 
         }
 
@@ -1115,7 +1115,7 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
           tmp_pred <- predict(tmp_model)
           tmp_res <- x2 - tmp_pred
 
-          x2 <- data.frame(x2 = tmp_res/sd(tmp_res))
+          x2 <- data.frame(x2 = tmp_res/sd(tmp_res, na.rm = TRUE))
 
         }
 
@@ -1731,13 +1731,13 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
       tmp_model <- lm(x1 ~ seq(1:length(x1)))
       tmp_pred <- predict(tmp_model)
       tmp_res <- x1 - tmp_pred
-      x1 <- data.frame(x1 = tmp_res/sd(tmp_res))
+      x1 <- data.frame(x1 = tmp_res/sd(tmp_res, na.rm = TRUE))
 
       x2 <- x2[,1]
       tmp_model <- lm(x2 ~ seq(1:length(x2)))
       tmp_pred <- predict(tmp_model)
       tmp_res <- x2 - tmp_pred
-      x2 <- data.frame(x2 = tmp_res/sd(tmp_res))
+      x2 <- data.frame(x2 = tmp_res/sd(tmp_res, na.rm = TRUE))
 
     }
 
@@ -1762,13 +1762,13 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
       tmp_model <- lm(x1_original ~ seq(1:length(x1_original)))
       tmp_pred <- predict(tmp_model)
       tmp_res <- x1_original - tmp_pred
-      x1_original <- data.frame(x1_original = tmp_res/sd(tmp_res))
+      x1_original <- data.frame(x1_original = tmp_res/sd(tmp_res, na.rm = TRUE))
 
       x2_original <- x2_original[,1]
       tmp_model <- lm(x2_original ~ seq(1:length(x2_original)))
       tmp_pred <- predict(tmp_model)
       tmp_res <- x2_original - tmp_pred
-      x2_original <- data.frame(x2_original = tmp_res/sd(tmp_res))
+      x2_original <- data.frame(x2_original = tmp_res/sd(tmp_res, na.rm = TRUE))
 
     }
 
