@@ -1,3 +1,6 @@
+# dendroTools 1.2.16
+* Added a new vignette describing how to use ggplot2 to modify dendroTools output plots
+
 # dendroTools 1.2.15
 * there was a minor bug in sd(), which returned NA in case of missing values in climate data. This is now corrected and users are informed about the missing values with specific warning
 

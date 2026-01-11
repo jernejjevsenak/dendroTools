@@ -1,7 +1,7 @@
 Package: dendroTools
 Type: Package
 Title: Linear and Nonlinear Methods for Analyzing Daily and Monthly Dendroclimatological Data
-Version: 1.2.15
+Version: 1.2.16
 Authors@R: 
     person(
       given  = "Jernej",

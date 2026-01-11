@@ -1,0 +1,160 @@
+---
+title: "Modify plots using ggplot"
+author: "Jernej Jevšenak"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_document
+fig_caption: yes
+
+vignette: >
+  %\VignetteIndexEntry{Modify_plots_with_ggplot}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+<style>
+body {
+text-align: justify; font-size: 16px}
+</style>
+
+
+# 1 Introduction
+
+Many functions in the **dendroTools** R package provide built-in plotting methods for quick inspection and interpretation of results. These plots are created with **ggplot2**, therefore the returned plot is a **ggplot** object. This is very convenient because users can directly modify the default dendroTools plot by adding any ggplot2 layers (themes, scales, labels, annotations, etc.) with the `+` operator.
+
+In this vignette I demonstrate a basic workflow:
+1) calculate a `daily_response()` example,  
+2) create a default plot with `plot()`,  
+3) polish the plot using ggplot2,  
+4) build a similar heatmap from scratch by extracting calculated values from the returned object.
+
+
+# 2 A basic daily_response example
+
+All data used below is included in the dendroTools package.
+
+```{r, results='hide', message=FALSE, warning=FALSE}
+# Load packages
+library(dendroTools)
+library(ggplot2)
+
+# Load example data
+data(data_MVA)
+data(LJ_daily_temperatures)
+
+# Run daily_response()
+example_basic <- daily_response(response = data_MVA,
+                                env_data = LJ_daily_temperatures, 
+                                row_names_subset = TRUE,
+                                lower_limit = 35, upper_limit = 45, 
+                                remove_insignificant = FALSE,
+                                previous_year = FALSE, 
+                                reference_window = "end")
+```
+
+
+# 3 Default plot and ggplot-based modifications
+
+The simplest way to visualize the results is to use the generic `plot()` method.
+
+```{r, fig.align='center', fig.width=10, fig.height=8, fig.cap=paste("Figure 1: Default dendroTools plot for daily_response() output."), message=FALSE, warning=FALSE, include=TRUE}
+plot(example_basic)
+```
+
+## 3.1 Polish the default plot with ggplot2
+
+Because `plot(example_basic)` returns a **ggplot** object, it can be modified directly. In this example I:
+- set a diverging colour scale and fix the limits to `-1` and `1`,  
+- apply a minimal theme,  
+- move the legend to the bottom.
+
+```{r, fig.align='center', fig.width=10, fig.height=8, fig.cap=paste("Figure 2: The same plot modified with ggplot2 layers (scale + theme)."), message=FALSE, warning=FALSE, include=TRUE}
+plot(example_basic) +
+  scale_fill_gradient2(
+    name = "cor",
+    low = "blue",
+    mid = "white",
+    high = "red",
+    na.value = "white",
+    limits = c(-1, 1) # select min-max here
+  ) +
+  theme_minimal() +
+  theme(panel.background = element_blank(),
+        plot.background = element_blank(),
+        plot.title = element_blank(),
+        legend.position = "bottom"
+        )
+```
+
+## 3.2 Additional common modifications
+
+Here is another example with renamed axis labels and rotated x-axis labels.
+
+```{r, fig.align='center', fig.width=10, fig.height=8, fig.cap=paste("Figure 3: Example with modified labels and rotated x-axis text."), message=FALSE, warning=FALSE, include=TRUE}
+plot(example_basic) +
+  scale_fill_gradient2(
+    name = "Correlation",
+    low = "blue",
+    mid = "white",
+    high = "red",
+    na.value = "white",
+    limits = c(-1, 1)
+  ) +
+  labs(x = "Season end (DOY)",
+       y = "Season length (days)") +
+  theme_bw() +
+  theme(legend.position = "bottom",
+        axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+
+# 4 Create a similar plot from scratch
+
+Sometimes you may want complete control over the plot (e.g., different geometries, custom annotations, combining multiple plots, etc.). In such cases you can extract the computed values from the returned dendroTools object and create your own plot.
+
+For `daily_response()` outputs, the calculated values are stored in `object$calculations`. The code below converts this matrix-like object to a long format suitable for `geom_tile()`.
+
+```{r, results='hide', message=FALSE, warning=FALSE}
+# Extract calculations (correlation table) from the dmrs object
+cor_mat <- example_basic$calculations
+
+# Convert matrix-like object to long format using base R
+melted <- as.data.frame(as.table(as.matrix(cor_mat)))
+colnames(melted) <- c("season_length", "season_end", "value")
+
+# Convert labels such as "X35" into numeric values (if present)
+melted$season_end  <- as.numeric(gsub("X", "", melted$season_end))
+melted$season_length <- as.numeric(gsub("X", "", melted$season_length))
+
+# Remove NA values (if any)
+melted <- melted[!is.na(melted$value), ]
+
+summary(melted)
+```
+
+```{r, fig.align='center', fig.width=10, fig.height=8, fig.cap=paste("Figure 4: Heatmap created from scratch using ggplot2 and extracted calculations."), message=FALSE, warning=FALSE, include=TRUE}
+ggplot(melted, aes(x = season_end, y = season_length, fill = value)) + 
+  geom_tile() +
+  scale_y_continuous(expand = c(0, 0)) +
+  scale_x_continuous(expand = c(0, 0)) +
+  scale_fill_gradient2(
+    name = "cor",
+    low = "blue",
+    mid = "white",
+    high = "red",
+    na.value = "white",
+    limits = c(-1, 1)
+  ) +
+  xlab("Season end") +
+  ylab("Season Length") +
+  theme_bw() +
+  theme(legend.position = "bottom")
+```
+
+
+# 5 Summary
+
+- dendroTools plotting methods return **ggplot2** objects, so plots can be modified directly using `+`.  
+- A typical workflow is to produce a default plot with `plot(object)` and then polish it with ggplot2 scales and themes.  
+- For full flexibility, the computed values can be extracted from `object$calculations` and plotted from scratch using `ggplot()` and `geom_tile()`.
+- The same principles apply to other dendroTools functions, namely `monthly_response()`, `monthly_response_seascor()`,  `daily_response_seascor()`.   
+
