@@ -17,7 +17,9 @@ daily_response_seascorr(
   alpha = 0.05,
   row_names_subset = FALSE,
   aggregate_function_env_data_primary = "mean",
+  quantile_prob_env_data_primary = 0.5,
   aggregate_function_env_data_control = "mean",
+  quantile_prob_env_data_control = 0.5,
   temporal_stability_check = "sequential",
   k = 2,
   k_running_window = 30,
@@ -90,13 +92,21 @@ all three data frames are kept.}
 
 \item{aggregate_function_env_data_primary}{character string specifying how the
 daily data from env_data_primary should be aggregated. The default is 'mean',
-the other options are 'median', 'sum', 'min' and 'max'}
+the other options are 'median', 'sum', 'min', 'max' and 'quantile'.}
+
+\item{quantile_prob_env_data_primary}{numeric value between 0 and 1 specifying
+the quantile probability used when aggregate_function_env_data_primary =
+'quantile'. For example, 0.95 calculates the 95th percentile. The default is 0.5.}
 
 \item{aggregate_function_env_data_control}{character string specifying how the
 daily data from env_data_control should be aggregated. The default is 'mean',
-the other options are 'median', 'sum', 'min' and 'max'}
+the other options are 'median', 'sum', 'min', 'max' and 'quantile'.}
 
-\item{temporal_stability_check}{character string, specifying, how temporal stability
+\item{quantile_prob_env_data_control}{numeric value between 0 and 1 specifying
+the quantile probability used when aggregate_function_env_data_control =
+'quantile'. For example, 0.95 calculates the 95th percentile. The default is 0.5.}
+
+\item{temporal_stability_check}{character string, specifying how temporal stability
 between the optimal selection and response variable(s) will be analysed. Current
 possibilities are "sequential", "progressive" and "running_window". Sequential check
 will split data into k splits and calculate selected metric for each split. Progressive
@@ -289,5 +299,22 @@ example_fixed_width <- daily_response_seascorr(response = data_MVA,
 # example_fixed_width$optimized_return
 # example_fixed_width$optimized_return_all
 
+
+# 3 Example using quantiles for primary and control variables
+example_quantile <- daily_response_seascorr(
+  response = data_MVA,
+  env_data_primary = LJ_daily_temperatures,
+  env_data_control = LJ_daily_precipitation,
+  row_names_subset = TRUE,
+  fixed_width = 30,
+  previous_year = TRUE,
+  aggregate_function_env_data_primary = "quantile",
+  quantile_prob_env_data_primary = 0.95,
+  aggregate_function_env_data_control = "quantile",
+  quantile_prob_env_data_control = 0.95,
+  tidy_env_data_primary = FALSE,
+  tidy_env_data_control = TRUE,
+  skip_window_position = 50
+)
 }
 }

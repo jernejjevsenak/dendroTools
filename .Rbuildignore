@@ -10,3 +10,5 @@
 ^README-.*\.png$
 ^revdep$
 ^CRAN-SUBMISSION$
+^\.positai$
+^\.claude$

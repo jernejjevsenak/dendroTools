@@ -50,7 +50,10 @@
 #' kept.
 #' @param aggregate_function character string specifying how the daily data
 #' should be aggregated. The default is 'mean', the other options are 'median',
-#' 'sum', 'min' and 'max'
+#' 'sum', 'min', 'max' and 'quantile'.
+#' @param quantile_prob numeric value between 0 and 1 specifying the quantile
+#' probability used when aggregate_function = 'quantile'. For example,
+#' quantile_prob = 0.95 calculates the 95th percentile. The default is 0.5.
 #' @param temporal_stability_check character string, specifying, how temporal stability
 #' between the optimal selection and response variable(s) will be analysed. Current
 #' possibilities are "sequential", "progressive" and "running_window". Sequential check
@@ -271,6 +274,20 @@
 #'    skip_window_length = 50, skip_window_position = 50)
 #'
 #' # summary(example_brnn)
+#'
+#' # Example using quantiles for the aggregation
+#' example_q95 <- daily_response(
+#' response = data_MVA,
+#' env_data = LJ_daily_temperatures,
+#' method = "cor",
+#' fixed_width = 30,
+#' row_names_subset = TRUE,
+#' previous_year = TRUE,
+#' aggregate_function = "quantile",
+#' quantile_prob = 0.95
+#' )
+#'
+#'
 #' }
 
 daily_response <- function(response, env_data, method = "cor",
@@ -280,6 +297,7 @@ daily_response <- function(response, env_data, method = "cor",
                            brnn_smooth = TRUE, remove_insignificant = FALSE,
                            alpha = .05, row_names_subset = FALSE,
                            aggregate_function = 'mean',
+                           quantile_prob = 0.5,
                            temporal_stability_check = "sequential", k = 2,
                            k_running_window = 30, cross_validation_type = "blocked",
                            subset_years = NULL,
@@ -408,6 +426,62 @@ daily_response <- function(response, env_data, method = "cor",
 
  temporal_matrix_lower <- NULL
  temporal_matrix_upper <- NULL
+
+ # Check selected aggregation function
+ allowed_aggregate_functions <- c("mean", "median", "sum", "min", "max", "quantile")
+
+ if (!(aggregate_function %in% allowed_aggregate_functions)) {
+   stop(paste0(
+     "aggregate_function is '", aggregate_function,
+     "'. Instead it should be one of: ",
+     paste(allowed_aggregate_functions, collapse = ", "), "."
+   ))
+ }
+
+ # Check quantile probability
+ if (!is.numeric(quantile_prob) ||
+     length(quantile_prob) != 1 ||
+     is.na(quantile_prob) ||
+     quantile_prob < 0 ||
+     quantile_prob > 1) {
+   stop("quantile_prob must be a single numeric value between 0 and 1.")
+ }
+
+ # Internal helper for aggregating daily data across rows
+ aggregate_daily_window <- function(x) {
+
+   x <- data.frame(x)
+
+   if (aggregate_function == "mean") {
+     return(rowMeans(x, na.rm = TRUE))
+   }
+
+   if (aggregate_function == "median") {
+     return(apply(x, 1, median, na.rm = TRUE))
+   }
+
+   if (aggregate_function == "sum") {
+     return(apply(x, 1, sum, na.rm = TRUE))
+   }
+
+   if (aggregate_function == "min") {
+     return(apply(x, 1, min, na.rm = TRUE))
+   }
+
+   if (aggregate_function == "max") {
+     return(apply(x, 1, max, na.rm = TRUE))
+   }
+
+   if (aggregate_function == "quantile") {
+     return(apply(
+       x, 1, quantile,
+       probs = quantile_prob,
+       na.rm = TRUE,
+       names = FALSE,
+       type = 7
+     ))
+   }
+ }
 
  # If there is a column name samp.depth in response data frame, warning is given
  if ("samp.depth" %in% colnames(response)){
@@ -703,59 +777,9 @@ daily_response <- function(response, env_data, method = "cor",
 
         b = b + 1
 
-        if (aggregate_function == 'median'){
-
-          if (fixed_width == 1){
-            x <- env_data[1:nrow(env_data), (1 + j): (j + fixed_width)]
-          } else {
-
-          x <- apply(data.frame(env_data[1:nrow(env_data),
-                                 (1 + j): (j + fixed_width)]),1 , median, na.rm = TRUE)
-          }
-        } else if (aggregate_function == 'sum'){
-
-          if (fixed_width == 1){
-            x <- env_data[1:nrow(env_data), (1 + j): (j + fixed_width)]
-          } else {
-
-          x <- apply(data.frame(env_data[1:nrow(env_data),
-                              (1 + j): (j + fixed_width)]),1 , sum, na.rm = TRUE)
-        }
-        } else if (aggregate_function == 'mean'){
-
-          if (fixed_width == 1){
-            x <- env_data[1:nrow(env_data), (1 + j): (j + fixed_width)]
-          } else {
-          x <- rowMeans(data.frame(env_data[1:nrow(env_data),
-                                 (1 + j): (j + fixed_width)]), na.rm = TRUE)
-        }
-          } else if (aggregate_function == 'min'){
-
-            if (fixed_width == 1){
-
-                x <- env_data[1:nrow(env_data), (1 + j): (j + fixed_width)]
-
-                } else {
-
-                x <- apply(data.frame(env_data[1:nrow(env_data),
-                     (1 + j): (j + fixed_width)]),1 , min, na.rm = TRUE) }
-       } else if (aggregate_function == 'max'){
-
-             if (fixed_width == 1){
-
-               x <- env_data[1:nrow(env_data), (1 + j): (j + fixed_width)]
-
-             } else {
-
-               x <- apply(data.frame(env_data[1:nrow(env_data),
-                                              (1 + j): (j + fixed_width)]),1 , max, na.rm = TRUE)
-      }
-
-      } else {
-
-          stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median, sum, min or max."))
-
-          }
+        x <- aggregate_daily_window(
+          env_data[1:nrow(env_data), (1 + j):(j + fixed_width), drop = FALSE]
+        )
 
         if (!is.null(dc_method)){
 
@@ -783,7 +807,7 @@ daily_response <- function(response, env_data, method = "cor",
 
         if (boot == FALSE){
 
-          temporal_correlation <- cor(response[, 1], x[, 1], method = cor_method)
+          temporal_correlation <- cor(response[, 1], x[, 1], method = cor_method, use = cor_na_use)
           temporal_lower <- NA
           temporal_upper <- NA
 
@@ -918,57 +942,9 @@ daily_response <- function(response, env_data, method = "cor",
 
       b = b + 1
 
-      if (aggregate_function == 'median'){
-
-        if (fixed_width == 1){
-          x <- env_data[1:nrow(env_data), (1 + j): (j + fixed_width)]
-        } else {
-
-        x <- apply(env_data[1:nrow(env_data),
-                               (1 + j) : (j + fixed_width)],1 , median, na.rm = TRUE)
-        }
-      } else if (aggregate_function == 'sum'){
-
-        if (fixed_width == 1){
-          x <- env_data[1:nrow(env_data), (1 + j) : (j + fixed_width)]
-        } else {
-        x <- apply(env_data[1:nrow(env_data),
-                            (1 + j) : (j + fixed_width)],1 , median, na.rm = TRUE)
-        }
-      } else if (aggregate_function == 'mean'){
-
-        if (fixed_width == 1){
-          x <- env_data[1:nrow(env_data), (1 + j): (j + fixed_width)]
-        } else {
-
-        x <- rowMeans(env_data[1:nrow(env_data),
-                               (1 + j) : (j + fixed_width)], na.rm = TRUE)
-        }
-      } else if (aggregate_function == 'min'){
-
-        if (fixed_width == 1){
-
-          x <- env_data[1:nrow(env_data), (1 + j) : (j + fixed_width)]
-
-        } else {
-
-          x <- apply(data.frame(env_data[1:nrow(env_data),
-                                         (1 + j) : (j + fixed_width)]),1 , min, na.rm = TRUE) }
-      } else if (aggregate_function == 'max'){
-
-          if (fixed_width == 1){
-
-            x <- env_data[1:nrow(env_data), (1 + j): (j + fixed_width)]
-
-          } else {
-
-            x <- apply(data.frame(env_data[1:nrow(env_data),
-                                           (1 + j): (j + fixed_width)]),1 , max, na.rm = TRUE)
-
-          }
-        } else {
-        stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median, sum, min or max."))
-      }
+      x <- aggregate_daily_window(
+        env_data[1:nrow(env_data), (1 + j):(j + fixed_width), drop = FALSE]
+      )
 
       if (!is.null(dc_method)){
 
@@ -1174,53 +1150,9 @@ daily_response <- function(response, env_data, method = "cor",
 
        b = b + 1
 
-        if (aggregate_function == 'median'){
-
-          if (fixed_width == 1){
-            x <- env_data[1:nrow(env_data), (1 + j): (j + fixed_width)]
-          } else {
-          x <- apply(env_data[1:nrow(env_data),
-                                (1 + j): (j + fixed_width)],1 , median, na.rm = TRUE)
-          }
-        } else if (aggregate_function == 'sum'){
-          if (fixed_width == 1){
-            x <- env_data[1:nrow(env_data), (1 + j): (j + fixed_width)]
-          } else {
-          x <- apply(env_data[1:nrow(env_data),
-                              (1 + j): (j + fixed_width)],1 , sum, na.rm = TRUE)
-}
-       } else if (aggregate_function == 'mean') {
-         if (fixed_width == 1){
-           x <- env_data[1:nrow(env_data), (1 + j): (j + fixed_width)]
-         } else {
-
-         x <- rowMeans(env_data[1:nrow(env_data),
-                                (1 + j): (j + fixed_width)], na.rm = TRUE)
-         }
-       } else if (aggregate_function == 'min'){
-
-         if (fixed_width == 1){
-
-           x <- env_data[1:nrow(env_data), (1 + j): (j + fixed_width)]
-
-         } else {
-
-           x <- apply(data.frame(env_data[1:nrow(env_data),
-                                          (1 + j): (j + fixed_width)]),1 , min, na.rm = TRUE) }
-       } else if (aggregate_function == 'max'){
-
-           if (fixed_width == 1){
-
-             x <- env_data[1:nrow(env_data), (1 + j): (j + fixed_width)]
-
-           } else {
-
-             x <- apply(data.frame(env_data[1:nrow(env_data),
-                                            (1 + j): (j + fixed_width)]),1 , max, na.rm = TRUE)}
-
-           } else {
-         stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median, sum, min or max."))
-       }
+       x <- aggregate_daily_window(
+         env_data[1:nrow(env_data), (1 + j):(j + fixed_width), drop = FALSE]
+       )
 
        if (!is.null(dc_method)){
 
@@ -1467,19 +1399,9 @@ daily_response <- function(response, env_data, method = "cor",
 
     for (j in seq((0 + offset_start -1), (ncol(env_data) - max((K + offset_end), offset_end)), by = skip_window_position)) {
 
-       if (aggregate_function == 'median'){
-        x <- apply(data.frame(env_data[1:nrow(env_data), (1 + j) : (j + K)]),1 , median, na.rm = TRUE)
-      } else if (aggregate_function == 'sum'){
-        x <- apply(data.frame(env_data[1:nrow(env_data), (1 + j) : (j + K)]),1 , sum, na.rm = TRUE)
-      } else if (aggregate_function == 'mean'){
-        x <- rowMeans(data.frame(env_data[1:nrow(env_data), (1 + j) : (j + K)]), na.rm = TRUE)
-      } else if(aggregate_function == 'min'){
-        x <- apply(data.frame(env_data[1:nrow(env_data), (1 + j) : (j + K)]),1 , min, na.rm = TRUE)
-      } else if (aggregate_function == 'max'){
-        x <- apply(data.frame(env_data[1:nrow(env_data), (1 + j) : (j + K)]),1 , max, na.rm = TRUE)
-      } else {
-        stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median, sum, min or max."))
-      }
+      x <- aggregate_daily_window(
+        env_data[1:nrow(env_data), (1 + j):(j + K), drop = FALSE]
+      )
 
       if (!is.null(dc_method)){
 
@@ -1641,19 +1563,9 @@ daily_response <- function(response, env_data, method = "cor",
       for (j in seq((0 + offset_start -1), (ncol(env_data) - max((K + offset_end), offset_end)), by = skip_window_position)) {
 
 
-        if (aggregate_function == 'median'){
-          x <- apply(data.frame(env_data[1:nrow(env_data), (1 + j) : (j + K)]),1 , median, na.rm = TRUE)
-        } else if (aggregate_function == 'sum'){
-          x <- apply(data.frame(env_data[1:nrow(env_data), (1 + j) : (j + K)]),1 , sum, na.rm = TRUE)
-        } else if (aggregate_function == 'mean'){
-          x <- rowMeans(data.frame(env_data[1:nrow(env_data), (1 + j) : (j + K)]), na.rm = TRUE)
-        } else if(aggregate_function == 'min'){
-          x <- apply(data.frame(env_data[1:nrow(env_data), (1 + j) : (j + K)]),1 , min, na.rm = TRUE)
-        } else if (aggregate_function == 'max'){
-          x <- apply(data.frame(env_data[1:nrow(env_data), (1 + j) : (j + K)]),1 , max, na.rm = TRUE)
-        } else {
-          stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median, sum, min or max."))
-        }
+        x <- aggregate_daily_window(
+          env_data[1:nrow(env_data), (1 + j):(j + K), drop = FALSE]
+        )
 
         if (!is.null(dc_method)){
 
@@ -1860,19 +1772,9 @@ daily_response <- function(response, env_data, method = "cor",
 
       for (j in seq((0 + offset_start -1), (ncol(env_data) - max((K + offset_end), offset_end)), by = skip_window_position)) {
 
-        if (aggregate_function == 'median'){
-          x <- apply(data.frame(env_data[1:nrow(env_data), (1 + j) : (j + K)]),1 , median, na.rm = TRUE)
-        } else if (aggregate_function == 'sum'){
-          x <- apply(data.frame(env_data[1:nrow(env_data), (1 + j) : (j + K)]),1 , sum, na.rm = TRUE)
-        } else if (aggregate_function == 'mean'){
-          x <- rowMeans(data.frame(env_data[1:nrow(env_data), (1 + j) : (j + K)]), na.rm = TRUE)
-        } else if(aggregate_function == 'min'){
-          x <- apply(data.frame(env_data[1:nrow(env_data), (1 + j) : (j + K)]),1 , min, na.rm = TRUE)
-        } else if (aggregate_function == 'max'){
-          x <- apply(data.frame(env_data[1:nrow(env_data), (1 + j) : (j + K)]),1 , max, na.rm = TRUE)
-        } else {
-          stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median, sum, min or max."))
-        }
+        x <- aggregate_daily_window(
+          env_data[1:nrow(env_data), (1 + j):(j + K), drop = FALSE]
+        )
 
         if (!is.null(dc_method)){
 
@@ -2183,355 +2085,134 @@ daily_response <- function(response, env_data, method = "cor",
   # option 1: reference window = "start"
   if (reference_window == 'start'){
 
-
-
-  if (aggregate_function == 'median'){
-    dataf <- data.frame(apply(data.frame(env_data[, as.numeric(plot_column):
-                                            (as.numeric(plot_column) +
-                                               as.numeric(row_index) - 1)]),1 , median, na.rm = TRUE))
-
-  } else if (aggregate_function == 'sum'){
-    dataf <- data.frame(apply(data.frame(env_data[, as.numeric(plot_column):
-                                         (as.numeric(plot_column) +
-                                            as.numeric(row_index) - 1)]),1 , sum, na.rm = TRUE))
-
-  } else if (aggregate_function == 'mean'){
-    dataf <- data.frame(rowMeans(data.frame(env_data[, as.numeric(plot_column):
-                                            (as.numeric(plot_column) +
-                                               as.numeric(row_index) - 1)]),
-                                 na.rm = TRUE))
-
-  } else if (aggregate_function == 'min'){
-    dataf <- data.frame(apply(data.frame(env_data[, as.numeric(plot_column):
-                                                    (as.numeric(plot_column) +
-                                                       as.numeric(row_index) - 1)]),1 , min, na.rm = TRUE))
-  } else if (aggregate_function == 'max'){
-    dataf <- data.frame(apply(data.frame(env_data[, as.numeric(plot_column):
-                                                    (as.numeric(plot_column) +
-                                                       as.numeric(row_index) - 1)]),1 , max, na.rm = TRUE))
-  } else {
-    stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median, sum, min or max."))
-  }
+    dataf <- data.frame(aggregate_daily_window(
+      env_data[, as.numeric(plot_column):
+                 (as.numeric(plot_column) + as.numeric(row_index) - 1),
+               drop = FALSE]
+    ))
 
     # if detrending was applied, should also be applied here
     if (!is.null(dc_method)){
 
       if (dc_method == "SLD"){
 
-        dataf <- as.numeric(dataf[,1])
+        dataf <- as.numeric(dataf[, 1])
         tmp_model <- lm(dataf ~ seq(1:length(dataf)))
         tmp_pred <- predict(tmp_model)
         tmp_res <- dataf - tmp_pred
 
-        dataf <- data.frame(tmp_res/sd(tmp_res, na.rm = TRUE))
+        dataf <- data.frame(tmp_res / sd(tmp_res, na.rm = TRUE))
 
       }
 
     }
 
-  dataf_full <- cbind(response, dataf)
-  colnames(dataf_full)[ncol(dataf_full)] <- "Optimized_return"
-  colnames(dataf) <- "Optimized.rowNames"
+    dataf_full <- cbind(response, dataf)
+    colnames(dataf_full)[ncol(dataf_full)] <- "Optimized_return"
+    colnames(dataf) <- "Optimized.rowNames"
 
-  ## Once again, the same procedure, to get the optimal sequence, but this time for whole data, not only
-  # for the analysed period.
+    ## Once again, the same procedure, to get the optimal sequence, but this time for whole data, not only
+    # for the analysed period.
 
-  if (aggregate_function == 'median'){
-    dataf_original <- data.frame(apply(data.frame(env_data_original[, as.numeric(plot_column):
-                                         (as.numeric(plot_column) +
-                                            as.numeric(row_index) - 1), drop = FALSE]),1 , median, na.rm = TRUE))
-  } else if (aggregate_function == 'sum'){
-    dataf_original <- data.frame(apply(data.frame(env_data_original[, as.numeric(plot_column):
-                                                           (as.numeric(plot_column) +
-                                                              as.numeric(row_index) - 1), drop = FALSE]),1 , sum, na.rm = TRUE))
-  } else if (aggregate_function == 'mean'){
-    dataf_original <- data.frame(rowMeans(data.frame(env_data_original[, as.numeric(plot_column):
-                                            (as.numeric(plot_column) +
-                                               as.numeric(row_index) - 1), drop = FALSE]),
-                                 na.rm = TRUE))
+    dataf_original <- data.frame(aggregate_daily_window(
+      env_data_original[, as.numeric(plot_column):
+                          (as.numeric(plot_column) + as.numeric(row_index) - 1),
+                        drop = FALSE]
+    ))
 
-  } else if (aggregate_function == 'min'){
-    dataf_original <- data.frame(apply(data.frame(env_data_original[, as.numeric(plot_column):
-                                                                      (as.numeric(plot_column) +
-                                                                         as.numeric(row_index) - 1), drop = FALSE]),1 , min, na.rm = TRUE))
+    dataf_full_original <- dataf_original
 
-  } else if (aggregate_function == 'max'){
-    dataf_original <- data.frame(apply(data.frame(env_data_original[, as.numeric(plot_column):
-                                                                      (as.numeric(plot_column) +
-                                                                         as.numeric(row_index) - 1), drop = FALSE]),1 , max, na.rm = TRUE))
+    if (!is.null(dc_method)){
 
-  } else {
-    stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median, sum, min or max."))
-  }
+      if (dc_method == "SLD"){
 
-  dataf_full_original <- dataf_original
+        dataf_full_original <- as.numeric(dataf_full_original[, 1])
+        tmp_model <- lm(dataf_full_original ~ seq(1:length(dataf_full_original)))
+        tmp_pred <- predict(tmp_model)
+        tmp_res <- dataf_full_original - tmp_pred
 
-  if (!is.null(dc_method)){
+        dataf_full_original <- data.frame(tmp_res / sd(tmp_res, na.rm = TRUE))
 
-
-    if (dc_method == "SLD"){
-
-      dataf_full_original <- as.numeric(dataf_full_original[,1])
-      tmp_model <- lm(dataf_full_original ~ seq(1:length(dataf_full_original)))
-      tmp_pred <- predict(tmp_model)
-      tmp_res <- dataf_full_original - tmp_pred
-
-      dataf_full_original <- data.frame(tmp_res/sd(tmp_res, na.rm = TRUE))
+      }
 
     }
 
-  }
+    colnames(dataf_full_original) <- "Optimized_return"
+    colnames(dataf) <- "Optimized.rowNames"
 
-  colnames(dataf_full_original) <- "Optimized_return"
-  colnames(dataf) <- "Optimized.rowNames"
+    # Additional check: (we should get the same metric as before in the loop)
+    if (method == "lm" & metric == "r.squared"){
+      temporal_df <- data.frame(cbind(dataf, response))
+      temporal_model <- lm(Optimized.rowNames ~ ., data = temporal_df)
+      temporal_summary <- summary(temporal_model)
+      optimized_result <- temporal_summary$r.squared
+    }
 
+    if (method == "lm" & metric == "adj.r.squared"){
+      temporal_df <- data.frame(cbind(dataf, response))
+      temporal_model <- lm(Optimized.rowNames ~ ., data = temporal_df)
+      temporal_summary <- summary(temporal_model)
+      optimized_result <- temporal_summary$adj.r.squared
+    }
 
-
-  # Additional check: (we should get the same metric as before in the loop)
-  if (method == "lm" & metric == "r.squared"){
-    temporal_df <- data.frame(cbind(dataf, response))
-    temporal_model <- lm(Optimized.rowNames ~ ., data = temporal_df)
-    temporal_summary <- summary(temporal_model)
-    optimized_result <- temporal_summary$r.squared
-  }
-
-  if (method == "lm" & metric == "adj.r.squared"){
-    temporal_df <- data.frame(cbind(dataf, response))
-    temporal_model <- lm(Optimized.rowNames ~ ., data = temporal_df)
-    temporal_summary <- summary(temporal_model)
-    optimized_result <- temporal_summary$adj.r.squared
-  }
-
-  if (method == "brnn" & metric == "r.squared"){
-    temporal_df <- data.frame(cbind(dataf, response))
-    capture.output(temporal_model <- brnn(Optimized.rowNames ~ ., data = temporal_df,
-                           neurons = neurons, tol = 1e-6))
-    temporal_predictions <- try(predict.brnn(temporal_model,
-                                             temporal_df), silent = TRUE)
-    optimized_result <- 1 - (sum((temporal_df[, 1] -
-                                    temporal_predictions) ^ 2) /
+    if (method == "brnn" & metric == "r.squared"){
+      temporal_df <- data.frame(cbind(dataf, response))
+      capture.output(temporal_model <- brnn(Optimized.rowNames ~ ., data = temporal_df,
+                                            neurons = neurons, tol = 1e-6))
+      temporal_predictions <- try(predict.brnn(temporal_model,
+                                               temporal_df), silent = TRUE)
+      optimized_result <- 1 - (sum((temporal_df[, 1] -
+                                      temporal_predictions) ^ 2) /
                                  sum((temporal_df[, 1] -
                                         mean(temporal_df[, 1])) ^ 2))
+    }
+
+    if (method == "brnn" & metric == "adj.r.squared"){
+      temporal_df <- data.frame(cbind(dataf, response))
+      capture.output(temporal_model <- brnn(Optimized.rowNames ~ .,
+                                            data = temporal_df, neurons = neurons, tol = 1e-6))
+      temporal_predictions <- try(predict.brnn(temporal_model, temporal_df),
+                                  silent = TRUE)
+      temporal_r_squared <- 1 - (sum((temporal_df[, 1] -
+                                        temporal_predictions) ^ 2) /
+                                   sum((temporal_df[, 1] -
+                                          mean(temporal_df[, 1])) ^ 2))
+      optimized_result <- 1 - ((1 - temporal_r_squared) *
+                                 ((nrow(temporal_df) - 1)) /
+                                 (nrow(temporal_df) -
+                                    ncol(as.data.frame(response[, 1])) - 1))
+    }
+
+    if (method == "cor"){
+      optimized_result <- cor(dataf, response, method = cor_method, use = cor_na_use)
+    }
+
+    # Just give a nicer colname
+    colnames(dataf) <- "Optimized return"
+
   }
 
-  if (method == "brnn" & metric == "adj.r.squared"){
-    temporal_df <- data.frame(cbind(dataf, response))
-    capture.output(temporal_model <- brnn(Optimized.rowNames ~ .,
-                           data = temporal_df, neurons = neurons, tol = 1e-6))
-    temporal_predictions <- try(predict.brnn(temporal_model, temporal_df),
-                                silent = TRUE)
-    temporal_r_squared <- 1 - (sum((temporal_df[, 1] -
-                                      temporal_predictions) ^ 2) /
-                               sum((temporal_df[, 1] -
-                                      mean(temporal_df[, 1])) ^ 2))
-    optimized_result <- 1 - ((1 - temporal_r_squared) *
-                                     ((nrow(temporal_df) - 1)) /
-                               (nrow(temporal_df) -
-                                  ncol(as.data.frame(response[, 1])) - 1))
-  }
-
-  if (method == "cor"){
-    optimized_result <- cor(dataf, response,  method = cor_method, use = cor_na_use)
-  }
-
-  # Just give a nicer colmname
-  colnames(dataf) <- "Optimized return"
-
-  }
 
   # Option 2: reference window = "end"
-    if (reference_window == 'end'){
+  if (reference_window == 'end'){
 
-    if (aggregate_function == 'median'){
-      dataf <- data.frame(apply(env_data[, (as.numeric(plot_column) - as.numeric(row_index) + 1):
-                                           (as.numeric(plot_column)), drop = FALSE],1 , median, na.rm = TRUE))
-    } else if (aggregate_function == 'sum'){
-      dataf <- data.frame(apply(env_data[, (as.numeric(plot_column) - as.numeric(row_index) + 1):
-                                           (as.numeric(plot_column)), drop = FALSE],1 , sum, na.rm = TRUE))
-
-    } else if (aggregate_function == 'mean'){
-      dataf <- data.frame(apply(env_data[, (as.numeric(plot_column) - as.numeric(row_index) + 1):
-                                           (as.numeric(plot_column)), drop = FALSE],1 , mean, na.rm = TRUE))
-
-    } else if (aggregate_function == 'min'){
-      dataf <- data.frame(apply(env_data[, (as.numeric(plot_column) - as.numeric(row_index) + 1):
-                                           (as.numeric(plot_column)), drop = FALSE],1 , min, na.rm = TRUE))
-
-    } else if (aggregate_function == 'max'){
-      dataf <- data.frame(apply(env_data[, (as.numeric(plot_column) - as.numeric(row_index) + 1):
-                                           (as.numeric(plot_column)), drop = FALSE],1 , max, na.rm = TRUE))
-
-    } else {
-      stop(paste0("gate function is ", aggregate_function, ". Instead it should be mean, median, sum, min or max."))
-    }
-
-      # if detrending was applied, should also be applied here
-      if (!is.null(dc_method)){
-
-        if (dc_method == "SLD"){
-
-          dataf <- as.numeric(dataf[,1])
-          tmp_model <- lm(dataf ~ seq(1:length(dataf)))
-          tmp_pred <- predict(tmp_model)
-          tmp_res <- dataf - tmp_pred
-
-          dataf <- data.frame(tmp_res/sd(tmp_res, na.rm = TRUE))
-
-        }
-
-      }
-
-    dataf_full <- cbind(response, dataf)
-    colnames(dataf_full)[ncol(dataf_full)] <- "Optimized_return"
-    colnames(dataf) <- "Optimized.rowNames"
-
-    ## Once again, the same procedure, to get the optimal sequence, but this time for whole data, not only
-    # for the analysed period.
-
-    if (aggregate_function == 'median'){
-      dataf_original <- data.frame(apply(env_data_original[, (as.numeric(plot_column) - as.numeric(row_index) + 1):
-                                                             (as.numeric(plot_column)), drop = FALSE],1 , median, na.rm = TRUE))
-    } else if (aggregate_function == 'sum'){
-      dataf_original <- data.frame(apply(env_data_original[, (as.numeric(plot_column) - as.numeric(row_index) + 1):
-                                                             (as.numeric(plot_column)), drop = FALSE],1 , sum, na.rm = TRUE))
-    } else if (aggregate_function == 'mean'){
-      dataf_original <- data.frame(apply(env_data_original[, (as.numeric(plot_column) - as.numeric(row_index) + 1):
-                                                             (as.numeric(plot_column)), drop = FALSE],1 , mean, na.rm = TRUE))
-
-    } else if (aggregate_function == 'min'){
-      dataf_original <- data.frame(apply(env_data_original[, (as.numeric(plot_column) - as.numeric(row_index) + 1):
-                                                                (as.numeric(plot_column)), drop = FALSE],1 , min, na.rm = TRUE))
-
-    } else if (aggregate_function == 'max'){
-      dataf_original <- data.frame(apply(env_data_original[, (as.numeric(plot_column) - as.numeric(row_index) + 1):
-                                                                (as.numeric(plot_column)), drop = FALSE],1 , max, na.rm = TRUE))
-    } else {
-      stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median or sum."))
-    }
-
-    dataf_full_original <- dataf_original
-
-    if (!is.null(dc_method)){
-
-      if (dc_method == "SLD"){
-
-        dataf_full_original <- as.numeric(dataf_full_original[,1])
-        tmp_model <- lm(dataf_full_original ~ seq(1:length(dataf_full_original)))
-        tmp_pred <- predict(tmp_model)
-        tmp_res <- dataf_full_original - tmp_pred
-
-        dataf_full_original <- data.frame(tmp_res/sd(tmp_res, na.rm = TRUE))
-
-      }
-
-    }
-
-    colnames(dataf_full_original) <- "Optimized_return"
-    colnames(dataf) <- "Optimized.rowNames"
-
-    # Additional check: (we should get the same metric as before in the loop)
-    if (method == "lm" & metric == "r.squared"){
-      temporal_df <- data.frame(cbind(dataf, response))
-      temporal_model <- lm(Optimized.rowNames ~ ., data = temporal_df)
-      temporal_summary <- summary(temporal_model)
-      optimized_result <- temporal_summary$r.squared
-    }
-
-    if (method == "lm" & metric == "adj.r.squared"){
-      temporal_df <- data.frame(cbind(dataf, response))
-      temporal_model <- lm(Optimized.rowNames ~ ., data = temporal_df)
-      temporal_summary <- summary(temporal_model)
-      optimized_result <- temporal_summary$adj.r.squared
-    }
-
-    if (method == "brnn" & metric == "r.squared"){
-      temporal_df <- data.frame(cbind(dataf, response))
-      capture.output(temporal_model <- brnn(Optimized.rowNames ~ ., data = temporal_df,
-                                            neurons = neurons, tol = 1e-6))
-      temporal_predictions <- try(predict.brnn(temporal_model,
-                                               temporal_df), silent = TRUE)
-      optimized_result <- 1 - (sum((temporal_df[, 1] -
-                                      temporal_predictions) ^ 2) /
-                                 sum((temporal_df[, 1] -
-                                        mean(temporal_df[, 1])) ^ 2))
-    }
-
-    if (method == "brnn" & metric == "adj.r.squared"){
-      temporal_df <- data.frame(cbind(dataf, response))
-      capture.output(temporal_model <- brnn(Optimized.rowNames ~ .,
-                                            data = temporal_df, neurons = neurons, tol = 1e-6))
-      temporal_predictions <- try(predict.brnn(temporal_model, temporal_df),
-                                  silent = TRUE)
-      temporal_r_squared <- 1 - (sum((temporal_df[, 1] -
-                                        temporal_predictions) ^ 2) /
-                                   sum((temporal_df[, 1] -
-                                          mean(temporal_df[, 1])) ^ 2))
-      optimized_result <- 1 - ((1 - temporal_r_squared) *
-                                 ((nrow(temporal_df) - 1)) /
-                                 (nrow(temporal_df) -
-                                    ncol(as.data.frame(response[, 1])) - 1))
-    }
-
-    if (method == "cor"){
-      optimized_result <- cor(dataf, response, method = cor_method, use = cor_na_use)
-    }
-
-    # Just give a nicer colname
-    colnames(dataf) <- "Optimized return"
-
-  }
-
-  # option 3: reference window = "middle"
-  if (reference_window == 'middle'){
-
-    if (as.numeric(row_index)%%2 == 0){
-      adjustment_1 = 0
-      adjustment_2 = 1
-    } else {
-      adjustment_1 = 1
-      adjustment_2 = 2
-    }
-
-    if (aggregate_function == 'median'){
-      dataf <- data.frame(apply(env_data[, (round2((as.numeric(plot_column) - (as.numeric(row_index))/2)) - adjustment_1):
-                                           (round2((as.numeric(plot_column) + as.numeric(row_index)/2)) - adjustment_2), drop = FALSE],
-                                          1 , median, na.rm = TRUE))
-
-    } else if (aggregate_function == 'sum'){
-      dataf <- data.frame(apply(env_data[, (round2((as.numeric(plot_column) - (as.numeric(row_index))/2)) - adjustment_1):
-                                           (round2((as.numeric(plot_column) + as.numeric(row_index)/2)) - adjustment_2), drop = FALSE],
-                                1 , sum, na.rm = TRUE))
-
-    } else if (aggregate_function == 'mean'){
-      dataf <- data.frame(apply(env_data[, (round2((as.numeric(plot_column) - (as.numeric(row_index))/2)) - adjustment_1):
-                                           (round2((as.numeric(plot_column) + as.numeric(row_index)/2)) - adjustment_2), drop = FALSE],
-                                1 , mean, na.rm = TRUE))
-
-    } else if (aggregate_function == 'min'){
-      dataf <- data.frame(apply(env_data[, (round2((as.numeric(plot_column) - (as.numeric(row_index))/2)) - adjustment_1):
-                                           (round2((as.numeric(plot_column) + as.numeric(row_index)/2)) - adjustment_2), drop = FALSE],
-                                1 , min, na.rm = TRUE))
-    } else if (aggregate_function == 'max'){
-      dataf <- data.frame(apply(env_data[, (round2((as.numeric(plot_column) - (as.numeric(row_index))/2)) - adjustment_1):
-                                           (round2((as.numeric(plot_column) + as.numeric(row_index)/2)) - adjustment_2), drop = FALSE],
-                                1 , max, na.rm = TRUE))
-
-    } else {
-      stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median, sum, min or max."))
-    }
-
+    dataf <- data.frame(aggregate_daily_window(
+      env_data[, (as.numeric(plot_column) - as.numeric(row_index) + 1):
+                 as.numeric(plot_column),
+               drop = FALSE]
+    ))
 
     # if detrending was applied, should also be applied here
     if (!is.null(dc_method)){
 
       if (dc_method == "SLD"){
 
-        dataf <- as.numeric(dataf[,1])
+        dataf <- as.numeric(dataf[, 1])
         tmp_model <- lm(dataf ~ seq(1:length(dataf)))
         tmp_pred <- predict(tmp_model)
         tmp_res <- dataf - tmp_pred
 
-        dataf <- data.frame(tmp_res/sd(tmp_res, na.rm = TRUE))
+        dataf <- data.frame(tmp_res / sd(tmp_res, na.rm = TRUE))
 
       }
 
@@ -2544,46 +2225,24 @@ daily_response <- function(response, env_data, method = "cor",
     ## Once again, the same procedure, to get the optimal sequence, but this time for whole data, not only
     # for the analysed period.
 
-    if (aggregate_function == 'median'){
-      dataf_original <- data.frame(apply(env_data_original[, (round2((as.numeric(plot_column) - (as.numeric(row_index))/2)) - adjustment_1):
-                                           (round2((as.numeric(plot_column) + as.numeric(row_index)/2)) - adjustment_2), drop = FALSE],
-                                1 , median, na.rm = TRUE))
-    } else if (aggregate_function == 'sum'){
-      dataf_original <- data.frame(apply(env_data_original[, (round2((as.numeric(plot_column) - (as.numeric(row_index))/2)) - adjustment_1):
-                                                             (round2((as.numeric(plot_column) + as.numeric(row_index)/2)) - adjustment_2), drop = FALSE],
-                                         1 , sum, na.rm = TRUE))
-    } else if (aggregate_function == 'mean'){
-      dataf_original <- data.frame(apply(env_data_original[, (round2((as.numeric(plot_column) - (as.numeric(row_index))/2)) - adjustment_1):
-                                                             (round2((as.numeric(plot_column) + as.numeric(row_index)/2)) - adjustment_2), drop = FALSE],
-                                         1 , mean, na.rm = TRUE))
-
-    } else if (aggregate_function == 'min'){
-      dataf_original <- data.frame(apply(env_data_original[, (round2((as.numeric(plot_column) - (as.numeric(row_index))/2)) - adjustment_1):
-                                                             (round2((as.numeric(plot_column) + as.numeric(row_index)/2)) - adjustment_2), drop = FALSE],
-                                         1 , min, na.rm = TRUE))
-
-    } else if (aggregate_function == 'max'){
-      dataf_original <- data.frame(apply(env_data_original[, (round2((as.numeric(plot_column) - (as.numeric(row_index))/2)) - adjustment_1):
-                                                             (round2((as.numeric(plot_column) + as.numeric(row_index)/2)) - adjustment_2), drop = FALSE],
-                                         1 , max, na.rm = TRUE))
-
-    } else {
-      stop(paste0("aggregate function is ", aggregate_function, ". Instead it should be mean, median, sum, min, max."))
-    }
+    dataf_original <- data.frame(aggregate_daily_window(
+      env_data_original[, (as.numeric(plot_column) - as.numeric(row_index) + 1):
+                          as.numeric(plot_column),
+                        drop = FALSE]
+    ))
 
     dataf_full_original <- dataf_original
-
 
     if (!is.null(dc_method)){
 
       if (dc_method == "SLD"){
 
-        dataf_full_original <- as.numeric(dataf_full_original[,1])
+        dataf_full_original <- as.numeric(dataf_full_original[, 1])
         tmp_model <- lm(dataf_full_original ~ seq(1:length(dataf_full_original)))
         tmp_pred <- predict(tmp_model)
         tmp_res <- dataf_full_original - tmp_pred
 
-        dataf_full_original <- data.frame(tmp_res/sd(tmp_res, na.rm = TRUE))
+        dataf_full_original <- data.frame(tmp_res / sd(tmp_res, na.rm = TRUE))
 
       }
 
@@ -2645,6 +2304,123 @@ daily_response <- function(response, env_data, method = "cor",
   }
 
 
+  # Option 3: reference window = "middle"
+  if (reference_window == 'middle'){
+
+    if (as.numeric(row_index) %% 2 == 0){
+      adjustment_1 <- 0
+      adjustment_2 <- 1
+    } else {
+      adjustment_1 <- 1
+      adjustment_2 <- 2
+    }
+
+    dataf <- data.frame(aggregate_daily_window(
+      env_data[, (round2((as.numeric(plot_column) - as.numeric(row_index) / 2)) - adjustment_1):
+                 (round2((as.numeric(plot_column) + as.numeric(row_index) / 2)) - adjustment_2),
+               drop = FALSE]
+    ))
+
+    # if detrending was applied, should also be applied here
+    if (!is.null(dc_method)){
+
+      if (dc_method == "SLD"){
+
+        dataf <- as.numeric(dataf[, 1])
+        tmp_model <- lm(dataf ~ seq(1:length(dataf)))
+        tmp_pred <- predict(tmp_model)
+        tmp_res <- dataf - tmp_pred
+
+        dataf <- data.frame(tmp_res / sd(tmp_res, na.rm = TRUE))
+
+      }
+
+    }
+
+    dataf_full <- cbind(response, dataf)
+    colnames(dataf_full)[ncol(dataf_full)] <- "Optimized_return"
+    colnames(dataf) <- "Optimized.rowNames"
+
+    ## Once again, the same procedure, to get the optimal sequence, but this time for whole data, not only
+    # for the analysed period.
+
+    dataf_original <- data.frame(aggregate_daily_window(
+      env_data_original[, (round2((as.numeric(plot_column) - as.numeric(row_index) / 2)) - adjustment_1):
+                          (round2((as.numeric(plot_column) + as.numeric(row_index) / 2)) - adjustment_2),
+                        drop = FALSE]
+    ))
+
+    dataf_full_original <- dataf_original
+
+    if (!is.null(dc_method)){
+
+      if (dc_method == "SLD"){
+
+        dataf_full_original <- as.numeric(dataf_full_original[, 1])
+        tmp_model <- lm(dataf_full_original ~ seq(1:length(dataf_full_original)))
+        tmp_pred <- predict(tmp_model)
+        tmp_res <- dataf_full_original - tmp_pred
+
+        dataf_full_original <- data.frame(tmp_res / sd(tmp_res, na.rm = TRUE))
+
+      }
+
+    }
+
+    colnames(dataf_full_original) <- "Optimized_return"
+    colnames(dataf) <- "Optimized.rowNames"
+
+    # Additional check: (we should get the same metric as before in the loop)
+    if (method == "lm" & metric == "r.squared"){
+      temporal_df <- data.frame(cbind(dataf, response))
+      temporal_model <- lm(Optimized.rowNames ~ ., data = temporal_df)
+      temporal_summary <- summary(temporal_model)
+      optimized_result <- temporal_summary$r.squared
+    }
+
+    if (method == "lm" & metric == "adj.r.squared"){
+      temporal_df <- data.frame(cbind(dataf, response))
+      temporal_model <- lm(Optimized.rowNames ~ ., data = temporal_df)
+      temporal_summary <- summary(temporal_model)
+      optimized_result <- temporal_summary$adj.r.squared
+    }
+
+    if (method == "brnn" & metric == "r.squared"){
+      temporal_df <- data.frame(cbind(dataf, response))
+      capture.output(temporal_model <- brnn(Optimized.rowNames ~ ., data = temporal_df,
+                                            neurons = neurons, tol = 1e-6))
+      temporal_predictions <- try(predict.brnn(temporal_model,
+                                               temporal_df), silent = TRUE)
+      optimized_result <- 1 - (sum((temporal_df[, 1] -
+                                      temporal_predictions) ^ 2) /
+                                 sum((temporal_df[, 1] -
+                                        mean(temporal_df[, 1])) ^ 2))
+    }
+
+    if (method == "brnn" & metric == "adj.r.squared"){
+      temporal_df <- data.frame(cbind(dataf, response))
+      capture.output(temporal_model <- brnn(Optimized.rowNames ~ .,
+                                            data = temporal_df, neurons = neurons, tol = 1e-6))
+      temporal_predictions <- try(predict.brnn(temporal_model, temporal_df),
+                                  silent = TRUE)
+      temporal_r_squared <- 1 - (sum((temporal_df[, 1] -
+                                        temporal_predictions) ^ 2) /
+                                   sum((temporal_df[, 1] -
+                                          mean(temporal_df[, 1])) ^ 2))
+      optimized_result <- 1 - ((1 - temporal_r_squared) *
+                                 ((nrow(temporal_df) - 1)) /
+                                 (nrow(temporal_df) -
+                                    ncol(as.data.frame(response[, 1])) - 1))
+    }
+
+    if (method == "cor"){
+      optimized_result <- cor(dataf, response, method = cor_method, use = cor_na_use)
+    }
+
+    # Just give a nicer colname
+    colnames(dataf) <- "Optimized return"
+
+  }
   ##############################################################################
   # If detrending was used, it also needs to be applied on optimized return
 

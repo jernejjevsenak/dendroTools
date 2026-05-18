@@ -21,6 +21,7 @@ monthly_response(
   row_names_subset = FALSE,
   reference_window = "start",
   aggregate_function = "mean",
+  quantile_prob = 0.5,
   temporal_stability_check = "sequential",
   k = 2,
   k_running_window = 30,
@@ -102,7 +103,12 @@ reference_window argument is set to 'end', then each calculation is related
 to the ending day of window calculation.}
 
 \item{aggregate_function}{character string specifying how the monthly data should be
-aggregated. The default is 'mean', the two other options are 'median' and 'sum'}
+aggregated. The default is 'mean', the other options are 'median', 'sum'
+and 'quantile'.}
+
+\item{quantile_prob}{numeric value between 0 and 1 specifying the quantile
+probability used when aggregate_function = 'quantile'. For example,
+quantile_prob = 0.95 calculates the 95th percentile. The default is 0.5.}
 
 \item{temporal_stability_check}{character string, specifying, how temporal stability
 between the optimal selection and response variable(s) will be analysed. Current
@@ -274,6 +280,21 @@ example_MVA_ts <- monthly_response(response = data_MVA,
 
 # summary(example_MVA_ts)
 # example_MVA_ts$temporal_stability
+
+# 6 Example using quantiles for the aggregation
+example_q95 <- monthly_response(
+  response = data_MVA,
+  env_data = LJ_monthly_temperatures,
+  method = "cor",
+  fixed_width = 3,
+  row_names_subset = TRUE,
+  previous_year = TRUE,
+  aggregate_function = "quantile",
+  quantile_prob = 0.95
+)
+
+# summary(example_q95)
+# example_q95$temporal_stability
 
 }
 }

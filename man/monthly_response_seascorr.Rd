@@ -18,7 +18,9 @@ monthly_response_seascorr(
   row_names_subset = FALSE,
   reference_window = "start",
   aggregate_function_env_data_primary = "mean",
+  quantile_prob_env_data_primary = 0.5,
   aggregate_function_env_data_control = "mean",
+  quantile_prob_env_data_control = 0.5,
   temporal_stability_check = "sequential",
   k = 2,
   k_running_window = 30,
@@ -97,11 +99,19 @@ to the ending day of window calculation.}
 
 \item{aggregate_function_env_data_primary}{character string specifying how the
 monthly data from env_data_primary should be aggregated. The default is 'mean',
-the two other options are 'median' and 'sum'}
+the other options are 'median', 'sum' and 'quantile'.}
+
+\item{quantile_prob_env_data_primary}{numeric value between 0 and 1 specifying
+the quantile probability used when aggregate_function_env_data_primary =
+'quantile'. For example, 0.95 calculates the 95th percentile. The default is 0.5.}
 
 \item{aggregate_function_env_data_control}{character string specifying how the
 monthly data from env_data_control should be aggregated. The default is 'mean',
-the two other options are 'median' and 'sum'}
+the other options are 'median', 'sum' and 'quantile'.}
+
+\item{quantile_prob_env_data_control}{numeric value between 0 and 1 specifying
+the quantile probability used when aggregate_function_env_data_control =
+'quantile'. For example, 0.95 calculates the 95th percentile. The default is 0.5.}
 
 \item{temporal_stability_check}{character string, specifying, how temporal stability
 between the optimal selection and response variable(s) will be analysed. Current
@@ -239,6 +249,21 @@ example_extended <- monthly_response_seascorr(response = data_MVA,
 # plot(example_extended, type = 2)
 # example_extended$optimized_return
 # example_extended$optimized_return_all
+
+# 3 Example using quantiles for primary and control variables
+example_quantile <- monthly_response_seascorr(
+   response = data_MVA,
+   env_data_primary = LJ_monthly_temperatures,
+   env_data_control = LJ_monthly_precipitation,
+   row_names_subset = TRUE,
+   fixed_width = 3,
+   previous_year = TRUE,
+   aggregate_function_env_data_primary = "quantile",
+   quantile_prob_env_data_primary = 0.95,
+   aggregate_function_env_data_control = "quantile",
+   quantile_prob_env_data_control = 0.95,
+   tidy_env_data_primary = FALSE,
+   tidy_env_data_control = TRUE)
 
 }
 }

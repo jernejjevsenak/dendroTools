@@ -20,6 +20,7 @@ daily_response(
   alpha = 0.05,
   row_names_subset = FALSE,
   aggregate_function = "mean",
+  quantile_prob = 0.5,
   temporal_stability_check = "sequential",
   k = 2,
   k_running_window = 30,
@@ -95,7 +96,11 @@ kept.}
 
 \item{aggregate_function}{character string specifying how the daily data
 should be aggregated. The default is 'mean', the other options are 'median',
-'sum', 'min' and 'max'}
+'sum', 'min', 'max' and 'quantile'.}
+
+\item{quantile_prob}{numeric value between 0 and 1 specifying the quantile
+probability used when aggregate_function = 'quantile'. For example,
+quantile_prob = 0.95 calculates the 95th percentile. The default is 0.5.}
 
 \item{temporal_stability_check}{character string, specifying, how temporal stability
 between the optimal selection and response variable(s) will be analysed. Current
@@ -346,5 +351,19 @@ example_brnn <- daily_response(response = data_MVA,
    skip_window_length = 50, skip_window_position = 50)
 
 # summary(example_brnn)
+
+# Example using quantiles for the aggregation
+example_q95 <- daily_response(
+response = data_MVA,
+env_data = LJ_daily_temperatures,
+method = "cor",
+fixed_width = 30,
+row_names_subset = TRUE,
+previous_year = TRUE,
+aggregate_function = "quantile",
+quantile_prob = 0.95
+)
+
+
 }
 }

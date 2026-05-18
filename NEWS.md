@@ -1,5 +1,12 @@
 # dendroTools 1.2.16
 * Added a new vignette describing how to use ggplot2 to modify dendroTools output plots
+* Added support for quantile-based aggregation in `daily_response()`, `daily_response_seascorr()`, `monthly_response()`, and `monthly_response_seascorr()`.
+* Users can now set `aggregate_function = "quantile"` to aggregate climate data using any selected quantile.
+* Added new quantile-probability arguments:
+  - `quantile_prob` for `daily_response()` and `monthly_response()`
+  - `quantile_prob_env_data_primary` and `quantile_prob_env_data_control` for `daily_response_seascorr()` and `monthly_response_seascorr()`
+* This allows analyses based on lower or upper climate extremes, for example the 5th, 90th, or 95th percentile of temperature, precipitation, or other environmental variables within the selected time window.
+* Updated documentation and examples to demonstrate the new quantile aggregation option.
 
 # dendroTools 1.2.15
 * there was a minor bug in sd(), which returned NA in case of missing values in climate data. This is now corrected and users are informed about the missing values with specific warning
