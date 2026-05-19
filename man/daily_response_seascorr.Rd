@@ -12,6 +12,7 @@ daily_response_seascorr(
   upper_limit = 90,
   fixed_width = 0,
   previous_year = FALSE,
+  number_previous_years = NULL,
   pcor_method = "pearson",
   remove_insignificant = TRUE,
   alpha = 0.05,
@@ -33,8 +34,7 @@ daily_response_seascorr(
   boot_n = 1000,
   boot_ci_type = "norm",
   boot_conf_int = 0.95,
-  day_interval = ifelse(c(previous_year == TRUE, previous_year == TRUE), c(-1, 366), c(1,
-    366)),
+  day_interval = NULL,
   dc_method = NULL,
   pcor_na_use = "pairwise.complete",
   skip_window_length = 1,
@@ -73,9 +73,15 @@ tidy_env_data_control to TRUE.}
 \item{fixed_width}{fixed width used for calculation. If fixed_width is
 assigned a value, upper_limit and lower_limit will be ignored}
 
-\item{previous_year}{if set to TRUE, env_data_primary, env_data_control  and
-response variables will be rearranged in a way, that also previous year will
-be used for calculations of selected statistical metric.}
+\item{previous_year}{logical. Master switch for previous-year analyses. If
+FALSE, only the current year is analysed and number_previous_years is ignored.
+If TRUE, previous-year climate data are included.}
+
+\item{number_previous_years}{integer between 1 and 5 specifying how many
+previous years should be included when previous_year = TRUE. For example,
+number_previous_years = 2 uses climate data from years t - 2, t - 1 and t
+for response year t. If previous_year = TRUE and number_previous_years is
+NULL, one previous year is used for backward compatibility.}
 
 \item{pcor_method}{a character string indicating which partial correlation
 coefficient is to be computed. One of "pearson" (default), "kendall", or
@@ -161,10 +167,15 @@ required. The value should be any subset of the values c("norm","basic", "stud",
 \item{boot_conf_int}{A scalar or vector containing the confidence level(s) of
 the required interval(s)}
 
-\item{day_interval}{a vector of two values: lower and upper time interval of
-days that will be used to calculate statistical metrics. Negative values
-indicate previous growing season days. This argument overwrites the calculation
-limits defined by lower_limit and upper_limit arguments.}
+\item{day_interval}{a vector of two values defining the interval of days used
+for calculations. Positive values indicate days in the current year. Negative
+values indicate days in the previous-year block. If previous_year = FALSE,
+negative values in day_interval are ignored with a warning and the analysis
+is performed for the current year only using day_interval = c(1, 366). If
+previous_year = TRUE and number_previous_years > 1, the previous-year block
+starts with the earliest included previous year. For example, previous_year
+= TRUE, number_previous_years = 2 and day_interval = c(-1, 366) analyses
+the full sequence from DOY 1 of year t - 2 to DOY 366 of year t.}
 
 \item{dc_method}{a character string to determine the method to detrend climate
 data.  Possible values are "none" (default) and "SLD" which refers to Simple
@@ -312,6 +323,21 @@ example_quantile <- daily_response_seascorr(
   quantile_prob_env_data_primary = 0.95,
   aggregate_function_env_data_control = "quantile",
   quantile_prob_env_data_control = 0.95,
+  tidy_env_data_primary = FALSE,
+  tidy_env_data_control = TRUE,
+  skip_window_position = 50
+)
+
+# 4 Example using two previous years plus the current year
+example_two_previous_years <- daily_response_seascorr(
+  response = data_MVA,
+  env_data_primary = LJ_daily_temperatures,
+  env_data_control = LJ_daily_precipitation,
+  row_names_subset = TRUE,
+  fixed_width = 60,
+  previous_year = TRUE,
+  number_previous_years = 2,
+  day_interval = c(-1, 250),
   tidy_env_data_primary = FALSE,
   tidy_env_data_control = TRUE,
   skip_window_position = 50

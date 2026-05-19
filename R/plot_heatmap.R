@@ -1,22 +1,20 @@
 #' plot_heatmap
 #'
 #' Graphs a heatmap of values stored in a matrix, such as produced
-#' by \code{\link{daily_response}} function.
+#' by \code{\link{daily_response}} or \code{\link{monthly_response}} functions.
 #'
-#' @param result_daily_response a list with three objects as produced by
-#' \code{\link{daily_response}} function
-#' @param reference_window character string, the reference_window argument describes,
-#' how each calculation is referred. There are three different options: 'start'
-#' (default), 'end' and 'middle'. If the reference_window argument is set to 'start',
-#' then each calculation is related to the starting day of window. If the
-#' reference_window argument is set to 'middle', each calculation is related to the
-#' middle day of window calculation. If the reference_window argument is set to
-#' 'end', then each calculation is related to the ending day of window calculation.
-#' @param type the character string describing type of analysis: daily or monthly
+#' @param result_daily_response a list with objects as produced by
+#' \code{\link{daily_response}}, \code{\link{monthly_response}},
+#' \code{\link{daily_response_seascorr}} or
+#' \code{\link{monthly_response_seascorr}}.
+#' @param reference_window character string, the reference_window argument describes
+#' how each calculation is referred. Options are 'start', 'end' and 'middle'.
+#' If available, the value stored in result_daily_response$reference_window is used.
+#' @param type the character string describing type of analysis: daily or monthly.
 #' @param show_title logical. If TRUE, the plot title with analysed period, method
 #' and reference-window information is shown. The default is FALSE.
 #' @param show_year_separators logical. If TRUE, dashed vertical lines are
-#' added between relative-year blocks in daily plots with previous-year data.
+#' added between relative-year blocks in plots with previous-year data.
 #' The default is TRUE.
 #'
 #' @return A ggplot2 object containing the heatmap display
@@ -28,6 +26,25 @@ plot_heatmap <- function(result_daily_response,
                          type = "daily",
                          show_title = FALSE,
                          show_year_separators = TRUE) {
+
+  variable <- NULL
+  temp_row_names <- NULL
+  Value <- NULL
+
+  # Prefer metadata stored in the result object
+  if (!is.null(result_daily_response$reference_window)) {
+    reference_window <- result_daily_response$reference_window
+  }
+
+  reference_position_label <- if (reference_window == "start") {
+    "start of window"
+  } else if (reference_window == "end") {
+    "end of window"
+  } else if (reference_window == "middle") {
+    "middle of window"
+  } else {
+    reference_window
+  }
 
   # Extract matrix and keep original column names
   result_daily_element1 <- data.frame(result_daily_response[[1]],
@@ -44,7 +61,7 @@ plot_heatmap <- function(result_daily_response,
     paleta <- "no_viridis"
   }
 
-  # Strings for title
+  # Strings for optional title
   period_string <- paste0("\nAnalysed Period: ", result_daily_response[[4]])
 
   if (result_daily_response[[2]] == "cor") {
@@ -84,7 +101,7 @@ plot_heatmap <- function(result_daily_response,
     temp_string <- "Value"
   }
 
-  # Melt for plotting
+  # Prepare data for ggplot
   result_daily_element1$temp_row_names <- row.names(result_daily_element1)
 
   result_daily_element1_melted <- melt(result_daily_element1,
@@ -101,7 +118,7 @@ plot_heatmap <- function(result_daily_response,
     !is.na(result_daily_element1_melted$variable), , drop = FALSE
   ]
 
-  # Color scaling
+  # Colour scaling
   min_limit <- min(result_daily_element1_melted$Value, na.rm = TRUE)
   max_limit <- max(result_daily_element1_melted$Value, na.rm = TRUE)
 
@@ -115,6 +132,7 @@ plot_heatmap <- function(result_daily_response,
   bound4 <- bounds[100]
 
   if (nrow(result_daily_response[[1]]) * n_matrix_cols < 500) {
+
     bounds <- quantile(result_daily_element1_melted$Value,
                        probs = seq(0, 1, 0.1),
                        na.rm = TRUE)
@@ -160,11 +178,12 @@ plot_heatmap <- function(result_daily_response,
                       length.out = length(year_labels))
 
     # Breaks: first day of each year block gets only Y-label,
-    # then 100, 200, 300 are repeated within each block
+    # then 100, 200 and 300 are repeated within each block.
     x_breaks <- c()
     x_labels <- c()
 
     for (i in seq_along(year_start)) {
+
       start_i <- year_start[i]
 
       candidate_breaks <- c(start_i,
@@ -172,7 +191,9 @@ plot_heatmap <- function(result_daily_response,
                             start_i + 199,
                             start_i + 299)
 
-      candidate_breaks <- candidate_breaks[candidate_breaks <= n_matrix_cols]
+      candidate_breaks <- candidate_breaks[
+        candidate_breaks <= n_matrix_cols
+      ]
 
       candidate_labels <- c(year_labels[i], "100", "200", "300")
       candidate_labels <- candidate_labels[seq_along(candidate_breaks)]
@@ -186,13 +207,19 @@ plot_heatmap <- function(result_daily_response,
       year_separator_positions <= n_matrix_cols
     ]
 
+    x_axis_label <- if (number_previous_years > 0L) {
+      paste0("Relative year and DOY (", reference_position_label, ")")
+    } else {
+      paste0("DOY (", reference_position_label, ")")
+    }
+
     final_plot <- suppressWarnings(
       ggplot(result_daily_element1_melted,
              aes(x = variable,
                  y = as.numeric(temp_row_names),
                  fill = Value)) +
         geom_tile() +
-        xlab("Relative year and day of year") +
+        xlab(x_axis_label) +
         ylab("Window Width") +
         scale_x_continuous(
           expand = c(0, 0),
@@ -212,11 +239,14 @@ plot_heatmap <- function(result_daily_response,
     }
 
     if (paleta == "viridis") {
+
       final_plot <- final_plot +
         scale_fill_viridis(temp_string,
                            na.value = "white",
                            direction = -1)
+
     } else {
+
       final_plot <- final_plot +
         scale_fill_gradientn(temp_string,
                              colours = c("red4", "orange", "cyan", "blue4"),
@@ -227,12 +257,15 @@ plot_heatmap <- function(result_daily_response,
     }
 
     if (nrow(result_daily_response[[1]]) < 5) {
+
       final_plot <- final_plot +
         scale_y_continuous(expand = c(0, 0),
                            breaks = pretty_breaks(
                              n = nrow(result_daily_response[[1]])
                            ))
+
     } else {
+
       final_plot <- final_plot +
         scale_y_continuous(expand = c(0, 0),
                            breaks = pretty_breaks())
@@ -246,68 +279,89 @@ plot_heatmap <- function(result_daily_response,
 
   if (type == "monthly") {
 
-    if (reference_window == "start") {
-      x_lab_reference <- "Starting"
-    } else if (reference_window == "end") {
-      x_lab_reference <- "Ending"
+    months_per_year <- 12L
+
+    if (!is.null(result_daily_response$number_previous_years)) {
+      number_previous_years <- result_daily_response$number_previous_years
     } else {
-      x_lab_reference <- ""
+      number_previous_years <- ceiling(n_matrix_cols / months_per_year) - 1L
     }
 
-    if (reference_window == "start") {
-      xlab_string <- "Starting Month of Calculation"
-    } else if (reference_window == "end") {
-      xlab_string <- "Ending Month of Calculation"
-    } else if (reference_window == "middle") {
-      xlab_string <- "Month of Calculation"
-    } else {
-      xlab_string <- "Month of Calculation"
+    if (is.na(number_previous_years) || number_previous_years < 0L) {
+      number_previous_years <- 0L
     }
 
-    if (ncol(result_daily_response[[1]]) <= 12) {
+    number_previous_years <- as.integer(number_previous_years)
 
-      months <- c("J", "F", "M", "A", "M", "J",
-                  "J", "A", "S", "O", "N", "D")
+    year_labels <- if (number_previous_years == 0L) {
+      "Y"
+    } else {
+      c(paste0("Y-", number_previous_years:1), "Y")
+    }
 
-      final_plot <- suppressWarnings(
-        ggplot(result_daily_element1_melted,
-               aes(x = variable,
-                   y = as.numeric(temp_row_names),
-                   fill = Value)) +
-          geom_tile() +
-          ylab("Number of Consecutive Months") +
-          xlab(xlab_string) +
-          scale_x_continuous(expand = c(0, 0),
-                             breaks = seq(1, 12, by = 1),
-                             labels = months) +
-          scale_y_continuous(expand = c(0, 0),
-                             breaks = seq(1, 12, by = 1)) +
-          journal_theme
-      )
+    year_start <- seq(1,
+                      by = months_per_year,
+                      length.out = length(year_labels))
 
-    } else if (ncol(result_daily_response[[1]]) >= 12) {
+    month_labels <- c("Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
 
-      months <- c("J*", "F*", "M*", "A*", "M*", "J*",
-                  "J*", "A*", "S*", "O*", "N*", "D*",
-                  "J", "F", "M", "A", "M", "J",
-                  "J", "A", "S", "O", "N", "D")
+    x_breaks <- c()
+    x_labels <- c()
 
-      final_plot <- suppressWarnings(
-        ggplot(result_daily_element1_melted,
-               aes(x = variable,
-                   y = as.numeric(temp_row_names),
-                   fill = Value)) +
-          geom_tile() +
-          ylab("Number of Consecutive Months") +
-          xlab(paste0(x_lab_reference,
-                      " Month of Calculation (Including Previous Year)")) +
-          scale_x_continuous(expand = c(0, 0),
-                             breaks = seq(1, 24, by = 1),
-                             labels = months) +
-          scale_y_continuous(expand = c(0, 0),
-                             breaks = seq(1, 24, by = 1)) +
-          journal_theme
-      )
+    for (i in seq_along(year_start)) {
+
+      start_i <- year_start[i]
+
+      candidate_breaks <- start_i:(start_i + months_per_year - 1)
+      candidate_breaks <- candidate_breaks[
+        candidate_breaks <= n_matrix_cols
+      ]
+
+      candidate_labels <- month_labels[seq_along(candidate_breaks)]
+
+      if (number_previous_years > 0L && length(candidate_labels) > 0) {
+        candidate_labels[1] <- year_labels[i]
+      }
+
+      x_breaks <- c(x_breaks, candidate_breaks)
+      x_labels <- c(x_labels, candidate_labels)
+    }
+
+    year_separator_positions <- year_start[-1] - 0.5
+    year_separator_positions <- year_separator_positions[
+      year_separator_positions <= n_matrix_cols
+    ]
+
+    x_axis_label <- if (number_previous_years > 0L) {
+      paste0("Relative year and month (", reference_position_label, ")")
+    } else {
+      paste0("Month (", reference_position_label, ")")
+    }
+
+    final_plot <- suppressWarnings(
+      ggplot(result_daily_element1_melted,
+             aes(x = variable,
+                 y = as.numeric(temp_row_names),
+                 fill = Value)) +
+        geom_tile() +
+        ylab("Number of Consecutive Months") +
+        xlab(x_axis_label) +
+        scale_x_continuous(expand = c(0, 0),
+                           breaks = x_breaks,
+                           labels = x_labels) +
+        scale_y_continuous(expand = c(0, 0),
+                           breaks = pretty_breaks()) +
+        journal_theme +
+        theme(axis.text.x.bottom = element_text(size = 13))
+    )
+
+    if (show_year_separators && number_previous_years > 0L) {
+      final_plot <- final_plot +
+        geom_vline(xintercept = year_separator_positions,
+                   linewidth = 0.4,
+                   linetype = "dashed",
+                   colour = "grey40")
     }
 
     if (show_title) {
@@ -316,11 +370,14 @@ plot_heatmap <- function(result_daily_response,
     }
 
     if (paleta == "viridis") {
+
       final_plot <- final_plot +
         scale_fill_viridis(temp_string,
                            na.value = "white",
                            direction = -1)
+
     } else {
+
       final_plot <- final_plot +
         scale_fill_gradientn(temp_string,
                              colours = c("red4", "orange", "cyan", "blue4"),

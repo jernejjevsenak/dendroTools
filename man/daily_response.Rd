@@ -14,6 +14,7 @@ daily_response(
   upper_limit = 90,
   fixed_width = 0,
   previous_year = FALSE,
+  number_previous_years = NULL,
   neurons = 1,
   brnn_smooth = TRUE,
   remove_insignificant = FALSE,
@@ -34,8 +35,7 @@ daily_response(
   boot_n = 1000,
   boot_ci_type = "norm",
   boot_conf_int = 0.95,
-  day_interval = ifelse(c(previous_year == TRUE, previous_year == TRUE), c(-1, 366), c(1,
-    366)),
+  day_interval = NULL,
   dc_method = NULL,
   cor_na_use = "everything",
   skip_window_length = 1,
@@ -74,9 +74,15 @@ coefficient is to be computed. One of "pearson" (default), "kendall", or
 \item{fixed_width}{fixed width used for calculation. If fixed_width is
 assigned a value, upper_limit and lower_limit will be ignored}
 
-\item{previous_year}{if set to TRUE, env_data and response variables will be
-rearranged in a way, that also previous year will be used for calculations of
-selected statistical metric.}
+\item{previous_year}{logical. If TRUE, previous-year climate data are included
+in the analysis. If FALSE, no previous-year climate data are included and
+number_previous_years is ignored.}
+
+\item{number_previous_years}{integer between 1 and 5 specifying how many
+previous years should be included in the environmental matrix when
+previous_year = TRUE. For example, number_previous_years = 2 uses climate
+data from years t - 2, t - 1 and t for response year t. If NULL and
+previous_year = TRUE, one previous year is included.}
 
 \item{neurons}{positive integer that indicates the number of neurons used
 for brnn method}
@@ -159,10 +165,16 @@ required. The value should be any subset of the values c("norm","basic", "stud",
 \item{boot_conf_int}{A scalar or vector containing the confidence level(s) of
 the required interval(s)}
 
-\item{day_interval}{a vector of two values: lower and upper time interval of
-days that will be used to calculate statistical metrics. Negative values indicate
-previous growing season days. This argument overwrites the calculation
-limits defined by lower_limit and upper_limit arguments.}
+\item{day_interval}{a vector of two values defining the interval of days used
+for calculations. Positive values indicate days in the current year. Negative
+values indicate days in the previous-year block and are used only when
+previous_year = TRUE. If previous_year = FALSE and negative values are
+supplied, day_interval is ignored, a warning is issued, and the analysis is
+performed for the current year only using day_interval = c(1, 366). If
+number_previous_years > 1, the previous-year block starts with the earliest
+included previous year. For example, previous_year = TRUE,
+number_previous_years = 2 and day_interval = c(-1, 366) analyses the full
+sequence from DOY 1 of year t - 2 to DOY 366 of year t.}
 
 \item{dc_method}{a character string to determine the method to detrend climate
 data.  Possible values are "none" (default) and "SLD" which refers to Simple
@@ -197,7 +209,7 @@ one. This parameter allows for controlling the granularity of the analysis
 and can help in reducing computation time by focusing on a subset of the data.}
 }
 \value{
-a list with 17 elements:
+a list with 19 elements:
 \enumerate{
  \item $calculations - a matrix with calculated metrics
  \item $method - the character string of a method
@@ -215,6 +227,8 @@ a list with 17 elements:
  \item $boot_lower - matrix with lower limit of confidence intervals of bootstrap calculations
  \item $boot_upper - matrix with upper limit of confidence intervals of bootstrap calculations
  \item $aggregated_climate - matrix with all aggregated climate series
+ \item $previous_year - logical indicating whether previous-year climate data were used
+ \item $number_previous_years - integer indicating how many previous years were used
 }
 }
 \description{
@@ -263,7 +277,7 @@ example_basic <- daily_response(response = data_MVA,
                           skip_window_position = 50,
                           reference_window = "end", k = 5,
                           dc_method = "SLD",
-                          day_interval = c(-100, 250))
+                          day_interval = c(1, 250))
 
 # 1 Example with fixed width. Lower and upper limits are ignored.
 example_daily_response <- daily_response(response = data_MVA,
@@ -364,6 +378,31 @@ aggregate_function = "quantile",
 quantile_prob = 0.95
 )
 
+# Example using two previous years plus the current year
+example_two_previous_years <- daily_response(
+response = data_MVA,
+env_data = LJ_daily_temperatures,
+method = "cor",
+fixed_width = 60,
+row_names_subset = TRUE,
+previous_year = TRUE,
+number_previous_years = 2,
+day_interval = c(-1, 250),
+skip_window_length = 50,
+skip_window_position = 50
+)
 
+# Example with previous-previous year effects
+example_basic <- daily_response(response = data_MVA,
+                          env_data = LJ_daily_temperatures,
+                          row_names_subset = TRUE,
+                          reference_window = "end",
+                          lower_limit = 35, upper_limit = 75,
+                          previous_year = TRUE,
+                          remove_insignificant = TRUE,
+                          number_previous_years = 3)
+plot_heatmap(example_basic)
+plot_extreme(example_basic)
+summary(example_basic)
 }
 }

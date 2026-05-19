@@ -11,7 +11,8 @@
 #' @param ylimits limit of the y axes. It should be given as ylimits = c(0,1)
 #' @param reference_window character string, the reference_window argument describes,
 #' how each calculation is referred. There are three different options: 'start'
-#' (default), 'end' and 'middle'.
+#' (default), 'end' and 'middle'. If available, the value stored in
+#' result_daily_response$reference_window is used.
 #' @param type the character string describing type of analysis: daily or monthly
 #' @param show_year_separators logical. If TRUE, dashed vertical lines are
 #' added between relative-year blocks. The default is TRUE.
@@ -29,6 +30,24 @@ plot_extreme <- function(result_daily_response,
 
   # This needs to be set to provide results in English language
   Sys.setlocale("LC_TIME", "C")
+
+  Value <- NULL
+  BarColour <- NULL
+
+  # Prefer metadata stored in the result object
+  if (!is.null(result_daily_response$reference_window)) {
+    reference_window <- result_daily_response$reference_window
+  }
+
+  reference_position_label <- if (reference_window == "start") {
+    "start of window"
+  } else if (reference_window == "end") {
+    "end of window"
+  } else if (reference_window == "middle") {
+    "middle of window"
+  } else {
+    reference_window
+  }
 
   # ---------------------------------------------------------------------------
   # Helper functions
@@ -487,9 +506,13 @@ plot_extreme <- function(result_daily_response,
     label_x <- plot_column_source + max(10, round(n_matrix_cols * 0.015))
     label_x <- min(label_x, n_matrix_cols)
 
-    reference_label <- paste0(reference_info$relative_year_label,
-                              " DOY ",
-                              reference_info$doy)
+    reference_label <- if (number_previous_years > 0L) {
+      paste0(reference_info$relative_year_label,
+             " DOY ",
+             reference_info$doy)
+    } else {
+      paste0("DOY ", reference_info$doy)
+    }
 
     final_plot <- final_plot +
       annotate("label",
@@ -502,9 +525,9 @@ plot_extreme <- function(result_daily_response,
                x = label_x)
 
     x_lab <- if (number_previous_years > 0L) {
-      "Relative year and day of year"
+      paste0("Relative year and DOY (", reference_position_label, ")")
     } else {
-      "Day of year"
+      paste0("DOY (", reference_position_label, ")")
     }
 
     final_plot <- final_plot +
@@ -643,7 +666,10 @@ plot_extreme <- function(result_daily_response,
       ]
 
       candidate_labels <- month_names[seq_along(candidate_breaks)]
-      candidate_labels[1] <- year_labels[i]
+
+      if (number_previous_years > 0L && length(candidate_labels) > 0) {
+        candidate_labels[1] <- year_labels[i]
+      }
 
       x_breaks <- c(x_breaks, candidate_breaks)
       x_labels <- c(x_labels, candidate_labels)
@@ -681,9 +707,9 @@ plot_extreme <- function(result_daily_response,
     }
 
     x_lab <- if (number_previous_years > 0L) {
-      "Relative year and month"
+      paste0("Relative year and month (", reference_position_label, ")")
     } else {
-      "Month"
+      paste0("Month (", reference_position_label, ")")
     }
 
     final_plot <- final_plot +

@@ -4,56 +4,38 @@
 \alias{plot_heatmap}
 \title{plot_heatmap}
 \usage{
-plot_heatmap(result_daily_response, reference_window = "start", type = "daily")
+plot_heatmap(
+  result_daily_response,
+  reference_window = "start",
+  type = "daily",
+  show_title = FALSE,
+  show_year_separators = TRUE
+)
 }
 \arguments{
-\item{result_daily_response}{a list with three objects as produced by
-\code{\link{daily_response}} function}
+\item{result_daily_response}{a list with objects as produced by
+\code{\link{daily_response}}, \code{\link{monthly_response}},
+\code{\link{daily_response_seascorr}} or
+\code{\link{monthly_response_seascorr}}.}
 
-\item{reference_window}{character string, the reference_window argument describes,
-how each calculation is referred. There are three different options: 'start'
-(default), 'end' and 'middle'. If the reference_window argument is set to 'start',
-then each calculation is related to the starting day of window. If the
-reference_window argument is set to 'middle', each calculation is related to the
-middle day of window calculation. If the reference_window argument is set to
-'end', then each calculation is related to the ending day of window calculation.
-For example, if we consider correlations with window from DOY 15 to DOY 35. If
-reference window is set to  'start', then this calculation will be related to the
-DOY 15. If the reference window is set to 'end', then this calculation will be
-related to the DOY 35. If the reference_window is set to 'middle', then this
-calculation is related to DOY 25.}
+\item{reference_window}{character string, the reference_window argument describes
+how each calculation is referred. Options are 'start', 'end' and 'middle'.
+If available, the value stored in result_daily_response$reference_window is used.}
 
-\item{type}{the character string describing type of analysis: daily or monthly}
+\item{type}{the character string describing type of analysis: daily or monthly.}
+
+\item{show_title}{logical. If TRUE, the plot title with analysed period, method
+and reference-window information is shown. The default is FALSE.}
+
+\item{show_year_separators}{logical. If TRUE, dashed vertical lines are
+added between relative-year blocks in plots with previous-year data.
+The default is TRUE.}
 }
 \value{
 A ggplot2 object containing the heatmap display
 }
 \description{
 Graphs a heatmap of values stored in a matrix, such as produced
-by \code{\link{daily_response}} function.
-}
-\examples{
-\donttest{
-data(LJ_daily_temperatures)
-data(example_proxies_1)
-Example1 <- daily_response(response = example_proxies_1,
-env_data = LJ_daily_temperatures, method = "lm", metric = "r.squared",
-fixed_width = 90, previous_year = TRUE, row_names_subset = TRUE)
-# plot_heatmap(Example1)
-
-Example2 <- daily_response(response = example_proxies_1,
-env_data = LJ_daily_temperatures, method = "brnn",
-metric = "adj.r.squared", lower_limit = 50, upper_limit = 55,
-row_names_subset = TRUE)
-# plot_heatmap(Example2)
-
-library(dplyr)
-oxygen_isotope <- dplyr::select(example_proxies_1, O18)
-Example3 <- daily_response(response = oxygen_isotope,
-env_data = LJ_daily_temperatures, method = "cor", lower_limit = 50,
-upper_limit = 55, previous_year = TRUE, row_names_subset = TRUE)
-# plot_heatmap(Example3)
-}
-
+by \code{\link{daily_response}} or \code{\link{monthly_response}} functions.
 }
 \keyword{internal}

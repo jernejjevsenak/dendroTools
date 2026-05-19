@@ -11,6 +11,7 @@ monthly_response(
   metric = "r.squared",
   cor_method = "pearson",
   previous_year = FALSE,
+  number_previous_years = NULL,
   neurons = 1,
   lower_limit = 1,
   upper_limit = 12,
@@ -34,8 +35,7 @@ monthly_response(
   boot_n = 1000,
   boot_ci_type = "norm",
   boot_conf_int = 0.95,
-  month_interval = ifelse(c(previous_year == TRUE, previous_year == TRUE), c(-1, 12),
-    c(1, 12)),
+  month_interval = NULL,
   dc_method = NULL,
   cor_na_use = "everything"
 )
@@ -65,9 +65,15 @@ metric is not relevant.}
 coefficient is to be computed. One of "pearson" (default), "kendall", or
 "spearman".}
 
-\item{previous_year}{if set to TRUE, env_data and response variables will be
-rearranged in a way, that also previous year will be used for calculations of
-selected statistical metric.}
+\item{previous_year}{logical. If TRUE, previous-year climate data are included
+in the analysis. If FALSE, no previous-year climate data are included and
+number_previous_years is ignored.}
+
+\item{number_previous_years}{integer between 1 and 5 specifying how many
+previous years should be included in the environmental matrix when
+previous_year = TRUE. For example, number_previous_years = 2 uses monthly
+climate data from years t - 2, t - 1 and t for response year t. If NULL and
+previous_year = TRUE, one previous year is included.}
 
 \item{neurons}{positive integer that indicates the number of neurons used
 for brnn method}
@@ -151,10 +157,16 @@ required. The value should be any subset of the values c("norm","basic", "stud",
 \item{boot_conf_int}{A scalar or vector containing the confidence level(s) of
 the required interval(s)}
 
-\item{month_interval}{a vector of two values: lower and upper time interval of
-months that will be used to calculate statistical metrics. Negative values indicate
-previous growing season months. This argument overwrites the calculation
-limits defined by lower_limit and upper_limit arguments.}
+\item{month_interval}{a vector of two values defining the interval of months
+used for calculations. Positive values indicate months in the current year.
+Negative values indicate months in the previous-year block and are only used
+when previous_year = TRUE. If previous_year = FALSE and negative values are
+supplied, month_interval is ignored and the analysis is performed for the
+current year only using month_interval = c(1, 12). If number_previous_years > 1,
+the previous-year block starts with the earliest included previous year. For
+example, previous_year = TRUE, number_previous_years = 2 and
+month_interval = c(-1, 12) analyses the full sequence from January of year
+t - 2 to December of year t.}
 
 \item{dc_method}{a character string to determine the method to detrend climate
 data.  Possible values are "none" (default) and "SLD" which refers to Simple
@@ -167,7 +179,7 @@ This must be (an abbreviation of) one of the strings "everything" (default),
 also the documentation for the base cor() function.}
 }
 \value{
-a list with 17 elements:
+a list with 19 elements:
 \enumerate{
  \item $calculations - a matrix with calculated metrics
  \item $method - the character string of a method
@@ -185,6 +197,8 @@ a list with 17 elements:
  \item $boot_lower - matrix with lower limit of confidence intervals of bootstrap calculations
  \item $boot_upper - matrix with upper limit of confidence intervals of bootstrap calculations
  \item $aggregated_climate - matrix with all aggregated climate series
+ \item $previous_year - logical indicating whether previous-year climate data were used
+ \item $number_previous_years - integer indicating how many previous years were used
 }
 }
 \description{
@@ -295,6 +309,19 @@ example_q95 <- monthly_response(
 
 # summary(example_q95)
 # example_q95$temporal_stability
+
+# Example using two previous years plus the current year
+example_two_previous_years <- monthly_response(
+  response = data_MVA,
+  env_data = LJ_monthly_temperatures,
+  method = "cor",
+  fixed_width = 3,
+  row_names_subset = TRUE,
+  previous_year = TRUE,
+  number_previous_years = 2,
+  month_interval = c(-1, 10),
+  aggregate_function = "mean"
+)
 
 }
 }

@@ -9,12 +9,13 @@ plot_extreme(
   title = TRUE,
   ylimits = NULL,
   reference_window = "start",
-  type = "daily"
+  type = "daily",
+  show_year_separators = TRUE
 )
 }
 \arguments{
-\item{result_daily_response}{a list with three objects as produced by
-daily_response function}
+\item{result_daily_response}{a list with objects as produced by
+daily_response or monthly_response function}
 
 \item{title}{logical, if set to FALSE, no plot title is displayed}
 
@@ -22,56 +23,21 @@ daily_response function}
 
 \item{reference_window}{character string, the reference_window argument describes,
 how each calculation is referred. There are three different options: 'start'
-(default), 'end' and 'middle'. If the reference_window argument is set to 'start',
-then each calculation is related to the starting day of window. If the
-reference_window argument is set to 'middle', each calculation is related to the
-middle day of window calculation. If the reference_window argument is set to
-'end', then each calculation is related to the ending day of window calculation.
-For example, if we consider correlations with window from DOY 15 to DOY 35. If
-reference window is set to  'start', then this calculation will be related to the
-DOY 15. If the reference window is set to 'end', then this calculation will be
-related to the DOY 35. If the reference_window is set to 'middle', then this
-calculation is related to DOY 25.}
+(default), 'end' and 'middle'. If available, the value stored in
+result_daily_response$reference_window is used.}
 
 \item{type}{the character string describing type of analysis: daily or monthly}
+
+\item{show_year_separators}{logical. If TRUE, dashed vertical lines are
+added between relative-year blocks. The default is TRUE.}
 }
 \value{
 A ggplot2 object containing the plot display
 }
 \description{
-Graphs a line or bar plot of a row with the highest metric in a matrix, produced by
-\code{\link{daily_response}} or \code{\link{monthly_response}} functions. Bar plot is
-drawn for monthly_response(), while for daily_response, line plot is produced.
-}
-\examples{
-\donttest{
-data(LJ_daily_temperatures)
-data(example_proxies_1)
-Example1 <- daily_response(response = example_proxies_1,
-env_data = LJ_daily_temperatures, method = "lm", metric = "r.squared",
-fixed_width = 90, previous_year = TRUE, row_names_subset = TRUE)
-# plot_extreme(Example1)
-
-Example2 <- daily_response(response = example_proxies_1,
-env_data = LJ_daily_temperatures, method = "brnn",
-metric = "adj.r.squared", lower_limit = 50, upper_limit = 55, neurons = 1,
-row_names_subset = TRUE, previous_year = TRUE)
-# plot_extreme(Example2)
-
-# Example with negative correlations
-data(data_TRW_1)
-LJ_daily_temperatures_subset = LJ_daily_temperatures[-c(53:55), ]
-Example3 <- daily_response(response = data_TRW_1,
-env_data = LJ_daily_temperatures_subset, method = "lm", metric = "adj.r.squared",
-lower_limit = 35, upper_limit = 40, previous_year = TRUE, row_names_subset = TRUE)
-# plot_extreme(Example3)
-
-Example4 <- daily_response(response = example_proxies_1,
-env_data = LJ_daily_temperatures, method = "lm",
-metric = "r.squared", lower_limit = 30, upper_limit = 120, neurons = 1,
-row_names_subset = TRUE, previous_year = TRUE)
-# plot_extreme(Example4)
-}
-
+Graphs a line or bar plot of a row with the highest metric in a matrix,
+produced by \code{\link{daily_response}} or \code{\link{monthly_response}}
+functions. Bar plot is drawn for monthly_response(), while for daily_response,
+line plot is produced.
 }
 \keyword{internal}
