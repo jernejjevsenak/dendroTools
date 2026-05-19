@@ -1,590 +1,705 @@
 #' plot_extreme
 #'
-#' Graphs a line or bar plot of a row with the highest metric in a matrix, produced by
-#' \code{\link{daily_response}} or \code{\link{monthly_response}} functions. Bar plot is
-#' drawn for monthly_response(), while for daily_response, line plot is produced.
+#' Graphs a line or bar plot of a row with the highest metric in a matrix,
+#' produced by \code{\link{daily_response}} or \code{\link{monthly_response}}
+#' functions. Bar plot is drawn for monthly_response(), while for daily_response,
+#' line plot is produced.
 #'
-#' @param result_daily_response a list with three objects as produced by
-#' daily_response function
+#' @param result_daily_response a list with objects as produced by
+#' daily_response or monthly_response function
 #' @param title logical, if set to FALSE, no plot title is displayed
 #' @param ylimits limit of the y axes. It should be given as ylimits = c(0,1)
 #' @param reference_window character string, the reference_window argument describes,
 #' how each calculation is referred. There are three different options: 'start'
-#' (default), 'end' and 'middle'. If the reference_window argument is set to 'start',
-#' then each calculation is related to the starting day of window. If the
-#' reference_window argument is set to 'middle', each calculation is related to the
-#' middle day of window calculation. If the reference_window argument is set to
-#' 'end', then each calculation is related to the ending day of window calculation.
-#' For example, if we consider correlations with window from DOY 15 to DOY 35. If
-#' reference window is set to  'start', then this calculation will be related to the
-#' DOY 15. If the reference window is set to 'end', then this calculation will be
-#' related to the DOY 35. If the reference_window is set to 'middle', then this
-#' calculation is related to DOY 25.
+#' (default), 'end' and 'middle'.
 #' @param type the character string describing type of analysis: daily or monthly
+#' @param show_year_separators logical. If TRUE, dashed vertical lines are
+#' added between relative-year blocks. The default is TRUE.
 #'
 #' @return A ggplot2 object containing the plot display
 #'
-#' @examples
-#' \donttest{
-#' data(LJ_daily_temperatures)
-#' data(example_proxies_1)
-#' Example1 <- daily_response(response = example_proxies_1,
-#' env_data = LJ_daily_temperatures, method = "lm", metric = "r.squared",
-#' fixed_width = 90, previous_year = TRUE, row_names_subset = TRUE)
-#' # plot_extreme(Example1)
-#'
-#' Example2 <- daily_response(response = example_proxies_1,
-#' env_data = LJ_daily_temperatures, method = "brnn",
-#' metric = "adj.r.squared", lower_limit = 50, upper_limit = 55, neurons = 1,
-#' row_names_subset = TRUE, previous_year = TRUE)
-#' # plot_extreme(Example2)
-#'
-#' # Example with negative correlations
-#' data(data_TRW_1)
-#' LJ_daily_temperatures_subset = LJ_daily_temperatures[-c(53:55), ]
-#' Example3 <- daily_response(response = data_TRW_1,
-#' env_data = LJ_daily_temperatures_subset, method = "lm", metric = "adj.r.squared",
-#' lower_limit = 35, upper_limit = 40, previous_year = TRUE, row_names_subset = TRUE)
-#' # plot_extreme(Example3)
-#'
-#' Example4 <- daily_response(response = example_proxies_1,
-#' env_data = LJ_daily_temperatures, method = "lm",
-#' metric = "r.squared", lower_limit = 30, upper_limit = 120, neurons = 1,
-#' row_names_subset = TRUE, previous_year = TRUE)
-#' # plot_extreme(Example4)
-#' }
-#'
 #' @keywords internal
 
-plot_extreme <- function(result_daily_response, title = TRUE, ylimits = NULL, reference_window = "start", type = "daily") {
-
-  # Short description of the function. It
-  # - extracts matrix (the frst object of a list)
-  # - in case of method == "cor" (second object of a list), calculates the
-  # highest minimum and maximum and compare its absolute values. If absolute
-  # minimum is higher than maximum, we have to plot minimum correlations.
-  # - query the information about windows width (row names of the matrix) and
-  # starting day of the highest (absolute) metric (column names of the matrix).
-  # - draws a ggplot line plot.
+plot_extreme <- function(result_daily_response,
+                         title = TRUE,
+                         ylimits = NULL,
+                         reference_window = "start",
+                         type = "daily",
+                         show_year_separators = TRUE) {
 
   # This needs to be set to provide results in English language
   Sys.setlocale("LC_TIME", "C")
 
-  # A) Extracting a matrix from a list and converting it into a data frame
-  result_daily_element1 <- data.frame(result_daily_response[[1]])
+  # ---------------------------------------------------------------------------
+  # Helper functions
+  # ---------------------------------------------------------------------------
 
-  # Do we have monthly or daily data?
-  type <- type
-
-  # GLobl variable
-  final_list <- NULL
-
-  # With the following chunk, overall_maximum and overall_minimum values of
-  # result_daily_element1 matrix are calculated.
-  overall_max <- max(result_daily_element1, na.rm = TRUE)
-  overall_min <- min(result_daily_element1, na.rm = TRUE)
-
-  # absolute vales of overall_maximum and overall_minimum are compared and
-  # one of the following two if functions is used
-    # There are unimportant warnings produced:
-    # no non-missing arguments to max; returning -Inf
-    # Based on the answer on the StackOverlow site:
-    # https://stackoverflow.com/questions/24282550/no-non-missing-arguments-warning-when-using-min-or-max-in-reshape2
-    # Those Warnings could be easily ignored
-
-  if ((abs(overall_max) >= abs(overall_min)) == TRUE) {
-
-    # maximum value is located. Row indeces are needed to query information
-    # about the window width used to calculate the maximum. Column name is
-    # needed to query the starting day.
-    max_result <- suppressWarnings(which.max(apply(result_daily_element1,
-      MARGIN = 2, max, na.rm = TRUE)))
-    plot_column <- max_result
-    plot_column_source <- plot_column
-    max_index <- which.max(result_daily_element1[, names(max_result)])
-    row_index <- row.names(result_daily_element1)[max_index]
-    temporal_vector <- unlist(result_daily_element1[max_index, ])
-    temporal_vector <- data.frame(temporal_vector)
-    calculated_metric <- round(max(temporal_vector, na.rm = TRUE), 3)
-
-    # Here we remove missing values at the end of the temporal_vector.
-    # It is important to remove missing values only at the end of the
-    # temporal_vector!
-    row_count <- nrow(temporal_vector)
-    delete_rows <- 0
-    while (is.na(temporal_vector[row_count, ] == TRUE)){
-      delete_rows <- delete_rows + 1
-      row_count <-  row_count - 1
+  round2_local <- function(x, digits = 0) {
+    if (exists("round2", mode = "function")) {
+      round2(x, digits)
+    } else {
+      round(x, digits)
     }
-    # To check if the last row is a missing value
-    if (is.na(temporal_vector[nrow(temporal_vector), ] == TRUE)) {
-      temporal_vector <-  temporal_vector[-c((row_count + 1):(row_count +
-                                                            delete_rows)), ]
-    }
-    temporal_vector <- data.frame(temporal_vector)
   }
 
-  if ((abs(overall_max) < abs(overall_min)) == TRUE) {
+  make_daily_date_labels <- function() {
 
-    # minimum value is located. Row indeces are needed to query information
-    # about the window width used to calculate the minimum. Column name is
-    # needed to query the starting day.
-    min_result <- suppressWarnings(which.min(apply(result_daily_element1,
-      MARGIN = 2, min, na.rm = TRUE)))
-    plot_column <- min_result
-    plot_column_source <- plot_column
-    min_index <- which.min(result_daily_element1[, names(min_result)])
-    row_index <- row.names(result_daily_element1)[min_index]
-    temporal_vector <- unlist(result_daily_element1[min_index, ])
-    temporal_vector <- data.frame(temporal_vector)
-    calculated_metric <- round(min(temporal_vector, na.rm = TRUE), 3)
+    doy <- seq(1:366)
+    date <- seq(as.Date("2013-01-01"),
+                as.Date("2013-12-31"),
+                by = "+1 day")
 
-    # Here we remove missing values
-    # We remove missing values at the end of the temporal_vector.
-    # It is important to remove missing values only at the end of the
-    # temporal_vector!
+    # Original dendroTools convention: 366 columns are possible.
+    date[366] <- as.Date("2015-12-31")
+    date <- format(date, "%b %d")
 
-    row_count <- nrow(temporal_vector)
-    delete_rows <- 0
-    while (is.na(temporal_vector[row_count, ] == TRUE)){
-      delete_rows <- delete_rows + 1
-      row_count <-  row_count - 1
+    data.frame(doy = doy, date = date, stringsAsFactors = FALSE)
+  }
+
+  get_daily_position_info <- function(position,
+                                      number_previous_years,
+                                      days_per_year = 366L) {
+
+    block_index <- ceiling(position / days_per_year)
+    doy <- ((position - 1L) %% days_per_year) + 1L
+
+    if (number_previous_years == 0L) {
+
+      relative_year_number <- 0L
+      relative_year_label <- "Y"
+
+    } else {
+
+      relative_year_number <- block_index - (number_previous_years + 1L)
+
+      relative_year_label <- if (relative_year_number == 0L) {
+        "Y"
+      } else {
+        paste0("Y", relative_year_number)
+      }
     }
-    # To check if the last row is a missing value
-    if (is.na(temporal_vector[nrow(temporal_vector), ] == TRUE)) {
-      temporal_vector <-  temporal_vector[-c((row_count + 1):(row_count +
-                                                            delete_rows)), ]
+
+    list(
+      doy = doy,
+      relative_year_number = relative_year_number,
+      relative_year_label = relative_year_label
+    )
+  }
+
+  get_monthly_position_info <- function(position,
+                                        number_previous_years,
+                                        months_per_year = 12L) {
+
+    block_index <- ceiling(position / months_per_year)
+    month_number <- ((position - 1L) %% months_per_year) + 1L
+
+    if (number_previous_years == 0L) {
+
+      relative_year_number <- 0L
+      relative_year_label <- "Y"
+
+    } else {
+
+      relative_year_number <- block_index - (number_previous_years + 1L)
+
+      relative_year_label <- if (relative_year_number == 0L) {
+        "Y"
+      } else {
+        paste0("Y", relative_year_number)
+      }
     }
-    temporal_vector <- data.frame(temporal_vector)
-}
-  # In case of previous_year == TRUE, we calculate the day of a year
-  # (plot_column), considering 366 days of previous year.
-  if (ncol(result_daily_element1) > 366 & plot_column > 366) {
-    plot_column_extra <- plot_column %% 366
+
+    list(
+      month_number = month_number,
+      relative_year_number = relative_year_number,
+      relative_year_label = relative_year_label
+    )
+  }
+
+  # Function to find the longest non-NA range
+  longest_non_na_sequence <- function(x) {
+
+    max_length <- 0
+    current_length <- 0
+
+    for (value_temp in x) {
+
+      if (!is.na(value_temp)) {
+
+        current_length <- current_length + 1
+
+      } else {
+
+        if (current_length > max_length) {
+          max_length <- current_length
+        }
+
+        current_length <- 0
+      }
+    }
+
+    max(max_length, current_length)
+  }
+
+  # ---------------------------------------------------------------------------
+  # Extract matrix and find optimal row/column
+  # ---------------------------------------------------------------------------
+
+  result_matrix <- as.matrix(result_daily_response[[1]])
+
+  if (!any(is.finite(result_matrix))) {
+    return("All calculations are insignificant! No plot output available.")
+  }
+
+  result_daily_element1 <- data.frame(result_daily_response[[1]],
+                                      check.names = FALSE)
+
+  n_matrix_cols <- ncol(result_matrix)
+
+  overall_max <- max(result_matrix, na.rm = TRUE)
+  overall_min <- min(result_matrix, na.rm = TRUE)
+
+  if (abs(overall_max) >= abs(overall_min)) {
+
+    calculated_value <- overall_max
+    optimal_position <- which(result_matrix == overall_max, arr.ind = TRUE)[1, ]
+
   } else {
-    plot_column_extra <- plot_column
+
+    calculated_value <- overall_min
+    optimal_position <- which(result_matrix == overall_min, arr.ind = TRUE)[1, ]
   }
 
-  # The final plot is being created. The first part of a plot is the same,
-  # the second part is different, depending on temporal.vector, plot_column,
-  # method and metric string stored in result_daily_response. The second part
-  # defines xlabs, xlabs and ggtitles.
+  row_position <- optimal_position[1]
+  plot_column_source <- optimal_position[2]
+  plot_column <- plot_column_source
 
-  # The definition of theme
+  row_index <- row.names(result_daily_element1)[row_position]
+
+  if (is.null(row_index) || is.na(row_index)) {
+    row_index <- as.character(row_position)
+  }
+
+  optimal_window_width <- as.numeric(row_index)
+  calculated_metric <- round(calculated_value, 3)
+
+  temporal_vector <- as.numeric(result_matrix[row_position, ])
+
+  plot_df <- data.frame(
+    Position = seq_along(temporal_vector),
+    Value = temporal_vector
+  )
+
+  # ---------------------------------------------------------------------------
+  # General labels
+  # ---------------------------------------------------------------------------
+
+  if (result_daily_response[[2]] == "cor") {
+
+    y_lab <- "Correlation Coefficient"
+
+  } else if (result_daily_response[[2]] == "pcor") {
+
+    y_lab <- "Partial Correlation Coefficient"
+
+  } else if (result_daily_response[[3]] == "r.squared") {
+
+    y_lab <- "Explained Variance"
+
+  } else if (result_daily_response[[3]] == "adj.r.squared") {
+
+    y_lab <- "Adjusted Explained Variance"
+
+  } else {
+
+    y_lab <- "Calculated Metric"
+  }
+
+  if (result_daily_response[[2]] == "cor") {
+
+    method_string <- paste0("\nMethod: Correlation Coefficient (",
+                            result_daily_response[[3]], ")")
+
+  } else if (result_daily_response[[2]] == "pcor") {
+
+    method_string <- paste0("\nMethod: Partial Correlation Coefficient (",
+                            result_daily_response[[3]], ")")
+
+  } else if (result_daily_response[[2]] == "lm") {
+
+    method_string <- "\nMethod: Linear Regression"
+
+  } else if (result_daily_response[[2]] == "brnn") {
+
+    method_string <- "\nMethod: ANN with Bayesian Regularization"
+
+  } else {
+
+    method_string <- paste0("\nMethod: ", result_daily_response[[2]])
+  }
+
+  period_string <- paste0("Analysed Period: ", result_daily_response[[4]])
+  optimal_window_string <- paste0("\nOptimal Window Width: ",
+                                  optimal_window_width)
+
+  optimal_calculation <- paste0("\nOptimal ", y_lab, ": ",
+                                calculated_metric)
+
+  # ---------------------------------------------------------------------------
+  # Determine optimal start/end positions
+  # ---------------------------------------------------------------------------
+
+  if (optimal_window_width %% 2 == 0) {
+
+    adjustment_1 <- 0
+    adjustment_2 <- 1
+
+  } else {
+
+    adjustment_1 <- 1
+    adjustment_2 <- 2
+  }
+
+  if (reference_window == "start") {
+
+    optimal_start_position <- plot_column_source
+    optimal_end_position <- plot_column_source + optimal_window_width - 1
+
+  } else if (reference_window == "end") {
+
+    optimal_start_position <- plot_column_source - optimal_window_width + 1
+    optimal_end_position <- plot_column_source
+
+  } else if (reference_window == "middle") {
+
+    optimal_start_position <- round2_local(
+      plot_column_source - optimal_window_width / 2, 0
+    ) - adjustment_1
+
+    optimal_end_position <- round2_local(
+      plot_column_source + optimal_window_width / 2, 0
+    ) - adjustment_2
+
+  } else {
+
+    stop("reference_window must be 'start', 'end' or 'middle'.")
+  }
+
+  # ---------------------------------------------------------------------------
+  # Theme
+  # ---------------------------------------------------------------------------
+
   journal_theme <- theme_bw() +
     theme(axis.text = element_text(size = 16, face = "bold"),
-          axis.title = element_text(size = 18), text = element_text(size = 18),
-          plot.title = element_text(size = 16,  face = "bold"))
+          axis.title = element_text(size = 18),
+          text = element_text(size = 18),
+          plot.title = element_text(size = 16, face = "bold"))
 
-  if (title == FALSE){
+  if (title == FALSE) {
     journal_theme <- journal_theme +
       theme(plot.title = element_blank())
   }
 
+  # ---------------------------------------------------------------------------
+  # Daily plot
+  # ---------------------------------------------------------------------------
 
-  # Here we define a data frame of dates and corresponing day of year (doi). Later
-  # this dataframe will be used to describe tht optimal sequence of days
-  if (ncol(result_daily_element1) < 367){
+  if (type == "daily") {
 
-    doy <- seq(1:366)
-    date <- seq(as.Date('2013-01-01'),as.Date('2013-12-31'), by = "+1 day")
-    date[366] <- as.Date('2015-12-31')
-    date <- format(date, "%b %d")
-    date_codes <- data.frame(doy = doy, date = date)
+    days_per_year <- 366L
 
-  } else {
+    if (!is.null(result_daily_response$number_previous_years)) {
 
-    doy <- seq(1:366)
-    date <- seq(as.Date('2013-01-01'),as.Date('2013-12-31'), by = "+1 day")
-    date[366] <- as.Date('2015-12-31')
-    date <- format(date, "%b %d")
-    date_codes <- data.frame(doy = doy, date = date)
-    date_codes$date <- paste0(date_codes$date, "*")
+      number_previous_years <- result_daily_response$number_previous_years
 
-    doy <- seq(1:366)
-    date <- seq(as.Date('2013-01-01'),as.Date('2013-12-31'), by = "+1 day")
-    date[366] <- as.Date('2015-12-31')
-    date <- format(date, "%b %d")
-    date_codes2 <- data.frame(doy = doy, date = date)
+    } else {
 
-    date_codes <- rbind(date_codes, date_codes2)
-  }
-
-
-
-
-
-  # Here, there is a special check if optimal window width is divisible by 2 or not.
-  if (as.numeric(row_index)%%2 == 0){
-    adjustment_1 = 0
-    adjustment_2 = 1
-  } else {
-    adjustment_1 = 1
-    adjustment_2 = 2
-  }
-
-  if (reference_window == "start"){
-    Optimal_string <- paste("\nOptimal Selection:",
-    as.character(date_codes[plot_column_source, 2]),"-",
-    as.character(date_codes[plot_column_source + as.numeric(row_index) - 1, 2]))
-  } else if (reference_window == "end") {
-    Optimal_string <- paste("\nOptimal Selection:",
-    as.character(date_codes[plot_column_source - as.numeric(row_index) + 1, 2]),"-",
-    as.character(date_codes[plot_column_source, 2]))
-  } else if (reference_window == "middle") {
-    Optimal_string <- paste("\nOptimal Selection:",
-    as.character(date_codes[(round2((plot_column_source - as.numeric(row_index)/2)) - adjustment_1), 2]),"-",
-    as.character(date_codes[(round2((plot_column_source + as.numeric(row_index)/2)) - adjustment_2), 2]))
-  }
-
-  # in the next chunk, warnings are supressed. At the end of the vector,
-  # there are always missing values, which are a result of changing window
-  # width calclulations. Those warnings are not important and do not affect
-  # our results at all
-
-
-
-
-
-
-
-# Function to find the longest non-NA range
-max_length <- 0
-current_length <- 0
-
-for (value_temp in temporal_vector[,1]) {
-  if (!is.na(value_temp)) {
-    current_length <- current_length + 1
-  } else {
-    if (current_length > max_length) {
-      max_length <- current_length
+      number_previous_years <- ceiling(n_matrix_cols / days_per_year) - 1L
     }
-    current_length <- 0
-  }
-}
 
-# Check at the end in case the longest sequence is at the end of the vector
-longest_sequence <- max(max_length, current_length)
+    if (is.na(number_previous_years) || number_previous_years < 0L) {
+      number_previous_years <- 0L
+    }
 
+    number_previous_years <- as.integer(number_previous_years)
 
+    full_sequence_width <- days_per_year * (number_previous_years + 1L)
 
-if (longest_sequence > 1){
+    optimal_start_position <- max(1, optimal_start_position)
+    optimal_end_position <- min(full_sequence_width, optimal_end_position)
+    plot_column_source <- max(1, min(full_sequence_width,
+                                     plot_column_source))
 
-  final_plot <- suppressWarnings(
-    ggplot(temporal_vector, aes(y = temporal_vector,
-                                x = seq(1, length(temporal_vector)))) + geom_line(linewidth = 1.2) +
-      geom_vline(xintercept = plot_column, col = "red") +
-      scale_x_continuous(breaks = sort(c(seq(0, nrow(temporal_vector), 50)), decreasing = FALSE),
-                         labels = sort(c(seq(0, nrow(temporal_vector), 50)))) +
-      scale_y_continuous(limits = ylimits) +
-      annotate("label", label = as.character(calculated_metric),
-               y = calculated_metric, x = plot_column + 15) +
-      annotate("label", label = paste("Day", as.character(plot_column), sep = " "),
-               y = min(temporal_vector, na.rm = TRUE) + 0.2*min(temporal_vector, na.rm = TRUE), x = plot_column + 15) +
-      journal_theme)
+    date_codes <- make_daily_date_labels()
 
-} else {
+    daily_label <- function(position) {
 
-  final_plot <- suppressWarnings(
-    ggplot(temporal_vector, aes(y = temporal_vector,
-                                x = seq(1, length(temporal_vector)))) + geom_point() +
-      geom_vline(xintercept = plot_column, col = "red") +
-      scale_x_continuous(breaks = sort(c(seq(0, nrow(temporal_vector), 50)), decreasing = FALSE),
-                         labels = sort(c(seq(0, nrow(temporal_vector), 50)))) +
-      scale_y_continuous(limits = ylimits) +
-      annotate("label", label = as.character(calculated_metric),
-               y = calculated_metric, x = plot_column + 15) +
-      annotate("label", label = paste("Day", as.character(plot_column), sep = " "),
-               y = min(temporal_vector, na.rm = TRUE) + 0.2*min(temporal_vector, na.rm = TRUE), x = plot_column + 15) +
-      journal_theme)
-}
+      position_info <- get_daily_position_info(
+        position = position,
+        number_previous_years = number_previous_years,
+        days_per_year = days_per_year
+      )
 
+      date_label <- date_codes$date[position_info$doy]
 
-  # If previous_year = TRUE, we add a vertical line with labels of
-  # previous and current years
-  if (ncol(result_daily_element1) > 366) {
-    final_plot <- final_plot +
-      annotate(fontface = "bold", label = 'Previous Year', geom = 'label',
-               x = 366 - ncol(result_daily_element1) / 12.8,
-               y = calculated_metric - (calculated_metric/5)) +
-      annotate(fontface = "bold", label = 'Current Year', geom = 'label',
-               x = 366 + ncol(result_daily_element1) / 13.5,
-               y = calculated_metric -(calculated_metric/5)) +
-      geom_vline(xintercept = 366, size = 1)
-  }
+      if (number_previous_years > 0L) {
+        paste0(position_info$relative_year_label, " ", date_label)
+      } else {
+        date_label
+      }
+    }
 
-  # Here we define titles. They differ importantly among methods and arguments
-  # in the final output list from daily_response() function
-  if (result_daily_response[[2]] == "cor"){
-    y_lab <- "Correlation Coefficient"
-  } else if (result_daily_response[[2]] == "pcor"){
-    y_lab <- "Partial Correlation Coefficient"
-  } else if (result_daily_response[[3]] == "r.squared"){
-    y_lab <- "Explained Variance"
-  } else if (result_daily_response[[3]] == "adj.r.squared"){
-    y_lab <- "Adjusted Explained Variance"
-  }
+    reference_info <- get_daily_position_info(
+      position = plot_column_source,
+      number_previous_years = number_previous_years,
+      days_per_year = days_per_year
+    )
 
-  if (ncol(result_daily_element1) > 366){
-    x_lab <- "Day of Year  (Including Previous Year)"
-  } else if (ncol(result_daily_element1) <= 366){
-    x_lab <- "Day of Year"
-  }
+    if (reference_window == "start") {
 
-  if (reference_window == 'start' &&  plot_column > 366 && ncol(result_daily_element1) > 366){
-    reference_string <- paste0("\nStarting Day of Optimal Window Width: Day ",
-                         plot_column_extra, " of Current Year")}
-
-  if (reference_window == 'start' &&  plot_column <= 366 && ncol(result_daily_element1) > 366){
-    reference_string <- paste0("\nStarting Day of Optimal Window Width: Day ",
-                               plot_column_extra, " of Previous Year")}
-
-  if (reference_window == 'start' &&  plot_column <=  366 && ncol(result_daily_element1) <=  366){
-    reference_string <- paste0("\nStarting Day of Optimal Window Width: Day ",
-                               plot_column_extra)}
-
-
-  if (reference_window == 'end' &&  plot_column > 366 && ncol(result_daily_element1) > 366){
-    reference_string <- paste0("\nEnding Day of Optimal Window Width: Day ",
-                               plot_column_extra, " of Current Year")}
-
-  if (reference_window == 'end' &&  plot_column  <= 366 && ncol(result_daily_element1) > 366){
-    reference_string <- paste0("\nEnding Day of Optimal Window Width: Day ",
-                               plot_column_extra, " of Previous Year")}
-
-  if (reference_window == 'end' &&  plot_column  <=  366 && ncol(result_daily_element1) <=  366){
-    reference_string <- paste0("\nEnding Day of Optimal Window Width: Day ",
-                               plot_column_extra)}
-
-
-  if (reference_window == 'middle' &&  plot_column > 366 && ncol(result_daily_element1) > 366){
-    reference_string <- paste0("\nMiddle Day of Optimal Window Width: Day ",
-                               plot_column_extra, " of Current Year")}
-
-  if (reference_window == 'middle' &&  plot_column  <= 366 && ncol(result_daily_element1) > 366){
-    reference_string <- paste0("\nMiddle Day of Optimal Window Width: Day ",
-                               plot_column_extra, " of Previous Year")}
-
-  if (reference_window == 'middle' &&  plot_column  <=  366 && ncol(result_daily_element1) <=  366){
-    reference_string <- paste0("\nMiddle Day of Optimal Window Width: Day ",
-                               plot_column_extra)}
-
-  optimal_window_string <- paste0("\nOptimal Window Width: ", as.numeric(row_index),
-                                  " Days")
-
-  optimal_calculation <- paste0("\nThe Highest ", y_lab,": " , calculated_metric)
-
-  period_string <- paste0("Analysed Period: ", result_daily_response[[4]])
-
-  if (result_daily_response[[2]] == 'cor'){
-    method_string <- paste0("\nMethod: Correlation Coefficient (", result_daily_response[[3]], ")")
-
-  } else if (result_daily_response[[2]] == 'pcor'){
-    method_string <- paste0("\nMethod: Partial Correlation Coefficient (", result_daily_response[[3]], ")")
-
-  } else if (result_daily_response[[2]] == 'lm'){
-    method_string <- paste0("\nMethod: Linear Regression")
-  } else if (result_daily_response[[2]] == 'brnn'){
-    method_string <- paste0("\nMethod: ANN with Bayesian Regularization")
-  }
-
-  final_plot <- final_plot +
-    ggtitle(paste0(period_string, method_string, optimal_calculation,
-                   optimal_window_string, reference_string, Optimal_string)) +
-    xlab(x_lab) +
-    ylab(y_lab)
-
-
-
-  if (type == "monthly"){
-
-
-    if (reference_window == "start"){
-
-      x_lab_reference <- "Starting"
+      reference_string <- paste0("\nStarting Day of Optimal Window Width: Day ",
+                                 reference_info$doy)
 
     } else if (reference_window == "end") {
 
-      x_lab_reference <- "Ending"
+      reference_string <- paste0("\nEnding Day of Optimal Window Width: Day ",
+                                 reference_info$doy)
 
+    } else if (reference_window == "middle") {
+
+      reference_string <- paste0("\nMiddle Day of Optimal Window Width: Day ",
+                                 reference_info$doy)
     }
 
+    if (number_previous_years > 0L) {
+      reference_string <- paste0(reference_string,
+                                 " of ",
+                                 reference_info$relative_year_label)
+    }
 
-    # Plural or singular?
-    if (as.numeric(row_index) == 1){
+    if (optimal_window_width == 1) {
+
+      Optimal_string <- paste0("\nOptimal Selection: ",
+                               daily_label(optimal_start_position))
+
+    } else {
+
+      Optimal_string <- paste0("\nOptimal Selection: ",
+                               daily_label(optimal_start_position),
+                               " - ",
+                               daily_label(optimal_end_position))
+    }
+
+    # Axis breaks and labels, same logic as plot_heatmap()
+    year_labels <- if (number_previous_years == 0L) {
+      "Y"
+    } else {
+      c(paste0("Y-", number_previous_years:1), "Y")
+    }
+
+    year_start <- seq(1,
+                      by = days_per_year,
+                      length.out = length(year_labels))
+
+    x_breaks <- c()
+    x_labels <- c()
+
+    for (i in seq_along(year_start)) {
+
+      start_i <- year_start[i]
+
+      candidate_breaks <- c(start_i,
+                            start_i + 99,
+                            start_i + 199,
+                            start_i + 299)
+
+      candidate_breaks <- candidate_breaks[
+        candidate_breaks <= n_matrix_cols
+      ]
+
+      candidate_labels <- c(year_labels[i], "100", "200", "300")
+      candidate_labels <- candidate_labels[seq_along(candidate_breaks)]
+
+      x_breaks <- c(x_breaks, candidate_breaks)
+      x_labels <- c(x_labels, candidate_labels)
+    }
+
+    year_separator_positions <- year_start[-1] - 0.5
+    year_separator_positions <- year_separator_positions[
+      year_separator_positions <= n_matrix_cols
+    ]
+
+    longest_sequence <- longest_non_na_sequence(plot_df$Value)
+
+    if (longest_sequence > 1) {
+
+      final_plot <- suppressWarnings(
+        ggplot(plot_df, aes(x = Position, y = Value)) +
+          geom_line(size = 1.2) +
+          geom_vline(xintercept = plot_column_source,
+                     colour = "red",
+                     size = 0.8) +
+          scale_x_continuous(expand = c(0, 0),
+                             breaks = x_breaks,
+                             labels = x_labels) +
+          scale_y_continuous(limits = ylimits) +
+          journal_theme
+      )
+
+    } else {
+
+      final_plot <- suppressWarnings(
+        ggplot(plot_df, aes(x = Position, y = Value)) +
+          geom_point() +
+          geom_vline(xintercept = plot_column_source,
+                     colour = "red",
+                     size = 0.8) +
+          scale_x_continuous(expand = c(0, 0),
+                             breaks = x_breaks,
+                             labels = x_labels) +
+          scale_y_continuous(limits = ylimits) +
+          journal_theme
+      )
+    }
+
+    if (show_year_separators && number_previous_years > 0L) {
+
+      final_plot <- final_plot +
+        geom_vline(xintercept = year_separator_positions,
+                   size = 0.4,
+                   linetype = "dashed",
+                   colour = "grey40")
+    }
+
+    # Annotation placement
+    y_min <- min(plot_df$Value, na.rm = TRUE)
+    y_max <- max(plot_df$Value, na.rm = TRUE)
+    y_span <- y_max - y_min
+
+    if (!is.finite(y_span) || y_span == 0) {
+      y_span <- abs(y_max)
+
+      if (!is.finite(y_span) || y_span == 0) {
+        y_span <- 1
+      }
+    }
+
+    label_x <- plot_column_source + max(10, round(n_matrix_cols * 0.015))
+    label_x <- min(label_x, n_matrix_cols)
+
+    reference_label <- paste0(reference_info$relative_year_label,
+                              " DOY ",
+                              reference_info$doy)
+
+    final_plot <- final_plot +
+      annotate("label",
+               label = as.character(calculated_metric),
+               y = calculated_metric,
+               x = label_x) +
+      annotate("label",
+               label = reference_label,
+               y = y_min + 0.15 * y_span,
+               x = label_x)
+
+    x_lab <- if (number_previous_years > 0L) {
+      "Relative year and day of year"
+    } else {
+      "Day of year"
+    }
+
+    final_plot <- final_plot +
+      ggtitle(paste0(period_string,
+                     method_string,
+                     optimal_calculation,
+                     optimal_window_string,
+                     " Days",
+                     reference_string,
+                     Optimal_string)) +
+      xlab(x_lab) +
+      ylab(y_lab)
+  }
+
+  # ---------------------------------------------------------------------------
+  # Monthly plot
+  # ---------------------------------------------------------------------------
+
+  if (type == "monthly") {
+
+    months_per_year <- 12L
+
+    month_names <- c("Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                     "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+
+    if (!is.null(result_daily_response$number_previous_years)) {
+
+      number_previous_years <- result_daily_response$number_previous_years
+
+    } else {
+
+      number_previous_years <- ceiling(n_matrix_cols / months_per_year) - 1L
+    }
+
+    if (is.na(number_previous_years) || number_previous_years < 0L) {
+      number_previous_years <- 0L
+    }
+
+    number_previous_years <- as.integer(number_previous_years)
+
+    full_sequence_width <- months_per_year * (number_previous_years + 1L)
+
+    optimal_start_position <- max(1, optimal_start_position)
+    optimal_end_position <- min(full_sequence_width, optimal_end_position)
+    plot_column_source <- max(1, min(full_sequence_width,
+                                     plot_column_source))
+
+    monthly_label <- function(position) {
+
+      position_info <- get_monthly_position_info(
+        position = position,
+        number_previous_years = number_previous_years,
+        months_per_year = months_per_year
+      )
+
+      month_label <- month_names[position_info$month_number]
+
+      if (number_previous_years > 0L) {
+        paste0(position_info$relative_year_label, " ", month_label)
+      } else {
+        month_label
+      }
+    }
+
+    reference_info <- get_monthly_position_info(
+      position = plot_column_source,
+      number_previous_years = number_previous_years,
+      months_per_year = months_per_year
+    )
+
+    if (reference_window == "start") {
+
+      reference_string <- paste0("\nStarting Month of Optimal Window Width: Month ",
+                                 reference_info$month_number)
+
+    } else if (reference_window == "end") {
+
+      reference_string <- paste0("\nEnding Month of Optimal Window Width: Month ",
+                                 reference_info$month_number)
+
+    } else if (reference_window == "middle") {
+
+      reference_string <- paste0("\nMiddle Month of Optimal Window Width: Month ",
+                                 reference_info$month_number)
+    }
+
+    if (number_previous_years > 0L) {
+      reference_string <- paste0(reference_string,
+                                 " of ",
+                                 reference_info$relative_year_label)
+    }
+
+    if (optimal_window_width == 1) {
+
+      Optimal_string <- paste0("\nOptimal Selection: ",
+                               monthly_label(optimal_start_position))
+
+    } else {
+
+      Optimal_string <- paste0("\nOptimal Selection: ",
+                               monthly_label(optimal_start_position),
+                               " - ",
+                               monthly_label(optimal_end_position))
+    }
+
+    if (optimal_window_width == 1) {
       month_string <- " Month"
-
     } else {
       month_string <- " Months"
     }
 
-    # In case of previous_year == TRUE, we calculate the day of a year
-    # (plot_column), considering 366 days of previous year.
+    optimal_window_string <- paste0("\nOptimal Window Width: ",
+                                    optimal_window_width,
+                                    month_string)
 
-    if (ncol(result_daily_response[[1]]) >= 12 & plot_column > 12) {
-      plot_column_extra <- plot_column %% 12
+    year_labels <- if (number_previous_years == 0L) {
+      "Y"
     } else {
-      plot_column_extra <- plot_column
+      c(paste0("Y-", number_previous_years:1), "Y")
     }
 
+    year_start <- seq(1,
+                      by = months_per_year,
+                      length.out = length(year_labels))
 
-    if (reference_window == 'start' &&  plot_column > 12 && ncol(result_daily_response[[1]]) <= 24){
-      reference_string <- paste0("\nStarting Month of Optimal Window Width: Month ",
-                                 plot_column_extra, " of Current Year")}
+    x_breaks <- c()
+    x_labels <- c()
 
-    if (reference_window == 'start' &&  plot_column <= 12 && ncol(result_daily_response[[1]]) <= 24){
-      reference_string <- paste0("\nStarting Month of Optimal Window Width: Month ",
-                                 plot_column_extra, " of Previous Year")}
+    for (i in seq_along(year_start)) {
 
-    if (reference_window == 'start' &&  plot_column <=  12 && ncol(result_daily_response[[1]]) <=  12){
-      reference_string <- paste0("\nStarting Month of Optimal Window Width: Month ",
-                                 plot_column_extra)}
+      start_i <- year_start[i]
 
+      candidate_breaks <- start_i:(start_i + months_per_year - 1)
+      candidate_breaks <- candidate_breaks[
+        candidate_breaks <= n_matrix_cols
+      ]
 
+      candidate_labels <- month_names[seq_along(candidate_breaks)]
+      candidate_labels[1] <- year_labels[i]
 
+      x_breaks <- c(x_breaks, candidate_breaks)
+      x_labels <- c(x_labels, candidate_labels)
+    }
 
+    year_separator_positions <- year_start[-1] - 0.5
+    year_separator_positions <- year_separator_positions[
+      year_separator_positions <= n_matrix_cols
+    ]
 
-
-
-
-
-    if (reference_window == 'end' &&  plot_column > 12 && ncol(result_daily_response[[1]]) <= 24){
-      reference_string <- paste0("\nEnding Month of Optimal Window Width: Month ",
-                                 plot_column_extra, " of Current Year")}
-
-    if (reference_window == 'end' &&  plot_column <= 12 && ncol(result_daily_response[[1]]) <= 24){
-      reference_string <- paste0("\nEnding Month of Optimal Window Width: Month ",
-                                 plot_column_extra, " of Previous Year")}
-
-    if (reference_window == 'end' &&  plot_column <=  12 && ncol(result_daily_response[[1]]) <=  12){
-      reference_string <- paste0("\nEnding Month of Optimal Window Width: Month ",
-                                 plot_column_extra)}
-
-
-
-
-
-
-        optimal_window_string <- paste0("\nOptimal Window Width: ", as.numeric(row_index),
-                                        month_string)
-
-        # Here we define a data frame of months. Later
-        # this dataframe will be used to describe tht optimal sequence of days
-
-        if (ncol(result_daily_response[[1]]) > 12){
-          date_codes <- c("Jan*", "Feb*", "Mar*", "Apr*", "May*", "Jun*", "Jul*", "Aug*", "Sep*", "Oct*", "Nov*", "Dec*",
-                          "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
-
-        } else if (ncol(result_daily_response[[1]]) <= 12){
-
-          date_codes <- c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
-
-        }
-
-
-
-
-
-
-        if (reference_window == "start"){
-          Optimal_string <- paste("\nOptimal Selection:",
-                                  as.character(date_codes[plot_column_source]),"-",
-                                  as.character(date_codes[plot_column_source + as.numeric(row_index) - 1]))
-        } else if (reference_window == "end") {
-          Optimal_string <- paste("\nOptimal Selection:",
-                                  as.character(date_codes[plot_column_source - as.numeric(row_index) + 1]),"-",
-                                  as.character(date_codes[plot_column_source]))
-        } else if (reference_window == "middle") {
-          Optimal_string <- paste("\nOptimal Selection:",
-                                  as.character(date_codes[(round2((plot_column_source - as.numeric(row_index)/2)) - adjustment_1)]),"-",
-                                  as.character(date_codes[(round2((plot_column_source + as.numeric(row_index)/2)) - adjustment_2)]))
-        }
-
-        if (as.numeric(row_index == 1)){
-          Optimal_string <- substr(Optimal_string, 1, nchar(Optimal_string)-6)
-        }
-
-        if ((plot_column_extra) > 12){
-
-
-        }
-
-
-
-    if (ncol(result_daily_response[[1]]) <= 12){
-
-      window_widths <- seq(1, length(temporal_vector))
-
-      row_count <- 1
-      delete_rows <- 0
-
-      while (is.na(temporal_vector[row_count, ] == TRUE)){
-        delete_rows <- delete_rows + 1
-        row_count <-  row_count + 1
-      }
-
-      color_values <- rep("grey50", sum(!is.na(temporal_vector)))
-      color_values[ plot_column - row_count + 1] <- "red"
-
-    months <- c("J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D")
-
-
-
+    plot_df$BarColour <- ifelse(plot_df$Position == plot_column_source,
+                                "optimal", "other")
 
     final_plot <- suppressWarnings(
-      ggplot(temporal_vector, aes(y = temporal_vector,
-                                  x = seq(1, length(temporal_vector)))) +
+      ggplot(plot_df, aes(x = Position, y = Value, fill = BarColour)) +
         geom_col() +
         geom_hline(yintercept = 0) +
-        scale_x_continuous(breaks = sort(c(seq(1, 12, 1)), decreasing = FALSE),
-                           labels = months) +
+        scale_x_continuous(expand = c(0, 0),
+                           breaks = x_breaks,
+                           labels = x_labels) +
         scale_y_continuous(limits = ylimits) +
-        annotate("label", label = as.character(calculated_metric),
-                 y = calculated_metric, x = plot_column) +
-        xlab(paste0(x_lab_reference, " Month of Calculation and ",as.character(as.numeric(row_index)) ," Consecutive", month_string)) +
-        ylab(y_lab) +
-        ggtitle(paste0(period_string, method_string, optimal_calculation,
-                       optimal_window_string, reference_string, Optimal_string)) +
+        scale_fill_manual(values = c("other" = "grey50",
+                                     "optimal" = "red"),
+                          guide = "none") +
+        journal_theme
+    )
 
-        journal_theme)
+    if (show_year_separators && number_previous_years > 0L) {
 
-
-    } else if (ncol(result_daily_response[[1]]) > 12){
-
-      months <- c("J*", "F*", "M*", "A*", "M*", "J*", "J*", "A*", "S*", "O*", "N*", "D*",
-                  "J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D")
-
-     window_widths <- seq(1, nrow(temporal_vector))
-
-     row_count <- 1
-     delete_rows <- 0
-     while (is.na(temporal_vector[row_count, ] == TRUE)){
-       delete_rows <- delete_rows + 1
-       row_count <-  row_count + 1
-     }
-
-     color_values <- rep("grey50", sum(!is.na(temporal_vector)))
-     color_values[ plot_column - row_count + 1] <- "red"
-
-     final_plot <- suppressWarnings(
-       ggplot(temporal_vector, aes(y = temporal_vector, x = seq(1, length(temporal_vector)))) +
-         geom_col() +
-          scale_x_continuous(breaks = sort(c(seq(1, 24, 1)), decreasing = FALSE),
-                           labels = months) +
-                  annotate("label", label = as.character(calculated_metric), y = calculated_metric, x = plot_column) +
-                    xlab(paste0(x_lab_reference, " Month of Calculation (Including Previous Year) and ",as.character(as.numeric(row_index)) ,
-                         " Consecutive", month_string)) +
-                    ylab(y_lab) +
-          scale_fill_discrete(guide = 'none') +
-                    geom_hline(yintercept = 0) +
-          scale_y_continuous(limits = ylimits) +
-          ggtitle(paste0(period_string, method_string, optimal_calculation,
-                         optimal_window_string, reference_string, Optimal_string)) +
-          journal_theme)
+      final_plot <- final_plot +
+        geom_vline(xintercept = year_separator_positions,
+                   size = 0.4,
+                   linetype = "dashed",
+                   colour = "grey40")
     }
 
+    x_lab <- if (number_previous_years > 0L) {
+      "Relative year and month"
+    } else {
+      "Month"
+    }
+
+    final_plot <- final_plot +
+      annotate("label",
+               label = as.character(calculated_metric),
+               y = calculated_metric,
+               x = plot_column_source) +
+      xlab(x_lab) +
+      ylab(y_lab) +
+      ggtitle(paste0(period_string,
+                     method_string,
+                     optimal_calculation,
+                     optimal_window_string,
+                     reference_string,
+                     Optimal_string))
   }
 
   final_plot
-
 }

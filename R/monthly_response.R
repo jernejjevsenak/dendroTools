@@ -33,9 +33,14 @@
 #' @param cor_method a character string indicating which correlation
 #' coefficient is to be computed. One of "pearson" (default), "kendall", or
 #' "spearman".
-#' @param previous_year if set to TRUE, env_data and response variables will be
-#' rearranged in a way, that also previous year will be used for calculations of
-#' selected statistical metric.
+#' @param previous_year logical. If TRUE, previous-year climate data are included
+#' in the analysis. If FALSE, no previous-year climate data are included and
+#' number_previous_years is ignored.
+#' @param number_previous_years integer between 1 and 5 specifying how many
+#' previous years should be included in the environmental matrix when
+#' previous_year = TRUE. For example, number_previous_years = 2 uses monthly
+#' climate data from years t - 2, t - 1 and t for response year t. If NULL and
+#' previous_year = TRUE, one previous year is included.
 #' @param reference_window character string, the reference_window argument describes,
 #' how each calculation is referred. There are two different options: 'start'
 #' (default) and 'end'. If the reference_window argument is set to 'start',
@@ -89,10 +94,16 @@
 #' "perc", "bca").
 #' @param boot_conf_int A scalar or vector containing the confidence level(s) of
 #' the required interval(s)
-#' @param month_interval a vector of two values: lower and upper time interval of
-#' months that will be used to calculate statistical metrics. Negative values indicate
-#' previous growing season months. This argument overwrites the calculation
-#' limits defined by lower_limit and upper_limit arguments.
+#' @param month_interval a vector of two values defining the interval of months
+#' used for calculations. Positive values indicate months in the current year.
+#' Negative values indicate months in the previous-year block and are only used
+#' when previous_year = TRUE. If previous_year = FALSE and negative values are
+#' supplied, month_interval is ignored and the analysis is performed for the
+#' current year only using month_interval = c(1, 12). If number_previous_years > 1,
+#' the previous-year block starts with the earliest included previous year. For
+#' example, previous_year = TRUE, number_previous_years = 2 and
+#' month_interval = c(-1, 12) analyses the full sequence from January of year
+#' t - 2 to December of year t.
 #' @param dc_method a character string to determine the method to detrend climate
 #' data.  Possible values are "none" (default) and "SLD" which refers to Simple
 #' Linear Detrending
@@ -102,7 +113,7 @@
 #' "all.obs", "complete.obs", "na.or.complete", or "pairwise.complete.obs". See
 #' also the documentation for the base cor() function.
 #'
-#' @return a list with 17 elements:
+#' @return a list with 19 elements:
 #' \enumerate{
 #'  \item $calculations - a matrix with calculated metrics
 #'  \item $method - the character string of a method
@@ -120,6 +131,8 @@
 #'  \item $boot_lower - matrix with lower limit of confidence intervals of bootstrap calculations
 #'  \item $boot_upper - matrix with upper limit of confidence intervals of bootstrap calculations
 #'  \item $aggregated_climate - matrix with all aggregated climate series
+#'  \item $previous_year - logical indicating whether previous-year climate data were used
+#'  \item $number_previous_years - integer indicating how many previous years were used
 #'}
 #'
 #' @export
@@ -224,11 +237,24 @@
 #' # summary(example_q95)
 #' # example_q95$temporal_stability
 #'
+#' # Example using two previous years plus the current year
+#' example_two_previous_years <- monthly_response(
+#'   response = data_MVA,
+#'   env_data = LJ_monthly_temperatures,
+#'   method = "cor",
+#'   fixed_width = 3,
+#'   row_names_subset = TRUE,
+#'   previous_year = TRUE,
+#'   number_previous_years = 2,
+#'   month_interval = c(-1, 10),
+#'   aggregate_function = "mean"
+#' )
+#'
 #' }
 
 monthly_response <- function(response, env_data, method = "cor",
                              metric = "r.squared", cor_method = "pearson",
-                             previous_year = FALSE, neurons = 1,
+                             previous_year = FALSE, number_previous_years = NULL, neurons = 1,
                              lower_limit = 1, upper_limit = 12,
                              fixed_width = 0, brnn_smooth = TRUE,
                              remove_insignificant = TRUE,
@@ -242,102 +268,184 @@ monthly_response <- function(response, env_data, method = "cor",
                              ylimits = NULL, seed = NULL, tidy_env_data = FALSE,
                              boot = FALSE, boot_n = 1000, boot_ci_type = "norm",
                              boot_conf_int = 0.95,
-                             month_interval = ifelse(c(previous_year == TRUE,
-                                                       previous_year == TRUE),
-                                                     c(-1, 12), c(1, 12)),
+                             month_interval = NULL,
                              dc_method = NULL,
                              cor_na_use = "everything"
 ) {
 
   ##############################################################################
-  # 1 day interval is organized
-  offset_start <- month_interval[1]
-  offset_end <- month_interval[2]
+  # 1 month interval is organized
+
+  months_per_year <- 12L
 
   if (reference_window == "middle"){
 
     stop(paste0("reference_window should be 'start' or 'end'. 'middle' reference_window is not implemented for the monthly_response"))
   }
 
-  # if both are positive but previous_year = TRUE
-  if (offset_start > 0 & offset_end > 0 & previous_year == TRUE){
-
-    previous_year <- FALSE
-
-    warning(paste0("Previous year is not included in selected month_interval. ",
-                   "The argument previous_year is set to FALSE"))
+  # previous_year is the master switch for previous-year analyses.
+  # If previous_year = FALSE, number_previous_years is ignored.
+  if (!is.logical(previous_year) ||
+      length(previous_year) != 1 ||
+      is.na(previous_year)) {
+    stop("previous_year must be either TRUE or FALSE.")
   }
 
+  if (isFALSE(previous_year)) {
 
-  # if both are negative negative
-  if (offset_start < 0 & offset_end < 0){
+    if (!is.null(number_previous_years) &&
+        is.numeric(number_previous_years) &&
+        length(number_previous_years) == 1 &&
+        !is.na(number_previous_years) &&
+        number_previous_years > 0) {
+      warning(paste0("number_previous_years is ignored because ",
+                     "previous_year = FALSE."))
+    }
+
+    number_previous_years <- 0L
+
+  } else {
+
+    # Backward compatibility:
+    # previous_year = TRUE still means one previous year unless
+    # number_previous_years is explicitly supplied.
+    if (is.null(number_previous_years)) {
+      number_previous_years <- 1L
+    }
+
+    if (!is.numeric(number_previous_years) ||
+        length(number_previous_years) != 1 ||
+        is.na(number_previous_years) ||
+        number_previous_years %% 1 != 0 ||
+        number_previous_years < 1 ||
+        number_previous_years > 5) {
+      stop(paste0("When previous_year = TRUE, number_previous_years must be ",
+                  "a single integer between 1 and 5."))
+    }
+
+    number_previous_years <- as.integer(number_previous_years)
+  }
+
+  year_block_width <- months_per_year * (number_previous_years + 1L)
+
+  # Default interval:
+  # current year only: c(1, 12)
+  # previous-year analysis: c(-1, 12), i.e. from January of the earliest
+  # included previous year to December of the current year.
+  if (is.null(month_interval)) {
+    month_interval <- if (isTRUE(previous_year)) c(-1, months_per_year) else c(1, months_per_year)
+  }
+
+  if (!is.numeric(month_interval) ||
+      length(month_interval) != 2 ||
+      any(is.na(month_interval))) {
+    stop("month_interval must be a numeric vector of length 2.")
+  }
+
+  offset_start <- month_interval[1]
+  offset_end <- month_interval[2]
+
+  if (offset_start == 0 || offset_end == 0) {
+    stop("month_interval cannot contain 0. Use negative values for previous-year months and positive values for current-year months.")
+  }
+
+  # Negative values in month_interval would imply previous-year climate data.
+  # If previous_year = FALSE, previous-year data are not used. In this case,
+  # ignore month_interval and use the full current year.
+  if (isFALSE(previous_year) && (offset_start < 0 || offset_end < 0)) {
+
+    warning(paste0("Negative values were supplied in month_interval, but ",
+                   "previous_year = FALSE. The month_interval argument is ignored ",
+                   "and the analysis is performed for the current year only ",
+                   "using month_interval = c(1, 12)."))
+
+    month_interval <- c(1, months_per_year)
+    offset_start <- month_interval[1]
+    offset_end <- month_interval[2]
+  }
+
+  # If both limits are positive while previous_year = TRUE, previous years are
+  # not actually included in the selected interval. In that case, keep the
+  # analysis current-year only.
+  if (offset_start > 0 && offset_end > 0 && isTRUE(previous_year)) {
+
+    number_previous_years <- 0L
+    previous_year <- FALSE
+    year_block_width <- months_per_year
+
+    warning(paste0("Previous years are not included in selected month_interval. ",
+                   "The analysis is performed for the current year only."))
+  }
+
+  # Convert the user-facing month_interval to column positions in the lagged matrix.
+  # For number_previous_years = 2, the internal matrix is:
+  # columns 1:12     = year t - 2
+  # columns 13:24    = year t - 1
+  # columns 25:36    = year t
+  if (offset_start < 0 && offset_end < 0) {
+
     offset_start <- abs(offset_start)
     offset_end <- abs(offset_end)
 
-    # If previous_year is FALSE, we set it to TRUE
-    if (previous_year == FALSE){
-      previous_year = TRUE
-      warning(paste0("Previous year is included in month_interval. ",
-                     "The argument previous_year is set to TRUE"))
-    }
+  } else if (offset_start < 0 && offset_end > 0) {
 
-    # if only offset_start is negative
-
-  } else if (offset_start < 0 & offset_end > 0){
-    offset_end <- offset_end + 12
     offset_start <- abs(offset_start)
+    offset_end <- offset_end + months_per_year * number_previous_years
 
-    # If previous_year is FALSE, we set it to TRUE
-    if (previous_year == FALSE){
-      previous_year = TRUE
-      warning(paste0("Previous year is included in month_interval. ",
-                     "The argument previous_year is set to TRUE"))
-    }
+  } else if (offset_start > 0 && offset_end > 0) {
 
+    # Current-year-only interval; already in current-year coordinates.
+    offset_start <- offset_start
+    offset_end <- offset_end
+
+  } else {
+
+    stop("month_interval must not run from current-year months back to previous-year months.")
+  }
+
+  if (offset_start > offset_end) {
+    stop("month_interval is invalid after conversion. The start of the interval is after the end.")
+  }
+
+  if (offset_start < 1 || offset_end > year_block_width) {
+    stop(paste0("month_interval is outside the available climate sequence. ",
+                "For number_previous_years = ", number_previous_years,
+                ", the available width is ", year_block_width, " months."))
   }
 
   # Calculate the max_window allowed
   max_window <- offset_end - offset_start + 1
 
-  # If max_window is greater then upper_limit, it must be reduced
+  # If max_window is smaller than upper_limit, upper_limit must be reduced
   if (upper_limit > max_window){
 
     upper_limit <- max_window
 
     if (fixed_width == 0){
       warning(paste0("The upper_limit is outside your month_interval and",
-                     " therefore reduced to the maximum allowed: ",max_window,"."))
+                     " therefore reduced to the maximum allowed: ", max_window, "."))
     }
-
   }
 
-  # Now, if lower_limit > max_window, we make them the same
   if (lower_limit > max_window){
     lower_limit <- max_window
 
     if (fixed_width == 0){
       warning(paste0("The lower_limit is outside your month_interval and",
-                     " therefore reduced to the minimum allowed: ",max_window,"."))
+                     " therefore reduced to the minimum allowed: ", max_window, "."))
     }
   }
-
 
   # Also correction for fixed_window approach - can only be ERROR
   if (fixed_width > max_window){
 
-    stop(paste0("The selected fixed_width is outside your month_interval.",
-                " Decrease the fixed_width argument to at least: ",max_window,"."))
+    stop(paste0("The selected fixed_width is outside your month_interval. ",
+                "Decrease the fixed_width argument to at least: ", max_window, "."))
   }
 
-  if (previous_year == FALSE){
-
-    offset_end <- 12 - offset_end
-
-  } else {
-
-    offset_end <- 24 - offset_end
-
-  }
+  # offset_end is converted to the number of months that must be skipped at the
+  # end of the full environmental matrix.
+  offset_end <- year_block_width - offset_end
 
   ################################################################################
 
@@ -350,10 +458,6 @@ monthly_response <- function(response, env_data, method = "cor",
     upper_limit = 12
   }
 
-
-  if (fixed_width > 12 & previous_year == FALSE){
-    stop(paste0("fixed_width argument can not be greater than 12! Instead, it is ", fixed_width, "!"))
-  }
 
   # Defining global variables
   median <- NULL
@@ -423,6 +527,58 @@ monthly_response <- function(response, env_data, method = "cor",
   }
 
 
+
+  # Internal helper for constructing a multi-year climate matrix.
+  # Rows are current response years. Columns are ordered from the oldest previous
+  # year to the current year.
+  build_lagged_env_data <- function(x, n_previous_years) {
+
+    x <- data.frame(x, check.names = FALSE)
+
+    if (n_previous_years == 0L) {
+      return(x)
+    }
+
+    env_years <- suppressWarnings(as.integer(row.names(x)))
+
+    if (any(is.na(env_years))) {
+      stop("For previous-year analyses, row.names of env_data must be calendar years.")
+    }
+
+    if (any(duplicated(env_years))) {
+      stop("Duplicated years are present in row.names(env_data).")
+    }
+
+    row.names(x) <- as.character(env_years)
+    x <- x[order(env_years), , drop = FALSE]
+    env_years <- as.integer(row.names(x))
+
+    current_years <- env_years[
+      vapply(env_years, function(y) {
+        all((y - n_previous_years):y %in% env_years)
+      }, logical(1))
+    ]
+
+    if (length(current_years) == 0L) {
+      stop(paste0("No years in env_data have the required ",
+                  n_previous_years, " previous year(s)."))
+    }
+
+    lag_blocks <- lapply(seq(n_previous_years, 0L), function(lag_i) {
+
+      block <- x[as.character(current_years - lag_i), , drop = FALSE]
+      row.names(block) <- as.character(current_years)
+      colnames(block) <- paste0("Y", -lag_i, "_", colnames(x))
+
+      block
+    })
+
+    out <- do.call(cbind, lag_blocks)
+    row.names(out) <- as.character(current_years)
+
+    data.frame(out, check.names = FALSE)
+  }
+
   # If there is a column name samp.depth in response data frame, warning is given
   if ("samp.depth" %in% colnames(response)){
 
@@ -444,17 +600,6 @@ monthly_response <- function(response, env_data, method = "cor",
     stop(paste0("You must insert env_data with 12 columns (months)! Instead, you have ", ncol(env_data),
                 " columns!"))
   }
-
-  if ((upper_limit > 24 & previous_year == TRUE) | (upper_limit > 12 & previous_year == FALSE))
-    stop("upper_limit out of bounds!")
-
-  if (lower_limit < 1)
-    stop("lower_limit must be positive!")
-
-  if (upper_limit > 24 | upper_limit < 1)
-    stop("upper_limit out of bounds! It should be between 1 and 12 (24)")
-
-
 
   # If env_data is given in tidy version, transformation is needed
   if (tidy_env_data == TRUE){
@@ -493,20 +638,34 @@ monthly_response <- function(response, env_data, method = "cor",
   response <- data.frame(response)
   env_data <- data.frame(env_data)
 
-  # Here we save the original env and response data that will be used later
+  # Here we save the original response data that will be used later
   response_original <- response
-  env_data_original <- env_data
 
+  # Previous-year analyses require alignment by calendar year names. This avoids
+  # accidental row-position mismatches after adding lagged climate years.
+  if (number_previous_years > 0L && row_names_subset == FALSE) {
+    row_names_subset <- TRUE
+    warning(paste0("Previous-year analyses require alignment by year names. ",
+                   "row_names_subset is set to TRUE."))
+  }
+
+  # Build current-year or multi-year environmental matrix.
+  # For number_previous_years = 0 this returns env_data unchanged.
+  env_data <- build_lagged_env_data(env_data, number_previous_years)
+
+  # This object is used later for optimized_return_all. It should represent the
+  # full lagged climate matrix before subset_years is applied.
+  env_data_original <- env_data
 
   # For metric calculations, both objects need to have the same length,
   # with the exception, when row_names_subset is set to TRUE
   # Stop message in case both data frames do not have the same length
-  if (nrow(response) !=  nrow(env_data) & row_names_subset == FALSE)
+  if (nrow(response) != nrow(env_data) & row_names_subset == FALSE)
     stop("Length of env_data and response records differ")
 
-  # Stop message if fixed_width is not between 0 and 24
-  if (fixed_width < 0 | fixed_width > 24)
-    stop("fixed_width should be between 1 and 24")
+  # Stop message if fixed_width is not between 0 and the full monthly sequence
+  if (fixed_width < 0 | fixed_width > year_block_width)
+    stop(paste0("fixed_width should be between 0 and ", year_block_width))
 
   # Stop in case of method == "cor" and ncol(proxies) > 1
   # Correlations could be calculated only for one variable
@@ -514,38 +673,17 @@ monthly_response <- function(response, env_data, method = "cor",
     stop(paste("More than 1 variable in response data frame not suitable ",
                "for 'cor' method. Use 'lm' or 'brnn'"))
 
-  if (previous_year == FALSE){
+  # Rules for selected window limits
+  if (lower_limit > upper_limit)
+    stop("lower_limit can not be higher than upper_limit!")
 
-    # Stop message if fixed_width is not between 0 and 366
-    if (fixed_width < 0 | fixed_width > 12)
-      stop("fixed_width should be between 1 and 12")
+  if (lower_limit > year_block_width | lower_limit < 1)
+    stop(paste0("lower_limit out of bounds! It should be between 1 and ",
+                year_block_width))
 
-    if (lower_limit > upper_limit)
-      stop("lower_limit can not be higher than upper_limit!")
-
-    if (lower_limit > 12 | lower_limit < 1)
-      stop("lower_limit out of bounds! It should be between 1 and 12")
-
-    if (upper_limit > 12 | upper_limit < 1)
-      stop("upper_limit out of bounds! It should be between 1 and 12")
-
-    # Rules for previous_year = TRUE
-  } else if (previous_year == TRUE){
-
-    # Stop message if fixed_width is not between 0 and 366
-    if (fixed_width < 0 | fixed_width > 24)
-      stop("fixed_width should be between 1 and 24")
-
-    if (lower_limit > upper_limit)
-      stop("lower_limit can not be higher than upper_limit!")
-
-    if (lower_limit > 24 | lower_limit < 1)
-      stop("lower_limit out of bounds! It should be between 1 and 24")
-
-    if (upper_limit > 24 | upper_limit < 1)
-      stop("upper_limit out of bounds! It should be between 1 and 24")
-
-  }
+  if (upper_limit > year_block_width | upper_limit < 1)
+    stop(paste0("upper_limit out of bounds! It should be between 1 and ",
+                year_block_width))
 
   # Make sure the selected method is appropriate
   # Make sure the selected method is appropriate
@@ -559,7 +697,10 @@ monthly_response <- function(response, env_data, method = "cor",
   }
 
 
-  # Warn users in case of missing values (selected threshold is 9 months)
+  # Warn users in case of missing values. The original threshold was 8 missing
+  # months for one 12-month climate year, so it is scaled when multiple
+  # previous years are included.
+  missing_month_threshold <- 8 * (number_previous_years + 1L)
   env_temp <- env_data[row.names(env_data) %in% row.names(response),]
 
   # Subset of years
@@ -572,7 +713,7 @@ monthly_response <- function(response, env_data, method = "cor",
   }
 
   na_problem <- data.frame(na_sum = rowSums(is.na(env_temp)))
-  na_problem <- na_problem[na_problem$na_sum > 8, , F]
+  na_problem <- na_problem[na_problem$na_sum > missing_month_threshold, , F]
   problematic_years <- paste0(row.names(na_problem), sep = "", collapse=", ")
 
   if (nrow(na_problem) > 0){
@@ -581,30 +722,8 @@ monthly_response <- function(response, env_data, method = "cor",
 
   }
 
-  # Data manipulation
-  # If use.previous == TRUE, env_data data has to be rearranged accordingly
-  if (previous_year == TRUE) {
-
-    # FIRST, both data frames need to be arranged, the most recent year is the first one
-    env_data$yearABC <- row.names(env_data)
-    env_data <- dplyr::arrange(env_data, desc(yearABC))
-    env_data <- years_to_rownames(env_data, "yearABC")
-    env_data_previous <- env_data[-1, , F]
-    env_data_current <- env_data[-nrow(env_data), ,F]
-    row_names_current <- row.names(env_data_current)
-    env_data <- cbind(env_data_previous, env_data_current)
-    env_data <- data.frame(env_data)
-    row.names(env_data) <- row_names_current
-    env_data_original <- env_data
-
-    # response$yearABC <- row.names(response)
-    # response <- dplyr::arrange(response, desc(yearABC))
-    # response <- years_to_rownames(response, "yearABC")
-    # response <- data.frame(response[-nrow(response),,F ])
-    # response <- data.frame(response)
-    # response_original <- response
-
-  }
+  # Previous-year climate data have already been added by
+  # build_lagged_env_data().
 
   # If row_names_subset == TRUE, data is subseted and ordered based on matching
   # row.names. Additionally, number of characters in row.names is checked.
@@ -2858,7 +2977,9 @@ monthly_response <- function(response, env_data, method = "cor",
                        optimized_return_all = dataf_full_original,
                        transfer_function = p1, temporal_stability = temporal_stability,
                        cross_validation = cross_validation,
-                       aggregated_climate = do.call(cbind, list_climate))
+                       aggregated_climate = do.call(cbind, list_climate),
+                       previous_year = previous_year,
+                       number_previous_years = number_previous_years)
   }
 
   if (method == "cor"){
@@ -2868,7 +2989,9 @@ monthly_response <- function(response, env_data, method = "cor",
                        optimized_return_all = dataf_full_original,
                        transfer_function = p1, temporal_stability = temporal_stability,
                        cross_validation = cross_validation,
-                       aggregated_climate = do.call(cbind, list_climate))
+                       aggregated_climate = do.call(cbind, list_climate),
+                       previous_year = previous_year,
+                       number_previous_years = number_previous_years)
   }
 
 
@@ -2890,7 +3013,9 @@ monthly_response <- function(response, env_data, method = "cor",
                        reference_window = reference_window,
                        boot_lower = temporal_matrix_lower,
                        boot_upper = temporal_matrix_upper,
-                       aggregated_climate = do.call(cbind, list_climate))
+                       aggregated_climate = do.call(cbind, list_climate),
+                       previous_year = previous_year,
+                       number_previous_years = number_previous_years)
   }
 
   if (method == "cor"){
@@ -2907,7 +3032,9 @@ monthly_response <- function(response, env_data, method = "cor",
                        reference_window = reference_window,
                        boot_lower = temporal_matrix_lower,
                        boot_upper = temporal_matrix_upper,
-                       aggregated_climate = do.call(cbind, list_climate))
+                       aggregated_climate = do.call(cbind, list_climate),
+                       previous_year = previous_year,
+                       number_previous_years = number_previous_years)
   }
 
   class(final_list) <- 'dmrs'

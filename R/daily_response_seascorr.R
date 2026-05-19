@@ -35,9 +35,14 @@
 #' @param pcor_method a character string indicating which partial correlation
 #' coefficient is to be computed. One of "pearson" (default), "kendall", or
 #' "spearman", can be abbreviated.
-#' @param previous_year if set to TRUE, env_data_primary, env_data_control  and
-#' response variables will be rearranged in a way, that also previous year will
-#' be used for calculations of selected statistical metric.
+#' @param previous_year logical. Master switch for previous-year analyses. If
+#' FALSE, only the current year is analysed and number_previous_years is ignored.
+#' If TRUE, previous-year climate data are included.
+#' @param number_previous_years integer between 1 and 5 specifying how many
+#' previous years should be included when previous_year = TRUE. For example,
+#' number_previous_years = 2 uses climate data from years t - 2, t - 1 and t
+#' for response year t. If previous_year = TRUE and number_previous_years is
+#' NULL, one previous year is used for backward compatibility.
 #' @param remove_insignificant if set to TRUE, removes all correlations bellow
 #' the significant threshold level, based on a selected alpha.
 #' @param alpha significance level used to remove insignificant calculations.
@@ -98,10 +103,15 @@
 #' "perc", "bca").
 #' @param boot_conf_int A scalar or vector containing the confidence level(s) of
 #' the required interval(s)
-#' @param day_interval a vector of two values: lower and upper time interval of
-#' days that will be used to calculate statistical metrics. Negative values
-#' indicate previous growing season days. This argument overwrites the calculation
-#' limits defined by lower_limit and upper_limit arguments.
+#' @param day_interval a vector of two values defining the interval of days used
+#' for calculations. Positive values indicate days in the current year. Negative
+#' values indicate days in the previous-year block. If previous_year = FALSE,
+#' negative values in day_interval are ignored with a warning and the analysis
+#' is performed for the current year only using day_interval = c(1, 366). If
+#' previous_year = TRUE and number_previous_years > 1, the previous-year block
+#' starts with the earliest included previous year. For example, previous_year
+#' = TRUE, number_previous_years = 2 and day_interval = c(-1, 366) analyses
+#' the full sequence from DOY 1 of year t - 2 to DOY 366 of year t.
 #' @param dc_method a character string to determine the method to detrend climate
 #' data.  Possible values are "none" (default) and "SLD" which refers to Simple
 #' Linear Detrending
@@ -241,12 +251,28 @@
 #'   tidy_env_data_control = TRUE,
 #'   skip_window_position = 50
 #' )
+#'
+#' # 4 Example using two previous years plus the current year
+#' example_two_previous_years <- daily_response_seascorr(
+#'   response = data_MVA,
+#'   env_data_primary = LJ_daily_temperatures,
+#'   env_data_control = LJ_daily_precipitation,
+#'   row_names_subset = TRUE,
+#'   fixed_width = 60,
+#'   previous_year = TRUE,
+#'   number_previous_years = 2,
+#'   day_interval = c(-1, 250),
+#'   tidy_env_data_primary = FALSE,
+#'   tidy_env_data_control = TRUE,
+#'   skip_window_position = 50
+#' )
 #' }
 
 daily_response_seascorr <- function(response, env_data_primary, env_data_control,
                                     lower_limit = 30,
                                     upper_limit = 90, fixed_width = 0,
-                                    previous_year = FALSE, pcor_method = "pearson",
+                                    previous_year = FALSE, number_previous_years = NULL,
+                                    pcor_method = "pearson",
                                     remove_insignificant = TRUE,
                                     alpha = .05, row_names_subset = FALSE,
                                     aggregate_function_env_data_primary = 'mean',
@@ -260,9 +286,7 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
                                     tidy_env_data_control = FALSE,
                                     reference_window = 'start',  boot = FALSE, boot_n = 1000,
                                     boot_ci_type = "norm", boot_conf_int = 0.95,
-                                    day_interval = ifelse(c(previous_year == TRUE,
-                                                            previous_year == TRUE),
-                                                          c(-1, 366), c(1, 366)),
+                                    day_interval = NULL,
                                     dc_method = NULL,
                                     pcor_na_use = "pairwise.complete",
                                     skip_window_length = 1,
@@ -270,49 +294,145 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
 
   ##############################################################################
   # 1 day interval is organized
+
+  days_per_year <- 366L
+
+  # previous_year is the master switch for previous-year analyses.
+  # If previous_year = FALSE, number_previous_years is ignored.
+  if (!is.logical(previous_year) ||
+      length(previous_year) != 1 ||
+      is.na(previous_year)) {
+    stop("previous_year must be either TRUE or FALSE.")
+  }
+
+  if (isFALSE(previous_year)) {
+
+    if (!is.null(number_previous_years) &&
+        is.numeric(number_previous_years) &&
+        length(number_previous_years) == 1 &&
+        !is.na(number_previous_years) &&
+        number_previous_years > 0) {
+      warning(paste0("number_previous_years is ignored because ",
+                     "previous_year = FALSE."))
+    }
+
+    number_previous_years <- 0L
+
+  } else {
+
+    # Backward compatibility:
+    # previous_year = TRUE still means one previous year unless
+    # number_previous_years is explicitly supplied.
+    if (is.null(number_previous_years)) {
+      number_previous_years <- 1L
+    }
+
+    if (!is.numeric(number_previous_years) ||
+        length(number_previous_years) != 1 ||
+        is.na(number_previous_years) ||
+        number_previous_years %% 1 != 0 ||
+        number_previous_years < 1 ||
+        number_previous_years > 5) {
+      stop(paste0("When previous_year = TRUE, number_previous_years must be ",
+                  "a single integer between 1 and 5."))
+    }
+
+    number_previous_years <- as.integer(number_previous_years)
+  }
+
+  year_block_width <- days_per_year * (number_previous_years + 1L)
+
+  # Default interval:
+  # current year only: c(1, 366)
+  # previous-year analysis: c(-1, 366), i.e. from DOY 1 of the earliest
+  # included previous year to DOY 366 of the current year.
+  if (is.null(day_interval)) {
+    day_interval <- if (isTRUE(previous_year)) c(-1, days_per_year) else c(1, days_per_year)
+  }
+
+  if (!is.numeric(day_interval) ||
+      length(day_interval) != 2 ||
+      any(is.na(day_interval))) {
+    stop("day_interval must be a numeric vector of length 2.")
+  }
+
   offset_start <- day_interval[1]
   offset_end <- day_interval[2]
 
-  # if both are positive but previous_year = TRUE
-  if (offset_start > 0 & offset_end > 0 & previous_year == TRUE){
-
-    previous_year <- FALSE
-
-    warning(paste0("Previous year is not included in selected day_interval. ",
-                   "The argument previous_year is set to FALSE"))
+  if (offset_start == 0 || offset_end == 0) {
+    stop("day_interval cannot contain 0. Use negative values for previous-year days and positive values for current-year days.")
   }
 
+  # Negative values in day_interval would imply previous-year climate data.
+  # However, previous_year is the master switch. If previous_year = FALSE,
+  # we ignore the supplied negative day_interval and perform a current-year
+  # analysis using the default current-year interval.
+  if (isFALSE(previous_year) && (offset_start < 0 || offset_end < 0)) {
 
-  # if both are negative negative
-  if (offset_start < 0 & offset_end < 0){
+    warning(paste0("Negative values were supplied in day_interval, but ",
+                   "previous_year = FALSE. The day_interval argument is ",
+                   "ignored and the analysis is performed for the current ",
+                   "year only using day_interval = c(1, 366)."))
+
+    day_interval <- c(1, days_per_year)
+    offset_start <- day_interval[1]
+    offset_end <- day_interval[2]
+  }
+
+  # If both limits are positive while previous_year = TRUE, previous years are
+  # not actually included in the selected interval. In that case, keep the
+  # analysis current-year only.
+  if (offset_start > 0 && offset_end > 0 && isTRUE(previous_year)) {
+
+    number_previous_years <- 0L
+    previous_year <- FALSE
+    year_block_width <- days_per_year
+
+    warning(paste0("Previous years are not included in selected day_interval. ",
+                   "The analysis is performed for the current year only."))
+  }
+
+  # Convert the user-facing day_interval to column positions in the lagged matrix.
+  # For number_previous_years = 2, the internal matrix is:
+  # columns 1:366     = year t - 2
+  # columns 367:732   = year t - 1
+  # columns 733:1098  = year t
+  if (offset_start < 0 && offset_end < 0) {
+
     offset_start <- abs(offset_start)
     offset_end <- abs(offset_end)
 
-    # If previous_year is FALSE, we set it to TRUE
-    if (previous_year == FALSE){
-      previous_year = TRUE
-      warning(paste0("Previous year is included in day_interval. ",
-                     "The argument previous_year is set to TRUE"))
-    }
+  } else if (offset_start < 0 && offset_end > 0) {
 
-    # if only offset_start is negative
-  } else if (offset_start < 0 & offset_end > 0){
-    offset_end <- offset_end + 366
     offset_start <- abs(offset_start)
+    offset_end <- offset_end + days_per_year * number_previous_years
 
-    # If previous_year is FALSE, we set it to TRUE
-    if (previous_year == FALSE){
-      previous_year = TRUE
-      warning(paste0("Previous year is included in day_interval. ",
-                     "The argument previous_year is set to TRUE"))
-    }
+  } else if (offset_start > 0 && offset_end > 0) {
 
+    # Current-year-only interval; already in current-year coordinates.
+    offset_start <- offset_start
+    offset_end <- offset_end
+
+  } else {
+
+    stop("day_interval must not run from current-year days back to previous-year days.")
+
+  }
+
+  if (offset_start > offset_end) {
+    stop("day_interval is invalid after conversion. The start of the interval is after the end.")
+  }
+
+  if (offset_start < 1 || offset_end > year_block_width) {
+    stop(paste0("day_interval is outside the available climate sequence. ",
+                "For number_previous_years = ", number_previous_years,
+                ", the available width is ", year_block_width, " days."))
   }
 
   # Calculate the max_window allowed
   max_window <- offset_end - offset_start + 1
 
-  # If max_window is greater then upper_limit, it must be reduced
+  # If max_window is smaller than upper_limit, upper_limit must be reduced
   if (upper_limit > max_window){
 
     upper_limit <- max_window
@@ -323,7 +443,6 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
     }
   }
 
-  # Now, if upper_limit > max_window, we make them the same
   if (lower_limit > max_window){
 
     lower_limit <- max_window
@@ -334,24 +453,16 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
     }
   }
 
-
-  # Also correction for fixed_window approach
+  # Also correction for fixed-window approach
   if (fixed_width > max_window){
 
-    stop(paste0("The selected fixed_width is outside your day_interval.",
-                " Decrease the fixed_width argument to at least: ",max_window,"."))
+    stop(paste0("The selected fixed_width is outside your day_interval. ",
+                "Decrease the fixed_width argument to at least: ",max_window,"."))
   }
 
-
-  if (previous_year == FALSE){
-
-    offset_end <- 366 - offset_end
-
-  } else {
-
-    offset_end <- 732 - offset_end
-
-  }
+  # offset_end is converted to the number of days that must be skipped at the
+  # end of the full environmental matrix.
+  offset_end <- year_block_width - offset_end
 
   ##############################################################################
 
@@ -466,6 +577,58 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
                            quantile_prob = quantile_prob_env_data_control)
   }
 
+
+  # Internal helper for constructing a multi-year climate matrix.
+  # Rows are current response years. Columns are ordered from the oldest previous
+  # year to the current year.
+  build_lagged_env_data <- function(x, n_previous_years) {
+
+    x <- data.frame(x, check.names = FALSE)
+
+    if (n_previous_years == 0L) {
+      return(x)
+    }
+
+    env_years <- suppressWarnings(as.integer(row.names(x)))
+
+    if (any(is.na(env_years))) {
+      stop("For previous-year analyses, row.names of environmental data must be calendar years.")
+    }
+
+    if (any(duplicated(env_years))) {
+      stop("Duplicated years are present in row.names of environmental data.")
+    }
+
+    row.names(x) <- as.character(env_years)
+    x <- x[order(env_years), , drop = FALSE]
+    env_years <- as.integer(row.names(x))
+
+    current_years <- env_years[
+      vapply(env_years, function(y) {
+        all((y - n_previous_years):y %in% env_years)
+      }, logical(1))
+    ]
+
+    if (length(current_years) == 0L) {
+      stop(paste0("No years in environmental data have the required ",
+                  n_previous_years, " previous year(s)."))
+    }
+
+    lag_blocks <- lapply(seq(n_previous_years, 0L), function(lag_i) {
+
+      block <- x[as.character(current_years - lag_i), , drop = FALSE]
+      row.names(block) <- as.character(current_years)
+      colnames(block) <- paste0("Y", -lag_i, "_", colnames(x))
+
+      block
+    })
+
+    out <- do.call(cbind, lag_blocks)
+    row.names(out) <- as.character(current_years)
+
+    data.frame(out, check.names = FALSE)
+  }
+
   # If there is a column name samp.depth in response data frame, warning is given
   if ("samp.depth" %in% colnames(response)){
 
@@ -543,58 +706,53 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
   env_data_primary <- data.frame(env_data_primary)
   env_data_control <- data.frame(env_data_control)
 
-  # Here we save the original env and response data that will be used later
+  # Here we save the original response data that will be used later
   response_original <- response
+
+  # Previous-year analyses require alignment by calendar year names. This avoids
+  # accidental row-position mismatches after adding lagged climate years.
+  if (number_previous_years > 0L && row_names_subset == FALSE) {
+    row_names_subset <- TRUE
+    warning(paste0("Previous-year analyses require alignment by year names. ",
+                   "row_names_subset is set to TRUE."))
+  }
+
+  # Build current-year or multi-year environmental matrices.
+  # For number_previous_years = 0 these return the data unchanged.
+  env_data_primary <- build_lagged_env_data(env_data_primary, number_previous_years)
+  env_data_control <- build_lagged_env_data(env_data_control, number_previous_years)
+
+  # These objects are used later for optimized_return_all. They should represent
+  # the full lagged climate matrices before subset_years is applied.
   env_data_primary_original <- env_data_primary
   env_data_control_original <- env_data_control
 
-  # For metric calculations, both objects need to have the same length,
-  # with the exception, when row_names_subset is set to TRUE
-  # Stop message in case both data frames do not have the same length
-  if (nrow(response) !=  nrow(env_data_primary) & row_names_subset == FALSE)
+  # For metric calculations, all objects need to have the same length,
+  # with the exception when row_names_subset is set to TRUE.
+  if (nrow(response) != nrow(env_data_primary) & row_names_subset == FALSE)
     stop(paste0("Length of env_data_primary and response records differ",
                 " You can use row_names_subset = TRUE"))
 
-  if (nrow(response) !=  nrow(env_data_control) & row_names_subset == FALSE)
+  if (nrow(response) != nrow(env_data_control) & row_names_subset == FALSE)
     stop(paste0("Length of env_data_control and response records differ",
                 " You can use row_names_subset = TRUE"))
 
-
   #######################################################
-  # Rules for previous_year = FALSE
+  # Rules for selected window limits
 
-  if (previous_year == FALSE){
+  if (fixed_width < 0 | fixed_width > year_block_width)
+    stop(paste0("fixed_width should be between 0 and ", year_block_width))
 
-    # Stop message if fixed_width is not between 0 and 366
-    if (fixed_width < 0 | fixed_width > 366)
-      stop("fixed_width should be between 1 and 366")
+  if (lower_limit > upper_limit)
+    stop("lower_limit can not be higher than upper_limit!")
 
-    if (lower_limit > upper_limit)
-      stop("lower_limit can not be higher than upper_limit!")
+  if (lower_limit > year_block_width | lower_limit < 1)
+    stop(paste0("lower_limit out of bounds! It should be between 1 and ",
+                year_block_width))
 
-    if (lower_limit > 366 | lower_limit < 1)
-      stop("lower_limit out of bounds! It should be between 1 and 366")
-
-    if (upper_limit > 366 | upper_limit < 1)
-      stop("upper_limit out of bounds! It should be between 1 and 366")
-
-    # Rules for previous_year = TRUE
-  } else if (previous_year == TRUE){
-
-    # Stop message if fixed_width is not between 0 and 366
-    if (fixed_width < 0 | fixed_width > 732)
-      stop("fixed_width should be between 1 and 732")
-
-    if (lower_limit > upper_limit)
-      stop("lower_limit can not be higher than upper_limit!")
-
-    if (lower_limit > 732 | lower_limit < 1)
-      stop("lower_limit out of bounds! It should be between 1 and 366")
-
-    if (upper_limit > 732 | upper_limit < 1)
-      stop("upper_limit out of bounds! It should be between 1 and 366")
-
-  }
+  if (upper_limit > year_block_width | upper_limit < 1)
+    stop(paste0("upper_limit out of bounds! It should be between 1 and ",
+                year_block_width))
 
   # Make sure the selected method is appropriate
   # Make sure the selected method is appropriate
@@ -607,7 +765,11 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
     }
   }
 
-  # Warn users in case of missing values (selected threshold is 270 days)
+  # Warn users in case of missing values. The original threshold was 270
+  # missing days for one 366-day climate year, so it is scaled when multiple
+  # previous years are included.
+  missing_day_threshold <- 270 * (number_previous_years + 1L)
+
   # A) env_data_primary
   env_temp_primary <- env_data_primary[row.names(env_data_primary) %in% row.names(response),]
 
@@ -620,7 +782,7 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
   }
 
   na_problem <- data.frame(na_sum = rowSums(is.na(env_temp_primary)))
-  na_problem <- na_problem[na_problem$na_sum > 270, , F]
+  na_problem <- na_problem[na_problem$na_sum > missing_day_threshold, , F]
   problematic_years <- paste0(row.names(na_problem), sep = "", collapse=", ")
 
   if (nrow(na_problem) > 0){
@@ -642,7 +804,7 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
   }
 
   na_problem <- data.frame(na_sum = rowSums(is.na(env_temp_conotrol)))
-  na_problem <- na_problem[na_problem$na_sum > 270, , F]
+  na_problem <- na_problem[na_problem$na_sum > missing_day_threshold, , F]
   problematic_years <- paste0(row.names(na_problem), sep = "", collapse=", ")
 
   if (nrow(na_problem) > 0){
@@ -651,34 +813,8 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
 
   }
 
-  # Data manipulation
-  # If use.previous == TRUE, env_data_primary data has to be rearranged accordingly
-  if (previous_year == TRUE) {
-
-    # FIRST, both data frames need to be arranged, the most recent year is the first one
-    env_data_primary$yearABC <- row.names(env_data_primary)
-    env_data_primary <- dplyr::arrange(env_data_primary, desc(yearABC))
-    env_data_primary <- years_to_rownames(env_data_primary, "yearABC")
-    env_data_primary_previous <- env_data_primary[-1, , F]
-    env_data_primary_current <- env_data_primary[-nrow(env_data_primary), ,F]
-    row_names_current <- row.names(env_data_primary_current)
-    env_data_primary <- cbind(env_data_primary_previous, env_data_primary_current)
-    env_data_primary <- data.frame(env_data_primary)
-    row.names(env_data_primary) <- row_names_current
-    env_data_primary_original <- env_data_primary
-
-    env_data_control$yearABC <- row.names(env_data_control)
-    env_data_control <- dplyr::arrange(env_data_control, desc(yearABC))
-    env_data_control <- years_to_rownames(env_data_control, "yearABC")
-    env_data_control_previous <- env_data_control[-1, , F]
-    env_data_control_current <- env_data_control[-nrow(env_data_control), ,F]
-    row_names_current <- row.names(env_data_control_current)
-    env_data_control <- cbind(env_data_control_previous, env_data_control_current)
-    env_data_control <- data.frame(env_data_control)
-    row.names(env_data_control) <- row_names_current
-    env_data_control_original <- env_data_control
-
-  }
+  # Previous-year climate data have already been added by
+  # build_lagged_env_data().
 
   # If row_names_subset == TRUE, data is subset and ordered based on matching
   # row.names. Additionally, number of characters in row.names is checked.
@@ -1242,6 +1378,7 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
                        plot_extreme = NA,
                        type = "daily",
                        reference_window = reference_window,
+                       number_previous_years = number_previous_years,
                        boot_lower = temporal_matrix_lower,
                        boot_upper = temporal_matrix_upper,
                        aggregated_climate_primary = NA,
@@ -1682,6 +1819,11 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
                        optimized_return_all = x1_full_original,
                        transfer_function = p1, temporal_stability = temporal_stability,
                        cross_validation = NA,
+                       type = "daily",
+                       reference_window = reference_window,
+                       number_previous_years = number_previous_years,
+                       boot_lower = temporal_matrix_lower,
+                       boot_upper = temporal_matrix_upper,
                        aggregated_climate_primary = do.call(cbind, list_climate_primary),
                        aggregated_climate_control = do.call(cbind, list_climate_control))
 
@@ -1700,6 +1842,7 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
                        plot_extreme = plot_extremeA,
                        type = "daily",
                        reference_window = reference_window,
+                       number_previous_years = number_previous_years,
                        boot_lower = temporal_matrix_lower,
                        boot_upper = temporal_matrix_upper,
                        aggregated_climate_primary = do.call(cbind, list_climate_primary),
