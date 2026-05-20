@@ -1,14 +1,14 @@
 Dear CRAN Team,
 
-This is a routine update (version 1.2.15) of the dendroTools R package.
+This is a routine update of the dendroTools R package, version 1.2.16.
 
-A minor bug in the sd() resulted in missing correlation values when detrending was applied.
+This release extends the daily and monthly response-functions by allowing analyses of multiple previous years. 
+It also includes corresponding updates to summary and plotting methods, so that results from multi-year climate windows are reported and visualized correctly.
 
-Thank you for your consideration.
+In addition, this version improves the robustness of the brnn method by handling occasional unstable model fits more safely, returning missing values for failed windows rather than interrupting the full analysis.
 
-Best regards,
-Jernej Jevsenak
-
+Best,
+Jernej
 
 ##  Resubmission
 * This is a resubmission of the package dendroTools.

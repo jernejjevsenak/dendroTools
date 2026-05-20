@@ -1,12 +1,19 @@
 # dendroTools 1.2.16
-* Added a new vignette describing how to use ggplot2 to modify dendroTools output plots
-* Added support for quantile-based aggregation in `daily_response()`, `daily_response_seascorr()`, `monthly_response()`, and `monthly_response_seascorr()`.
-* Users can now set `aggregate_function = "quantile"` to aggregate climate data using any selected quantile.
 * Added new quantile-probability arguments:
   - `quantile_prob` for `daily_response()` and `monthly_response()`
   - `quantile_prob_env_data_primary` and `quantile_prob_env_data_control` for `daily_response_seascorr()` and `monthly_response_seascorr()`
 * This allows analyses based on lower or upper climate extremes, for example the 5th, 90th, or 95th percentile of temperature, precipitation, or other environmental variables within the selected time window.
-* Updated documentation and examples to demonstrate the new quantile aggregation option.
+* Extended previous-year analyses in `daily_response()`, `daily_response_seascorr()`, `monthly_response()`, and `monthly_response_seascorr()`.
+* Added the new argument `number_previous_years`, which allows users to include more than one previous year in response-function analyses.
+* Users can now analyse climate windows spanning up to five previous years plus the current year.
+* The argument `previous_year` now acts as the main switch for previous-year analyses. If `previous_year = FALSE`, previous-year settings are ignored and the analysis is performed for the current year only.
+* If negative values are supplied in `day_interval` or `month_interval` while `previous_year = FALSE`, the interval is ignored with a warning and the analysis is performed for the current year only.
+* Updated plotting methods to support multi-year climate windows. Heatmaps and extreme-value plots now show relative-year labels such as `Y-3`, `Y-2`, `Y-1`, and `Y`, with year separators where appropriate.
+* Updated x-axis labels in response-function plots to indicate whether the reference position is the start, end, or middle of the analysed window.
+* Updated summary methods so that optimal windows from multi-year analyses are reported with the correct relative year.
+* Improved robustness of the `brnn` method. Occasional unstable BRNN model fits are now handled more safely, returning `NA` for failed windows instead of interrupting the full analysis.
+* Improved BRNN cross-validation handling so that failed folds return correctly structured missing-value outputs.
+* Updated documentation and examples to demonstrate the new quantile aggregation option and the extended previous-year functionality.
 
 # dendroTools 1.2.15
 * there was a minor bug in sd(), which returned NA in case of missing values in climate data. This is now corrected and users are informed about the missing values with specific warning

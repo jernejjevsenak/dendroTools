@@ -727,7 +727,29 @@ monthly_response <- function(response, env_data, method = "cor",
   # calculate_metrics() returns two rows per fold: calibration and validation.
   # If a BRNN fold fails, we must still return two rows of NA values; otherwise
   # cbind(Years = m2, m1) fails because m2 has 2 * k rows while m1 has fewer.
-  empty_cv_metrics <- function() {
+  empty_cv_metrics <- function(template = NULL) {
+
+    if (!is.null(template)) {
+
+      template <- as.data.frame(template)
+      out <- template[rep(NA_integer_, 2), , drop = FALSE]
+      row.names(out) <- NULL
+
+      for (tmp_name in names(out)) {
+
+        if (is.factor(out[[tmp_name]])) {
+          out[[tmp_name]] <- factor(rep(NA_character_, 2),
+                                    levels = levels(out[[tmp_name]]))
+        } else if (is.character(out[[tmp_name]])) {
+          out[[tmp_name]] <- rep(NA_character_, 2)
+        } else {
+          out[[tmp_name]] <- rep(NA_real_, 2)
+        }
+      }
+
+      return(out)
+    }
+
     data.frame(
       cor = c(NA_real_, NA_real_),
       RMSE = c(NA_real_, NA_real_),
@@ -736,8 +758,49 @@ monthly_response <- function(response, env_data, method = "cor",
       RE = c(NA_real_, NA_real_),
       CE = c(NA_real_, NA_real_),
       DE = c(NA_real_, NA_real_),
+      bias = c(NA_real_, NA_real_),
       check.names = FALSE
     )
+  }
+
+  normalize_cv_metric_list <- function(metric_list) {
+
+    template <- NULL
+
+    for (tmp_item in metric_list) {
+
+      tmp_df <- try(as.data.frame(tmp_item), silent = TRUE)
+
+      if (!inherits(tmp_df, "try-error") &&
+          nrow(tmp_df) == 2 &&
+          ncol(tmp_df) > 1) {
+        template <- tmp_df
+        break
+      }
+    }
+
+    if (is.null(template)) {
+      template <- empty_cv_metrics()
+    }
+
+    for (tmp_i in seq_along(metric_list)) {
+
+      tmp_df <- try(as.data.frame(metric_list[[tmp_i]]), silent = TRUE)
+
+      if (inherits(tmp_df, "try-error") ||
+          nrow(tmp_df) != 2 ||
+          ncol(tmp_df) != ncol(template) ||
+          !identical(names(tmp_df), names(template))) {
+
+        metric_list[[tmp_i]] <- empty_cv_metrics(template)
+
+      } else {
+
+        metric_list[[tmp_i]] <- tmp_df
+      }
+    }
+
+    metric_list
   }
 
 
@@ -3070,6 +3133,9 @@ monthly_response <- function(response, env_data, method = "cor",
 
 
   }
+
+  empty_list <- normalize_cv_metric_list(empty_list)
+
   m1 <- do.call(rbind, empty_list)
   # m1 <- m1[, -c(3, 4, 7)]
   m2 <- do.call(rbind, empty_list_period)
