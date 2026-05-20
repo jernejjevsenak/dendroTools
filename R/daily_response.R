@@ -605,6 +605,111 @@ daily_response <- function(response, env_data, method = "cor",
     }
   }
 
+
+  # Internal helper for robust BRNN model fitting.
+  # BRNN is occasionally numerically unstable for weak or noisy relationships.
+  # In such cases, the calculation should return NA rather than stopping the
+  # entire moving-window analysis.
+  safe_brnn_metrics <- function(temporal_df,
+                                formula,
+                                observed,
+                                neurons,
+                                tol = 1e-6) {
+
+    out <- list(
+      r.squared = NA_real_,
+      adj.r.squared = NA_real_,
+      model = NULL,
+      predictions = NULL
+    )
+
+    temporal_df <- data.frame(temporal_df)
+    observed <- as.numeric(observed)
+
+    if (nrow(temporal_df) != length(observed) ||
+        length(observed) < 3 ||
+        all(is.na(observed))) {
+      return(out)
+    }
+
+    fit <- try({
+      capture.output(
+        tmp_model <- brnn(formula,
+                          data = temporal_df,
+                          neurons = neurons,
+                          tol = tol)
+      )
+      tmp_model
+    }, silent = TRUE)
+
+    if (inherits(fit, "try-error") || is.null(fit)) {
+      return(out)
+    }
+
+    predictions <- try(as.numeric(predict.brnn(fit, temporal_df)),
+                       silent = TRUE)
+
+    if (inherits(predictions, "try-error") ||
+        length(predictions) != length(observed) ||
+        any(!is.finite(predictions))) {
+      return(out)
+    }
+
+    ss_total <- sum((observed - mean(observed, na.rm = TRUE)) ^ 2,
+                    na.rm = TRUE)
+    ss_res <- sum((observed - predictions) ^ 2, na.rm = TRUE)
+
+    if (!is.finite(ss_total) ||
+        !is.finite(ss_res) ||
+        ss_total <= 0) {
+      return(out)
+    }
+
+    r_squared <- 1 - ss_res / ss_total
+
+    if (!is.finite(r_squared)) {
+      r_squared <- NA_real_
+    }
+
+    n_obs <- length(observed)
+    n_predictors <- ncol(temporal_df) - 1L
+    denominator <- n_obs - n_predictors - 1L
+
+    adj_r_squared <- if (is.finite(r_squared) && denominator > 0) {
+      1 - ((1 - r_squared) * (n_obs - 1)) / denominator
+    } else {
+      NA_real_
+    }
+
+    if (!is.finite(adj_r_squared)) {
+      adj_r_squared <- NA_real_
+    }
+
+    out$r.squared <- r_squared
+    out$adj.r.squared <- adj_r_squared
+    out$model <- fit
+    out$predictions <- predictions
+
+    out
+  }
+
+  # Internal helper for returning two-row NA cross-validation metrics.
+  # calculate_metrics() normally returns one Calibration row and one Validation row.
+  # If a BRNN fit fails in one fold, we must still return two rows so that the
+  # cross-validation table can be combined with its two corresponding period labels.
+  empty_cv_metrics <- function() {
+    data.frame(
+      cor = c(NA_real_, NA_real_),
+      RMSE = c(NA_real_, NA_real_),
+      RRSE = c(NA_real_, NA_real_),
+      d = c(NA_real_, NA_real_),
+      RE = c(NA_real_, NA_real_),
+      CE = c(NA_real_, NA_real_),
+      DE = c(NA_real_, NA_real_),
+      check.names = FALSE
+    )
+  }
+
   # Internal helper for constructing a multi-year climate matrix.
   # Rows are current response years. Columns are ordered from the oldest previous
   # year to the current year.
@@ -1337,26 +1442,15 @@ daily_response <- function(response, env_data, method = "cor",
 
         temporal_df <- data.frame(cbind(x, response))
 
-        capture.output(temporal_model <- try(brnn(x ~ ., data = temporal_df,
-                                                  neurons = neurons, tol = 1e-6),
-                                             silent = TRUE))
+        brnn_result <- safe_brnn_metrics(
+          temporal_df = temporal_df,
+          formula = x ~ .,
+          observed = x[, 1],
+          neurons = neurons
+        )
 
-        temporal_predictions <- try(predict.brnn(temporal_model, temporal_df),
-                                    silent = TRUE)
-
-
-        if (class(temporal_model)[[1]] != "try-error"){
-
-          temporal_r_squared <- 1 - (sum((x[, 1] - temporal_predictions) ^ 2) /
-                                       sum((x[, 1] - mean(x[, 1])) ^ 2))
-          temporal_adj_r_squared <- 1 - ((1 - temporal_r_squared) *
-                                           ((nrow(x) - 1)) /
-                                           (nrow(x) -
-                                              ncol(as.data.frame(temporal_df))
-                                            -  1 + 1))
-
-
-        }
+        temporal_r_squared <- brnn_result$r.squared
+        temporal_adj_r_squared <- brnn_result$adj.r.squared
 
         temporal_r_squared_lower <- NA
         temporal_r_squared_upper <- NA
@@ -1366,66 +1460,97 @@ daily_response <- function(response, env_data, method = "cor",
 
       } else if (boot == TRUE){
 
-
         temporal_df <- data.frame(cbind(x, response))
-        calc <- boot(data = temporal_df, statistic = boot_f_brnn, R = boot_n, brnn.formula = "x ~ .", neurons = neurons)
 
-        temporal_r_squared <- colMeans(calc$t)[1]
-        temporal_adj_r_squared <- colMeans(calc$t)[2]
+        calc <- try(
+          boot(data = temporal_df,
+               statistic = boot_f_brnn,
+               R = boot_n,
+               brnn.formula = "x ~ .",
+               neurons = neurons),
+          silent = TRUE
+        )
 
-        ci_int_r_squared <- try(boot.ci(calc, conf = boot_conf_int, type = boot_ci_type, index = 1), silent = TRUE)
-        ci_int_adj_r_squared <- try(boot.ci(calc, conf = boot_conf_int, type = boot_ci_type, index = 2), silent = TRUE)
+        if (inherits(calc, "try-error") ||
+            is.null(calc$t) ||
+            ncol(calc$t) < 2 ||
+            all(!is.finite(calc$t[, 1])) ||
+            all(!is.finite(calc$t[, 2]))) {
 
-        if (class(ci_int_r_squared)[[1]] == "try-error"){
-
-          temporal_r_squared_lower<- NA
-          temporal_r_squared_upper<- NA
+          temporal_r_squared <- NA
+          temporal_adj_r_squared <- NA
+          temporal_r_squared_lower <- NA
+          temporal_r_squared_upper <- NA
           temporal_adj_r_squared_lower <- NA
           temporal_adj_r_squared_upper <- NA
 
         } else {
 
-          if (boot_ci_type == "norm"){
+          temporal_r_squared <- suppressWarnings(mean(calc$t[, 1], na.rm = TRUE))
+          temporal_adj_r_squared <- suppressWarnings(mean(calc$t[, 2], na.rm = TRUE))
 
-            temporal_r_squared_lower <- ci_int_r_squared$norm[2]
-            temporal_r_squared_upper <- ci_int_r_squared$norm[3]
-            temporal_adj_r_squared_lower <- ci_int_adj_r_squared$norm[2]
-            temporal_adj_r_squared_upper <- ci_int_adj_r_squared$norm[3]
+          if (!is.finite(temporal_r_squared)) temporal_r_squared <- NA
+          if (!is.finite(temporal_adj_r_squared)) temporal_adj_r_squared <- NA
 
-          } else if (boot_ci_type == "perc"){
+          ci_int_r_squared <- try(
+            boot.ci(calc, conf = boot_conf_int, type = boot_ci_type, index = 1),
+            silent = TRUE
+          )
 
-            temporal_r_squared_lower <- ci_int_r_squared$perc[4]
-            temporal_r_squared_upper <- ci_int_r_squared$perc[5]
-            temporal_adj_r_squared_lower <- ci_int_adj_r_squared$perc[4]
-            temporal_adj_r_squared_upper <- ci_int_adj_r_squared$perc[5]
+          ci_int_adj_r_squared <- try(
+            boot.ci(calc, conf = boot_conf_int, type = boot_ci_type, index = 2),
+            silent = TRUE
+          )
 
-          } else if (boot_ci_type == "stud") {
+          temporal_r_squared_lower <- NA
+          temporal_r_squared_upper <- NA
+          temporal_adj_r_squared_lower <- NA
+          temporal_adj_r_squared_upper <- NA
 
-            temporal_r_squared_lower <- ci_int_r_squared$studen[4]
-            temporal_r_squared_upper <- ci_int_r_squared$studen[5]
-            temporal_adj_r_squared_lower <- ci_int_adj_r_squared$studen[4]
-            temporal_adj_r_squared_upper <- ci_int_adj_r_squared$studen[5]
+          if (!inherits(ci_int_r_squared, "try-error") &&
+              !inherits(ci_int_adj_r_squared, "try-error")) {
 
-          } else if (boot_ci_type == "basic") {
+            if (boot_ci_type == "norm"){
 
-            temporal_r_squared_lower <- ci_int_r_squared$basic[4]
-            temporal_r_squared_upper <- ci_int_r_squared$basic[5]
-            temporal_adj_r_squared_lower <- ci_int_adj_r_squared$basic[4]
-            temporal_adj_r_squared_upper <- ci_int_adj_r_squared$basic[5]
+              temporal_r_squared_lower <- ci_int_r_squared$norm[2]
+              temporal_r_squared_upper <- ci_int_r_squared$norm[3]
+              temporal_adj_r_squared_lower <- ci_int_adj_r_squared$norm[2]
+              temporal_adj_r_squared_upper <- ci_int_adj_r_squared$norm[3]
 
-          } else if (boot_ci_type == "bca") {
+            } else if (boot_ci_type == "perc"){
 
-            temporal_r_squared_lower <- ci_int_r_squared$bca[4]
-            temporal_r_squared_upper <- ci_int_r_squared$bca[5]
-            temporal_adj_r_squared_lower <- ci_int_adj_r_squared$bca[4]
-            temporal_adj_r_squared_upper <- ci_int_adj_r_squared$bca[5]
+              temporal_r_squared_lower <- ci_int_r_squared$perc[4]
+              temporal_r_squared_upper <- ci_int_r_squared$perc[5]
+              temporal_adj_r_squared_lower <- ci_int_adj_r_squared$perc[4]
+              temporal_adj_r_squared_upper <- ci_int_adj_r_squared$perc[5]
 
-          } else {
+            } else if (boot_ci_type == "stud") {
 
-            stop("boot_ci_type should be 'norm', 'perc', 'stud', 'basic' or 'bca'")
+              temporal_r_squared_lower <- ci_int_r_squared$student[4]
+              temporal_r_squared_upper <- ci_int_r_squared$student[5]
+              temporal_adj_r_squared_lower <- ci_int_adj_r_squared$student[4]
+              temporal_adj_r_squared_upper <- ci_int_adj_r_squared$student[5]
 
+            } else if (boot_ci_type == "basic") {
+
+              temporal_r_squared_lower <- ci_int_r_squared$basic[4]
+              temporal_r_squared_upper <- ci_int_r_squared$basic[5]
+              temporal_adj_r_squared_lower <- ci_int_adj_r_squared$basic[4]
+              temporal_adj_r_squared_upper <- ci_int_adj_r_squared$basic[5]
+
+            } else if (boot_ci_type == "bca") {
+
+              temporal_r_squared_lower <- ci_int_r_squared$bca[4]
+              temporal_r_squared_upper <- ci_int_r_squared$bca[5]
+              temporal_adj_r_squared_lower <- ci_int_adj_r_squared$bca[4]
+              temporal_adj_r_squared_upper <- ci_int_adj_r_squared$bca[5]
+
+            } else {
+
+              stop("boot_ci_type should be 'norm', 'perc', 'stud', 'basic' or 'bca'")
+
+            }
           }
-
         }
 
       } else {
@@ -1957,58 +2082,75 @@ daily_response <- function(response, env_data, method = "cor",
 
         if (boot == FALSE){
 
-          temporal_df <- data.frame(cbind(x, response))
+        temporal_df <- data.frame(cbind(x, response))
 
-          capture.output(temporal_model <- try(brnn(x ~ ., data = temporal_df,
-                                                    neurons = neurons, tol = 1e-6),
-                                               silent = TRUE))
+        brnn_result <- safe_brnn_metrics(
+          temporal_df = temporal_df,
+          formula = x ~ .,
+          observed = x[, 1],
+          neurons = neurons
+        )
 
-          temporal_predictions <- try(predict.brnn(temporal_model, temporal_df),
-                                      silent = TRUE)
+        temporal_r_squared <- brnn_result$r.squared
+        temporal_adj_r_squared <- brnn_result$adj.r.squared
 
+        temporal_r_squared_lower <- NA
+        temporal_r_squared_upper <- NA
 
-          if (class(temporal_model)[[1]] != "try-error"){
+        temporal_adj_r_squared_lower <- NA
+        temporal_adj_r_squared_upper <- NA
 
-            temporal_r_squared <- 1 - (sum((x[, 1] - temporal_predictions) ^ 2) /
-                                         sum((x[, 1] - mean(x[, 1])) ^ 2))
-            temporal_adj_r_squared <- 1 - ((1 - temporal_r_squared) *
-                                             ((nrow(x) - 1)) /
-                                             (nrow(x) -
-                                                ncol(as.data.frame(temporal_df))
-                                              -  1 + 1))
+      } else if (boot == TRUE){
 
+        temporal_df <- data.frame(cbind(x, response))
 
-          } else {
-            temporal_r_squared <- NA
-            temporal_adj_r_squared <- NA
-          }
+        calc <- try(
+          boot(data = temporal_df,
+               statistic = boot_f_brnn,
+               R = boot_n,
+               brnn.formula = "x ~ .",
+               neurons = neurons),
+          silent = TRUE
+        )
 
+        if (inherits(calc, "try-error") ||
+            is.null(calc$t) ||
+            ncol(calc$t) < 2 ||
+            all(!is.finite(calc$t[, 1])) ||
+            all(!is.finite(calc$t[, 2]))) {
+
+          temporal_r_squared <- NA
+          temporal_adj_r_squared <- NA
           temporal_r_squared_lower <- NA
           temporal_r_squared_upper <- NA
-
           temporal_adj_r_squared_lower <- NA
           temporal_adj_r_squared_upper <- NA
 
+        } else {
 
-        } else if (boot == TRUE){
+          temporal_r_squared <- suppressWarnings(mean(calc$t[, 1], na.rm = TRUE))
+          temporal_adj_r_squared <- suppressWarnings(mean(calc$t[, 2], na.rm = TRUE))
 
-          temporal_df <- data.frame(cbind(x, response))
-          calc <- boot(data = temporal_df, statistic = boot_f_brnn, R = boot_n, brnn.formula = "x ~ .", neurons = neurons)
+          if (!is.finite(temporal_r_squared)) temporal_r_squared <- NA
+          if (!is.finite(temporal_adj_r_squared)) temporal_adj_r_squared <- NA
 
-          temporal_r_squared <- colMeans(calc$t)[1]
-          temporal_adj_r_squared <- colMeans(calc$t)[2]
+          ci_int_r_squared <- try(
+            boot.ci(calc, conf = boot_conf_int, type = boot_ci_type, index = 1),
+            silent = TRUE
+          )
 
-          ci_int_r_squared <- try(boot.ci(calc, conf = boot_conf_int, type = boot_ci_type, index = 1), silent = TRUE)
-          ci_int_adj_r_squared <- try(boot.ci(calc, conf = boot_conf_int, type = boot_ci_type, index = 2), silent = TRUE)
+          ci_int_adj_r_squared <- try(
+            boot.ci(calc, conf = boot_conf_int, type = boot_ci_type, index = 2),
+            silent = TRUE
+          )
 
-          if (class(ci_int_r_squared)[[1]] == "try-error"){
+          temporal_r_squared_lower <- NA
+          temporal_r_squared_upper <- NA
+          temporal_adj_r_squared_lower <- NA
+          temporal_adj_r_squared_upper <- NA
 
-            temporal_r_squared_lower<- NA
-            temporal_r_squared_upper<- NA
-            temporal_adj_r_squared_lower <- NA
-            temporal_adj_r_squared_upper <- NA
-
-          } else {
+          if (!inherits(ci_int_r_squared, "try-error") &&
+              !inherits(ci_int_adj_r_squared, "try-error")) {
 
             if (boot_ci_type == "norm"){
 
@@ -2026,10 +2168,10 @@ daily_response <- function(response, env_data, method = "cor",
 
             } else if (boot_ci_type == "stud") {
 
-              temporal_r_squared_lower <- ci_int_r_squared$studen[4]
-              temporal_r_squared_upper <- ci_int_r_squared$studen[5]
-              temporal_adj_r_squared_lower <- ci_int_adj_r_squared$studen[4]
-              temporal_adj_r_squared_upper <- ci_int_adj_r_squared$studen[5]
+              temporal_r_squared_lower <- ci_int_r_squared$student[4]
+              temporal_r_squared_upper <- ci_int_r_squared$student[5]
+              temporal_adj_r_squared_lower <- ci_int_adj_r_squared$student[4]
+              temporal_adj_r_squared_upper <- ci_int_adj_r_squared$student[5]
 
             } else if (boot_ci_type == "basic") {
 
@@ -2050,14 +2192,14 @@ daily_response <- function(response, env_data, method = "cor",
               stop("boot_ci_type should be 'norm', 'perc', 'stud', 'basic' or 'bca'")
 
             }
-
           }
-
-        } else {
-
-          stop(paste0("boot should be TRUE or FALSE, instead it is ", boot))
-
         }
+
+      } else {
+
+        stop(paste0("boot should be TRUE or FALSE, instead it is ", boot))
+
+      }
 
         if (metric == "r.squared"){
 
@@ -2314,30 +2456,28 @@ daily_response <- function(response, env_data, method = "cor",
 
       if (method == "brnn" & metric == "r.squared"){
         temporal_df <- data.frame(cbind(dataf, response))
-        capture.output(temporal_model <- brnn(Optimized.rowNames ~ ., data = temporal_df,
-                                              neurons = neurons, tol = 1e-6))
-        temporal_predictions <- try(predict.brnn(temporal_model,
-                                                 temporal_df), silent = TRUE)
-        optimized_result <- 1 - (sum((temporal_df[, 1] -
-                                        temporal_predictions) ^ 2) /
-                                   sum((temporal_df[, 1] -
-                                          mean(temporal_df[, 1])) ^ 2))
+
+        brnn_result <- safe_brnn_metrics(
+          temporal_df = temporal_df,
+          formula = Optimized.rowNames ~ .,
+          observed = temporal_df[, 1],
+          neurons = neurons
+        )
+
+        optimized_result <- brnn_result$r.squared
       }
 
       if (method == "brnn" & metric == "adj.r.squared"){
         temporal_df <- data.frame(cbind(dataf, response))
-        capture.output(temporal_model <- brnn(Optimized.rowNames ~ .,
-                                              data = temporal_df, neurons = neurons, tol = 1e-6))
-        temporal_predictions <- try(predict.brnn(temporal_model, temporal_df),
-                                    silent = TRUE)
-        temporal_r_squared <- 1 - (sum((temporal_df[, 1] -
-                                          temporal_predictions) ^ 2) /
-                                     sum((temporal_df[, 1] -
-                                            mean(temporal_df[, 1])) ^ 2))
-        optimized_result <- 1 - ((1 - temporal_r_squared) *
-                                   ((nrow(temporal_df) - 1)) /
-                                   (nrow(temporal_df) -
-                                      ncol(as.data.frame(response[, 1])) - 1))
+
+        brnn_result <- safe_brnn_metrics(
+          temporal_df = temporal_df,
+          formula = Optimized.rowNames ~ .,
+          observed = temporal_df[, 1],
+          neurons = neurons
+        )
+
+        optimized_result <- brnn_result$adj.r.squared
       }
 
       if (method == "cor"){
@@ -2425,30 +2565,28 @@ daily_response <- function(response, env_data, method = "cor",
 
       if (method == "brnn" & metric == "r.squared"){
         temporal_df <- data.frame(cbind(dataf, response))
-        capture.output(temporal_model <- brnn(Optimized.rowNames ~ ., data = temporal_df,
-                                              neurons = neurons, tol = 1e-6))
-        temporal_predictions <- try(predict.brnn(temporal_model,
-                                                 temporal_df), silent = TRUE)
-        optimized_result <- 1 - (sum((temporal_df[, 1] -
-                                        temporal_predictions) ^ 2) /
-                                   sum((temporal_df[, 1] -
-                                          mean(temporal_df[, 1])) ^ 2))
+
+        brnn_result <- safe_brnn_metrics(
+          temporal_df = temporal_df,
+          formula = Optimized.rowNames ~ .,
+          observed = temporal_df[, 1],
+          neurons = neurons
+        )
+
+        optimized_result <- brnn_result$r.squared
       }
 
       if (method == "brnn" & metric == "adj.r.squared"){
         temporal_df <- data.frame(cbind(dataf, response))
-        capture.output(temporal_model <- brnn(Optimized.rowNames ~ .,
-                                              data = temporal_df, neurons = neurons, tol = 1e-6))
-        temporal_predictions <- try(predict.brnn(temporal_model, temporal_df),
-                                    silent = TRUE)
-        temporal_r_squared <- 1 - (sum((temporal_df[, 1] -
-                                          temporal_predictions) ^ 2) /
-                                     sum((temporal_df[, 1] -
-                                            mean(temporal_df[, 1])) ^ 2))
-        optimized_result <- 1 - ((1 - temporal_r_squared) *
-                                   ((nrow(temporal_df) - 1)) /
-                                   (nrow(temporal_df) -
-                                      ncol(as.data.frame(response[, 1])) - 1))
+
+        brnn_result <- safe_brnn_metrics(
+          temporal_df = temporal_df,
+          formula = Optimized.rowNames ~ .,
+          observed = temporal_df[, 1],
+          neurons = neurons
+        )
+
+        optimized_result <- brnn_result$adj.r.squared
       }
 
       if (method == "cor"){
@@ -2544,30 +2682,28 @@ daily_response <- function(response, env_data, method = "cor",
 
       if (method == "brnn" & metric == "r.squared"){
         temporal_df <- data.frame(cbind(dataf, response))
-        capture.output(temporal_model <- brnn(Optimized.rowNames ~ ., data = temporal_df,
-                                              neurons = neurons, tol = 1e-6))
-        temporal_predictions <- try(predict.brnn(temporal_model,
-                                                 temporal_df), silent = TRUE)
-        optimized_result <- 1 - (sum((temporal_df[, 1] -
-                                        temporal_predictions) ^ 2) /
-                                   sum((temporal_df[, 1] -
-                                          mean(temporal_df[, 1])) ^ 2))
+
+        brnn_result <- safe_brnn_metrics(
+          temporal_df = temporal_df,
+          formula = Optimized.rowNames ~ .,
+          observed = temporal_df[, 1],
+          neurons = neurons
+        )
+
+        optimized_result <- brnn_result$r.squared
       }
 
       if (method == "brnn" & metric == "adj.r.squared"){
         temporal_df <- data.frame(cbind(dataf, response))
-        capture.output(temporal_model <- brnn(Optimized.rowNames ~ .,
-                                              data = temporal_df, neurons = neurons, tol = 1e-6))
-        temporal_predictions <- try(predict.brnn(temporal_model, temporal_df),
-                                    silent = TRUE)
-        temporal_r_squared <- 1 - (sum((temporal_df[, 1] -
-                                          temporal_predictions) ^ 2) /
-                                     sum((temporal_df[, 1] -
-                                            mean(temporal_df[, 1])) ^ 2))
-        optimized_result <- 1 - ((1 - temporal_r_squared) *
-                                   ((nrow(temporal_df) - 1)) /
-                                   (nrow(temporal_df) -
-                                      ncol(as.data.frame(response[, 1])) - 1))
+
+        brnn_result <- safe_brnn_metrics(
+          temporal_df = temporal_df,
+          formula = Optimized.rowNames ~ .,
+          observed = temporal_df[, 1],
+          neurons = neurons
+        )
+
+        optimized_result <- brnn_result$adj.r.squared
       }
 
       if (method == "cor"){
@@ -2602,17 +2738,41 @@ daily_response <- function(response, env_data, method = "cor",
     }
 
     # Here, the transfer function is being created
-    transfer_data = data.frame(proxy = response[,1], optimized_return =dataf[,1])
+    transfer_data = data.frame(proxy = response[,1], optimized_return = dataf[,1])
     lm_model = lm(optimized_return ~ proxy, data = transfer_data)
-    capture.output(brnn_model <- try(brnn(optimized_return ~ proxy, data = transfer_data, neurons = neurons), silent = TRUE))
-    full_range = data.frame(proxy = seq(from = min(response[,1], na.rm = TRUE), to = max(response[,1], na.rm = TRUE), length.out = 100))
+
+    brnn_model <- NULL
+    if (method == "brnn") {
+      brnn_model <- try({
+        capture.output(
+          tmp_model <- brnn(optimized_return ~ proxy,
+                            data = transfer_data,
+                            neurons = neurons,
+                            tol = 1e-6)
+        )
+        tmp_model
+      }, silent = TRUE)
+    }
+
+    full_range = data.frame(proxy = seq(from = min(response[,1], na.rm = TRUE),
+                                        to = max(response[,1], na.rm = TRUE),
+                                        length.out = 100))
 
     if (method == "lm" | method == "cor"){
       full_range$transfer_f = predict(lm_model, full_range)
     }
 
     if (method == "brnn"){
-      full_range$transfer_f = predict.brnn(brnn_model, full_range)
+      transfer_predictions <- try(predict.brnn(brnn_model, full_range),
+                                  silent = TRUE)
+
+      if (inherits(brnn_model, "try-error") ||
+          inherits(transfer_predictions, "try-error") ||
+          length(transfer_predictions) != nrow(full_range)) {
+        full_range$transfer_f <- NA_real_
+      } else {
+        full_range$transfer_f <- as.numeric(transfer_predictions)
+      }
     }
 
     # String for titles
@@ -2684,37 +2844,31 @@ daily_response <- function(response, env_data, method = "cor",
           MLR <- lm(optimized_return ~ ., data = dataset_temp)
           empty_list[[m]] <- summary(MLR)$adj.r.squared
           empty_list_significance[[m]] <- NA
-          colname = "adj.r.squared"
-        } else if (method == "brnn" & metric == "r.squared"){
-          capture.output(BRNN <- try(brnn(optimized_return ~ ., data = dataset_temp, neurons = neurons), silent = TRUE))
-          if (class(BRNN)[[1]] != "try-error"){
-            predictions <- predict(BRNN, dataset_temp, neurons = neurons)
-            r_squared <- 1 - (sum((dataset_temp[, 1] - predictions) ^ 2) /
-                                sum((dataset_temp[, 1] - mean(dataset_temp[, 1])) ^ 2))
-            empty_list[[m]] <- r_squared
-            empty_list_significance[[m]] <- NA
-            colname = "r.squared"
-          } else {
-            empty_list[[m]] <- NA
-            colname = "r.squared"
-            empty_list_significance[[m]] <- NA
-          }
-        } else if (method == "brnn" & metric == "adj.r.squared"){
-          capture.output(BRNN <- try(brnn(optimized_return ~ ., data = dataset_temp, neurons = neurons), silent = TRUE))
-          if (class(BRNN)[[1]] != "try-error"){
-            predictions <- predict(BRNN, dataset_temp, neurons = neurons)
-            r_squared <- 1 - (sum((dataset_temp[, 1] - predictions) ^ 2) /
-                                sum((dataset_temp[, 1] - mean(dataset_temp[, 1])) ^ 2))
+          colname = "adj.r.squared"        } else if (method == "brnn" & metric == "r.squared"){
 
-            adj_r_squared <- 1 - ((1 - r_squared) * ((nrow(dataset_temp) - 1)) /
-                                    (nrow(dataset_temp) - ncol(as.data.frame(response[, 1])) -  1))
-            empty_list[[m]] <- adj_r_squared
-            empty_list_significance[[m]] <- NA
-            colname = "adj.r.squared"
-          } else {
-            empty_list[[m]] <- NA
-            colname = "adj.r.squared"
-          }
+          brnn_result <- safe_brnn_metrics(
+            temporal_df = dataset_temp,
+            formula = optimized_return ~ .,
+            observed = dataset_temp[, 1],
+            neurons = neurons
+          )
+
+          empty_list[[m]] <- brnn_result$r.squared
+          empty_list_significance[[m]] <- NA
+          colname = "r.squared"
+
+        } else if (method == "brnn" & metric == "adj.r.squared"){
+
+          brnn_result <- safe_brnn_metrics(
+            temporal_df = dataset_temp,
+            formula = optimized_return ~ .,
+            observed = dataset_temp[, 1],
+            neurons = neurons
+          )
+
+          empty_list[[m]] <- brnn_result$adj.r.squared
+          empty_list_significance[[m]] <- NA
+          colname = "adj.r.squared"
         }
       }
       m1 <- do.call(rbind, empty_list)
@@ -2757,38 +2911,31 @@ daily_response <- function(response, env_data, method = "cor",
           MLR <- lm(optimized_return ~ ., data = dataset_temp)
           empty_list[[m]] <- summary(MLR)$adj.r.squared
           empty_list_significance[[m]] <- NA
-          colname = "adj.r.squared"
-        } else if (method == "brnn" & metric == "r.squared"){
-          capture.output(BRNN <- try(brnn(optimized_return ~ ., data = dataset_temp, neurons = neurons), silent = TRUE))
-          if (class(BRNN)[[1]] != "try-error"){
-            predictions <- predict(BRNN, dataset_temp, neurons = neurons)
-            r_squared <- 1 - (sum((dataset_temp[, 1] - predictions) ^ 2) /
-                                sum((dataset_temp[, 1] - mean(dataset_temp[, 1])) ^ 2))
-            empty_list[[m]] <- r_squared
-            empty_list_significance[[m]] <- NA
-            colname = "r.squared"
-          } else {
-            empty_list[[m]] <- NA
-            colname = "r.squared"
-            empty_list_significance[[m]] <- NA
-          }
-        } else if (method == "brnn" & metric == "adj.r.squared"){
-          capture.output(BRNN <- try(brnn(optimized_return ~ ., data = dataset_temp, neurons = neurons), silent = TRUE))
-          if (class(BRNN)[[1]] != "try-error"){
-            predictions <- predict(BRNN, dataset_temp, neurons = neurons)
-            r_squared <- 1 - (sum((dataset_temp[, 1] - predictions) ^ 2) /
-                                sum((dataset_temp[, 1] - mean(dataset_temp[, 1])) ^ 2))
+          colname = "adj.r.squared"        } else if (method == "brnn" & metric == "r.squared"){
 
-            adj_r_squared <- 1 - ((1 - r_squared) * ((nrow(dataset_temp) - 1)) /
-                                    (nrow(dataset_temp) - ncol(as.data.frame(response[, 1])) -  1))
-            empty_list[[m]] <- adj_r_squared
-            empty_list_significance[[m]] <- NA
-            colname = "adj.r.squared"
-          } else {
-            empty_list[[m]] <- NA
-            colname = "adj.r.squared"
-            empty_list_significance[[m]] <- NA
-          }
+          brnn_result <- safe_brnn_metrics(
+            temporal_df = dataset_temp,
+            formula = optimized_return ~ .,
+            observed = dataset_temp[, 1],
+            neurons = neurons
+          )
+
+          empty_list[[m]] <- brnn_result$r.squared
+          empty_list_significance[[m]] <- NA
+          colname = "r.squared"
+
+        } else if (method == "brnn" & metric == "adj.r.squared"){
+
+          brnn_result <- safe_brnn_metrics(
+            temporal_df = dataset_temp,
+            formula = optimized_return ~ .,
+            observed = dataset_temp[, 1],
+            neurons = neurons
+          )
+
+          empty_list[[m]] <- brnn_result$adj.r.squared
+          empty_list_significance[[m]] <- NA
+          colname = "adj.r.squared"
         }
       }
       m1 <- do.call(rbind, empty_list)
@@ -2853,38 +3000,31 @@ daily_response <- function(response, env_data, method = "cor",
           MLR <- lm(optimized_return ~ ., data = dataset_temp)
           empty_list[[m]] <- summary(MLR)$adj.r.squared
           empty_list_significance[[m]] <- NA
-          colname = "adj.r.squared"
-        } else if (method == "brnn" & metric == "r.squared"){
-          capture.output(BRNN <- try(brnn(optimized_return ~ ., data = dataset_temp, neurons = neurons), silent = TRUE))
-          if (class(BRNN)[[1]] != "try-error"){
-            predictions <- predict(BRNN, dataset_temp, neurons = neurons)
-            r_squared <- 1 - (sum((dataset_temp[, 1] - predictions) ^ 2) /
-                                sum((dataset_temp[, 1] - mean(dataset_temp[, 1])) ^ 2))
-            empty_list[[m]] <- r_squared
-            empty_list_significance[[m]] <- NA
-            colname = "r.squared"
-          } else {
-            empty_list[[m]] <- NA
-            colname = "r.squared"
-            empty_list_significance[[m]] <- NA
-          }
-        } else if (method == "brnn" & metric == "adj.r.squared"){
-          capture.output(BRNN <- try(brnn(optimized_return ~ ., data = dataset_temp, neurons = neurons), silent = TRUE))
-          if (class(BRNN)[[1]] != "try-error"){
-            predictions <- predict(BRNN, dataset_temp, neurons = neurons)
-            r_squared <- 1 - (sum((dataset_temp[, 1] - predictions) ^ 2) /
-                                sum((dataset_temp[, 1] - mean(dataset_temp[, 1])) ^ 2))
+          colname = "adj.r.squared"        } else if (method == "brnn" & metric == "r.squared"){
 
-            adj_r_squared <- 1 - ((1 - r_squared) * ((nrow(dataset_temp) - 1)) /
-                                    (nrow(dataset_temp) - ncol(as.data.frame(response[, 1])) -  1))
-            empty_list[[m]] <- adj_r_squared
-            empty_list_significance[[m]] <- NA
-            colname = "adj.r.squared"
-          } else {
-            empty_list[[m]] <- NA
-            colname = "adj.r.squared"
-            empty_list_significance[[m]] <- NA
-          }
+          brnn_result <- safe_brnn_metrics(
+            temporal_df = dataset_temp,
+            formula = optimized_return ~ .,
+            observed = dataset_temp[, 1],
+            neurons = neurons
+          )
+
+          empty_list[[m]] <- brnn_result$r.squared
+          empty_list_significance[[m]] <- NA
+          colname = "r.squared"
+
+        } else if (method == "brnn" & metric == "adj.r.squared"){
+
+          brnn_result <- safe_brnn_metrics(
+            temporal_df = dataset_temp,
+            formula = optimized_return ~ .,
+            observed = dataset_temp[, 1],
+            neurons = neurons
+          )
+
+          empty_list[[m]] <- brnn_result$adj.r.squared
+          empty_list_significance[[m]] <- NA
+          colname = "adj.r.squared"
         }
       }
       m1 <- do.call(rbind, empty_list)
@@ -2947,22 +3087,56 @@ daily_response <- function(response, env_data, method = "cor",
       }
 
       if (method == "brnn"){
-        capture.output(BRNN <- try(brnn(optimized_return ~ ., data = train, neurons = neurons), silent = TRUE))
-        if (class(BRNN)[[1]] != "try-error"){
-          train_predicted <- predict(BRNN, train)
-          test_predicted <- predict(BRNN, test)
+
+        # Default to two NA rows, because calculate_metrics() normally returns
+        # one Calibration row and one Validation row. This prevents failures such
+        # as: "arguments imply differing number of rows: 4, 3" when one fold fails.
+        calculations <- empty_cv_metrics()
+
+        BRNN <- try({
+          capture.output(
+            tmp_model <- brnn(optimized_return ~ .,
+                              data = train,
+                              neurons = neurons,
+                              tol = 1e-6)
+          )
+          tmp_model
+        }, silent = TRUE)
+
+        if (!inherits(BRNN, "try-error") && !is.null(BRNN)){
+
+          train_predicted <- try(as.numeric(predict.brnn(BRNN, train)),
+                                 silent = TRUE)
+          test_predicted <- try(as.numeric(predict.brnn(BRNN, test)),
+                                silent = TRUE)
+
           train_observed <- train[, 1]
           test_observed <- test[, 1]
-          calculations <- calculate_metrics(train_predicted, test_predicted,
-                                            train_observed, test_observed, digits = 15,
-                                            test = test,
-                                            formula = optimized_return ~ .)
 
-          empty_list[[m]] <- calculations
+          if (!inherits(train_predicted, "try-error") &&
+              !inherits(test_predicted, "try-error") &&
+              length(train_predicted) == length(train_observed) &&
+              length(test_predicted) == length(test_observed) &&
+              all(is.finite(train_predicted)) &&
+              all(is.finite(test_predicted))) {
 
-        } else {
-          empty_list[[m]] <- NA
+            calculations_tmp <- try(
+              calculate_metrics(train_predicted, test_predicted,
+                                train_observed, test_observed, digits = 15,
+                                test = test,
+                                formula = optimized_return ~ .),
+              silent = TRUE
+            )
+
+            if (!inherits(calculations_tmp, "try-error") &&
+                !is.null(calculations_tmp) &&
+                nrow(as.data.frame(calculations_tmp)) == 2) {
+              calculations <- as.data.frame(calculations_tmp)
+            }
+          }
         }
+
+        empty_list[[m]] <- calculations
       }
 
     }
