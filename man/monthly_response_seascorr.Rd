@@ -12,6 +12,7 @@ monthly_response_seascorr(
   number_previous_years = NULL,
   pcor_method = "pearson",
   remove_insignificant = TRUE,
+  remove_insignificant_boot = FALSE,
   lower_limit = 1,
   upper_limit = 12,
   fixed_width = 0,
@@ -79,7 +80,16 @@ coefficient is to be computed. One of "pearson" (default), "kendall", or
 "spearman", can be abbreviated.}
 
 \item{remove_insignificant}{if set to TRUE, removes all correlations bellow
-the significant threshold level, based on a selected alpha.}
+the significant threshold level, based on a selected alpha. If
+remove_insignificant_boot = TRUE and boot = TRUE, the bootstrap-based
+filtering is used instead.}
+
+\item{remove_insignificant_boot}{if set to TRUE and boot = TRUE, removes all
+partial correlations for which the bootstrap confidence interval includes
+zero. If both remove_insignificant and remove_insignificant_boot are TRUE,
+the bootstrap confidence-interval filter takes priority. If boot = FALSE,
+remove_insignificant_boot is ignored with a warning and remove_insignificant
+is also ignored.}
 
 \item{lower_limit}{lower limit of window width (i.e. number of consecutive months
 to be used for calculations)}
@@ -180,7 +190,7 @@ coefficients. This must be (an abbreviation of) one of the strings "all.obs",
 (default). See also the documentation for the base partial.r in psych R package}
 }
 \value{
-a list with 17 elements:
+a list with elements including:
 \enumerate{
  \item $calculations - a matrix with calculated metrics
  \item $method - the character string of a method
@@ -195,8 +205,11 @@ a list with 17 elements:
  \item $plot_extreme - ggplot2 object: line plot of a row with the highest value in a matrix of calculated metrics
  \item $type - the character string describing type of analysis: monthly or monthly
  \item $reference_window - character string, which reference window was used for calculations
+ \item $boot_lower - matrix with lower limits of bootstrap confidence intervals
+ \item $boot_upper - matrix with upper limits of bootstrap confidence intervals
  \item $aggregated_climate_primary - matrix with all aggregated climate series of primary data
  \item $aggregated_climate_control - matrix with all aggregated climate series of control data
+ \item $boot_ci_filter - list with information on bootstrap confidence-interval filtering
  \item $previous_year - logical indicating whether previous-year climate data were used
  \item $number_previous_years - integer indicating how many previous years were used
 }

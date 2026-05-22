@@ -55,6 +55,12 @@
 #' the significant threshold level, based on a selected alpha. For "lm" and
 #' "brnn" method, squared threshold is used, which corresponds to R squared
 #' statistics.
+#' @param remove_insignificant_boot if set to TRUE, removes calculations whose
+#' bootstrap confidence interval includes zero. This argument requires
+#' boot = TRUE. If both remove_insignificant and remove_insignificant_boot are
+#' TRUE, the bootstrap confidence-interval filter is used and the standard
+#' alpha-based filter is skipped. If remove_insignificant_boot = TRUE but
+#' boot = FALSE, both significance filters are ignored and a warning is issued.
 #' @param alpha significance level used to remove insignificant calculations.
 #' @param row_names_subset if set to TRUE, row.names are used to subset
 #' env_data and response data frames. Only years from both data frames are
@@ -130,6 +136,8 @@
 #'  \item $reference_window - character string, which reference window was used for calculations
 #'  \item $boot_lower - matrix with lower limit of confidence intervals of bootstrap calculations
 #'  \item $boot_upper - matrix with upper limit of confidence intervals of bootstrap calculations
+#'  \item $boot_ci_filter - list describing whether bootstrap confidence-interval
+#'  filtering was applied and how many matrix cells were retained or removed
 #'  \item $aggregated_climate - matrix with all aggregated climate series
 #'  \item $previous_year - logical indicating whether previous-year climate data were used
 #'  \item $number_previous_years - integer indicating how many previous years were used
@@ -258,6 +266,7 @@ monthly_response <- function(response, env_data, method = "cor",
                              lower_limit = 1, upper_limit = 12,
                              fixed_width = 0, brnn_smooth = TRUE,
                              remove_insignificant = TRUE,
+                             remove_insignificant_boot = FALSE,
                              alpha = .05, row_names_subset = FALSE,
                              reference_window = "start",
                              aggregate_function = 'mean',
@@ -451,6 +460,21 @@ monthly_response <- function(response, env_data, method = "cor",
 
   if (!is.null(seed)) {
     set.seed(seed)
+  }
+
+  if (!is.logical(remove_insignificant_boot) ||
+      length(remove_insignificant_boot) != 1 ||
+      is.na(remove_insignificant_boot)) {
+    stop("remove_insignificant_boot must be either TRUE or FALSE.")
+  }
+
+  if (isTRUE(remove_insignificant_boot) && isFALSE(boot)) {
+    warning(paste0("remove_insignificant_boot = TRUE requires boot = TRUE. ",
+                   "Because boot = FALSE, both remove_insignificant_boot ",
+                   "and remove_insignificant are ignored."))
+
+    remove_insignificant_boot <- FALSE
+    remove_insignificant <- FALSE
   }
 
   if (fixed_width != 0){
@@ -2288,9 +2312,50 @@ monthly_response <- function(response, env_data, method = "cor",
                                      repeats = 2)
   }
 
-  # To enhance the visualisation, insignificant values
-  # are removed if remove_insignificant == TRUE
-  if (remove_insignificant == TRUE){
+  boot_ci_filter <- list(
+    applied = FALSE,
+    criterion = NA_character_,
+    removed_cells = NA_integer_,
+    retained_cells = NA_integer_,
+    total_cells = length(temporal_matrix)
+  )
+
+  # To enhance the visualisation, insignificant values can be removed either
+  # with the standard alpha-based threshold or, if requested, with bootstrap
+  # confidence intervals. The bootstrap filter has priority when both filters
+  # are requested.
+  if (isTRUE(remove_insignificant_boot) && isTRUE(boot)) {
+
+    if (is.null(temporal_matrix_lower) ||
+        is.null(temporal_matrix_upper) ||
+        !all(dim(temporal_matrix) == dim(temporal_matrix_lower)) ||
+        !all(dim(temporal_matrix) == dim(temporal_matrix_upper))) {
+
+      warning(paste0("remove_insignificant_boot = TRUE was requested, but ",
+                     "bootstrap confidence-interval matrices are missing or ",
+                     "do not match the calculation matrix. The bootstrap ",
+                     "filter is ignored."))
+
+    } else {
+
+      keep_boot <- (temporal_matrix_lower > 0 & temporal_matrix_upper > 0) |
+        (temporal_matrix_lower < 0 & temporal_matrix_upper < 0)
+
+      keep_boot[is.na(keep_boot)] <- FALSE
+
+      temporal_matrix[!keep_boot] <- NA
+
+      boot_ci_filter <- list(
+        applied = TRUE,
+        criterion = "Bootstrap confidence interval excludes zero",
+        removed_cells = sum(!keep_boot, na.rm = TRUE),
+        retained_cells = sum(keep_boot, na.rm = TRUE),
+        total_cells = length(keep_boot)
+      )
+    }
+
+  } else if (remove_insignificant == TRUE) {
+
     critical_threshold_cor <- critical_r(nrow(response), alpha = alpha)
     critical_threshold_cor2 <- critical_threshold_cor ^ 2
 
@@ -2323,6 +2388,7 @@ monthly_response <- function(response, env_data, method = "cor",
                        reference_window = reference_window,
                        boot_lower = temporal_matrix_lower,
                        boot_upper = temporal_matrix_upper,
+                       boot_ci_filter = boot_ci_filter,
                        aggregated_climate = NA )
 
     class(final_list) <- 'dmrs'
@@ -3174,7 +3240,8 @@ monthly_response <- function(response, env_data, method = "cor",
                        cross_validation = cross_validation,
                        aggregated_climate = do.call(cbind, list_climate),
                        previous_year = previous_year,
-                       number_previous_years = number_previous_years)
+                       number_previous_years = number_previous_years,
+                       boot_ci_filter = boot_ci_filter)
   }
 
   if (method == "cor"){
@@ -3186,7 +3253,8 @@ monthly_response <- function(response, env_data, method = "cor",
                        cross_validation = cross_validation,
                        aggregated_climate = do.call(cbind, list_climate),
                        previous_year = previous_year,
-                       number_previous_years = number_previous_years)
+                       number_previous_years = number_previous_years,
+                       boot_ci_filter = boot_ci_filter)
   }
 
 
@@ -3210,7 +3278,8 @@ monthly_response <- function(response, env_data, method = "cor",
                        boot_upper = temporal_matrix_upper,
                        aggregated_climate = do.call(cbind, list_climate),
                        previous_year = previous_year,
-                       number_previous_years = number_previous_years)
+                       number_previous_years = number_previous_years,
+                       boot_ci_filter = boot_ci_filter)
   }
 
   if (method == "cor"){
@@ -3229,7 +3298,8 @@ monthly_response <- function(response, env_data, method = "cor",
                        boot_upper = temporal_matrix_upper,
                        aggregated_climate = do.call(cbind, list_climate),
                        previous_year = previous_year,
-                       number_previous_years = number_previous_years)
+                       number_previous_years = number_previous_years,
+                       boot_ci_filter = boot_ci_filter)
   }
 
   class(final_list) <- 'dmrs'

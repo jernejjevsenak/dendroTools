@@ -15,6 +15,7 @@ daily_response_seascorr(
   number_previous_years = NULL,
   pcor_method = "pearson",
   remove_insignificant = TRUE,
+  remove_insignificant_boot = FALSE,
   alpha = 0.05,
   row_names_subset = FALSE,
   aggregate_function_env_data_primary = "mean",
@@ -89,6 +90,12 @@ coefficient is to be computed. One of "pearson" (default), "kendall", or
 
 \item{remove_insignificant}{if set to TRUE, removes all correlations bellow
 the significant threshold level, based on a selected alpha.}
+
+\item{remove_insignificant_boot}{if set to TRUE and boot = TRUE, removes
+correlations whose bootstrap confidence interval includes zero. This filter
+takes precedence over remove_insignificant. If remove_insignificant_boot = TRUE
+but boot = FALSE, both bootstrap filtering and standard remove_insignificant
+filtering are ignored with a warning.}
 
 \item{alpha}{significance level used to remove insignificant calculations.}
 
@@ -210,7 +217,7 @@ one. This parameter allows for controlling the granularity of the analysis
 and can help in reducing computation time by focusing on a subset of the data.}
 }
 \value{
-a list with 15 elements:
+a list with 19 elements:
 \enumerate{
  \item $calculations - a matrix with calculated metrics
  \item $method - the character string of a method
@@ -227,6 +234,11 @@ a list with 15 elements:
  \item $reference_window - character string, which reference window was used for calculations
  \item $aggregated_climate_primary - matrix with all aggregated climate series of primary data
  \item $aggregated_climate_control - matrix with all aggregated climate series of control data
+ \item $previous_year - logical indicating whether previous-year climate data were used
+ \item $number_previous_years - integer indicating how many previous years were used
+ \item $boot_lower - matrix with lower limit of bootstrap confidence intervals
+ \item $boot_upper - matrix with upper limit of bootstrap confidence intervals
+ \item $boot_ci_filter - information about bootstrap confidence-interval filtering
 }
 }
 \description{

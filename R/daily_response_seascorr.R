@@ -45,6 +45,11 @@
 #' NULL, one previous year is used for backward compatibility.
 #' @param remove_insignificant if set to TRUE, removes all correlations bellow
 #' the significant threshold level, based on a selected alpha.
+#' @param remove_insignificant_boot if set to TRUE and boot = TRUE, removes
+#' correlations whose bootstrap confidence interval includes zero. This filter
+#' takes precedence over remove_insignificant. If remove_insignificant_boot = TRUE
+#' but boot = FALSE, both bootstrap filtering and standard remove_insignificant
+#' filtering are ignored with a warning.
 #' @param alpha significance level used to remove insignificant calculations.
 #' @param row_names_subset if set to TRUE, row.names are used to subset
 #' env_data_primary, env_data_control and response data frames. Only years from
@@ -141,7 +146,7 @@
 #' one. This parameter allows for controlling the granularity of the analysis
 #' and can help in reducing computation time by focusing on a subset of the data.
 #'
-#' @return a list with 15 elements:
+#' @return a list with 19 elements:
 #' \enumerate{
 #'  \item $calculations - a matrix with calculated metrics
 #'  \item $method - the character string of a method
@@ -158,6 +163,11 @@
 #'  \item $reference_window - character string, which reference window was used for calculations
 #'  \item $aggregated_climate_primary - matrix with all aggregated climate series of primary data
 #'  \item $aggregated_climate_control - matrix with all aggregated climate series of control data
+#'  \item $previous_year - logical indicating whether previous-year climate data were used
+#'  \item $number_previous_years - integer indicating how many previous years were used
+#'  \item $boot_lower - matrix with lower limit of bootstrap confidence intervals
+#'  \item $boot_upper - matrix with upper limit of bootstrap confidence intervals
+#'  \item $boot_ci_filter - information about bootstrap confidence-interval filtering
 #'}
 #'
 #' @export
@@ -274,6 +284,7 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
                                     previous_year = FALSE, number_previous_years = NULL,
                                     pcor_method = "pearson",
                                     remove_insignificant = TRUE,
+                                    remove_insignificant_boot = FALSE,
                                     alpha = .05, row_names_subset = FALSE,
                                     aggregate_function_env_data_primary = 'mean',
                                     quantile_prob_env_data_primary = 0.5,
@@ -465,6 +476,33 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
   offset_end <- year_block_width - offset_end
 
   ##############################################################################
+
+  if (!is.logical(remove_insignificant_boot) ||
+      length(remove_insignificant_boot) != 1 ||
+      is.na(remove_insignificant_boot)) {
+    stop("remove_insignificant_boot must be either TRUE or FALSE.")
+  }
+
+  if (!is.logical(remove_insignificant) ||
+      length(remove_insignificant) != 1 ||
+      is.na(remove_insignificant)) {
+    stop("remove_insignificant must be either TRUE or FALSE.")
+  }
+
+  # Bootstrap-based filtering is only possible when boot = TRUE.
+  # If the user requests bootstrap CI filtering but does not run bootstrap,
+  # ignore both bootstrap and standard significance filtering. This keeps
+  # remove_insignificant_boot as the user's explicit filtering choice.
+  if (isTRUE(remove_insignificant_boot) && isFALSE(boot)) {
+
+    warning(paste0("remove_insignificant_boot = TRUE, but boot = FALSE. ",
+                   "Bootstrap confidence-interval filtering cannot be applied. ",
+                   "Both remove_insignificant_boot and remove_insignificant are ",
+                   "ignored. Set boot = TRUE to use bootstrap-based filtering."))
+
+    remove_insignificant_boot <- FALSE
+    remove_insignificant <- FALSE
+  }
 
   if (!is.null(seed)) {
     set.seed(seed)
@@ -1351,21 +1389,66 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
     colnames(temporal_matrix_upper) <- temporal_colnames
   }
 
-  # To enhance the visualisation, insignificant values
-  # are removed if remove_insignificant == TRUE
-  if (remove_insignificant == TRUE){
+  # To enhance the visualisation, insignificant values can be removed.
+  # If remove_insignificant_boot = TRUE and boot = TRUE, bootstrap confidence
+  # intervals are used for filtering. This takes precedence over the standard
+  # alpha-based remove_insignificant filter.
+  boot_ci_filter <- list(
+    applied = FALSE,
+    criterion = NA_character_,
+    removed_cells = 0L,
+    retained_cells = sum(!is.na(temporal_matrix)),
+    total_cells = length(temporal_matrix)
+  )
+
+  if (isTRUE(remove_insignificant_boot) && isTRUE(boot)) {
+
+    if (is.null(temporal_matrix_lower) ||
+        is.null(temporal_matrix_upper) ||
+        !all(dim(temporal_matrix) == dim(temporal_matrix_lower)) ||
+        !all(dim(temporal_matrix) == dim(temporal_matrix_upper))) {
+
+      warning(paste0("Bootstrap confidence-interval filtering was requested, ",
+                     "but boot_lower and boot_upper are not available with the ",
+                     "same dimensions as the calculation matrix. The bootstrap ",
+                     "filter is ignored."))
+
+    } else {
+
+      original_non_missing <- !is.na(temporal_matrix)
+
+      keep_boot_ci <- (temporal_matrix_lower > 0 & temporal_matrix_upper > 0) |
+        (temporal_matrix_lower < 0 & temporal_matrix_upper < 0)
+
+      keep_boot_ci[is.na(keep_boot_ci)] <- FALSE
+
+      temporal_matrix[!keep_boot_ci] <- NA
+
+      boot_ci_filter <- list(
+        applied = TRUE,
+        criterion = "Bootstrap confidence interval excludes zero",
+        removed_cells = sum(original_non_missing & !keep_boot_ci, na.rm = TRUE),
+        retained_cells = sum(!is.na(temporal_matrix)),
+        total_cells = length(temporal_matrix)
+      )
+    }
+
+  } else if (isTRUE(remove_insignificant)) {
+
     critical_threshold_cor <- critical_r(nrow(response), alpha = alpha)
-    critical_threshold_cor2 <- critical_threshold_cor ^ 2
 
     temporal_matrix[abs(temporal_matrix) < abs(critical_threshold_cor)] <- NA
-
   }
 
 
 
   if(is.finite(mean(temporal_matrix, na.rm = TRUE)) == FALSE){
 
-    warning("All calculations are insignificant! Please change the alpha argument.")
+    if (isTRUE(boot_ci_filter$applied)) {
+      warning("All calculations were removed by the bootstrap confidence-interval filter.")
+    } else {
+      warning("All calculations are insignificant! Please change the alpha argument.")
+    }
 
     final_list <- list(calculations = temporal_matrix,
                        method = "pcor",
@@ -1378,11 +1461,13 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
                        plot_extreme = NA,
                        type = "daily",
                        reference_window = reference_window,
+                       previous_year = previous_year,
                        number_previous_years = number_previous_years,
                        boot_lower = temporal_matrix_lower,
                        boot_upper = temporal_matrix_upper,
                        aggregated_climate_primary = NA,
-                       aggregated_climate_control = NA)
+                       aggregated_climate_control = NA,
+                       boot_ci_filter = boot_ci_filter)
 
     class(final_list) <- 'dmrs'
 
@@ -1404,7 +1489,11 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
     # For more detailed description see plot_extreme()
 
     if(is.finite(mean(temporal_matrix, na.rm = TRUE)) == FALSE){
-      stop("All calculations are insignificant! Change the alpha argument!")
+      if (isTRUE(boot_ci_filter$applied)) {
+        stop("All calculations were removed by the bootstrap confidence-interval filter.")
+      } else {
+        stop("All calculations are insignificant! Change the alpha argument!")
+      }
     }
 
     overall_max <- max(temporal_matrix, na.rm = TRUE)
@@ -1821,11 +1910,13 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
                        cross_validation = NA,
                        type = "daily",
                        reference_window = reference_window,
+                       previous_year = previous_year,
                        number_previous_years = number_previous_years,
                        boot_lower = temporal_matrix_lower,
                        boot_upper = temporal_matrix_upper,
                        aggregated_climate_primary = do.call(cbind, list_climate_primary),
-                       aggregated_climate_control = do.call(cbind, list_climate_control))
+                       aggregated_climate_control = do.call(cbind, list_climate_control),
+                       boot_ci_filter = boot_ci_filter)
 
 
     plot_heatmapA <- plot_heatmap(final_list, reference_window = reference_window, type = "daily")
@@ -1842,11 +1933,13 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
                        plot_extreme = plot_extremeA,
                        type = "daily",
                        reference_window = reference_window,
+                       previous_year = previous_year,
                        number_previous_years = number_previous_years,
                        boot_lower = temporal_matrix_lower,
                        boot_upper = temporal_matrix_upper,
                        aggregated_climate_primary = do.call(cbind, list_climate_primary),
-                       aggregated_climate_control = do.call(cbind, list_climate_control))
+                       aggregated_climate_control = do.call(cbind, list_climate_control),
+                       boot_ci_filter = boot_ci_filter)
 
     class(final_list) <- "dmrs"
 

@@ -18,6 +18,7 @@ monthly_response(
   fixed_width = 0,
   brnn_smooth = TRUE,
   remove_insignificant = TRUE,
+  remove_insignificant_boot = FALSE,
   alpha = 0.05,
   row_names_subset = FALSE,
   reference_window = "start",
@@ -94,6 +95,13 @@ removes unrealistic calculations which are a result of neural net failure.}
 the significant threshold level, based on a selected alpha. For "lm" and
 "brnn" method, squared threshold is used, which corresponds to R squared
 statistics.}
+
+\item{remove_insignificant_boot}{if set to TRUE, removes calculations whose
+bootstrap confidence interval includes zero. This argument requires
+boot = TRUE. If both remove_insignificant and remove_insignificant_boot are
+TRUE, the bootstrap confidence-interval filter is used and the standard
+alpha-based filter is skipped. If remove_insignificant_boot = TRUE but
+boot = FALSE, both significance filters are ignored and a warning is issued.}
 
 \item{alpha}{significance level used to remove insignificant calculations.}
 
@@ -196,6 +204,8 @@ a list with 19 elements:
  \item $reference_window - character string, which reference window was used for calculations
  \item $boot_lower - matrix with lower limit of confidence intervals of bootstrap calculations
  \item $boot_upper - matrix with upper limit of confidence intervals of bootstrap calculations
+ \item $boot_ci_filter - list describing whether bootstrap confidence-interval
+ filtering was applied and how many matrix cells were retained or removed
  \item $aggregated_climate - matrix with all aggregated climate series
  \item $previous_year - logical indicating whether previous-year climate data were used
  \item $number_previous_years - integer indicating how many previous years were used

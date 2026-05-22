@@ -18,6 +18,7 @@ daily_response(
   neurons = 1,
   brnn_smooth = TRUE,
   remove_insignificant = FALSE,
+  remove_insignificant_boot = FALSE,
   alpha = 0.05,
   row_names_subset = FALSE,
   aggregate_function = "mean",
@@ -93,6 +94,14 @@ removes unrealistic calculations which are a result of neural net failure.}
 \item{remove_insignificant}{if set to TRUE, removes all correlations bellow
 the significant threshold level, based on a selected alpha. For "lm" and
 "brnn" method, squared correlation is used as a threshold}
+
+\item{remove_insignificant_boot}{if set to TRUE and boot = TRUE, removes all
+values for which the bootstrap confidence interval includes zero. The
+filtering is based on the boot_lower and boot_upper matrices. Values are kept
+only when both bootstrap limits are above zero or both are below zero. If
+both remove_insignificant and remove_insignificant_boot are TRUE, the
+bootstrap confidence-interval filter takes priority and the standard
+alpha-based filter is not applied.}
 
 \item{alpha}{significance level used to remove insignificant calculations.}
 
@@ -229,6 +238,8 @@ a list with 19 elements:
  \item $aggregated_climate - matrix with all aggregated climate series
  \item $previous_year - logical indicating whether previous-year climate data were used
  \item $number_previous_years - integer indicating how many previous years were used
+ \item $boot_ci_filter - information about optional filtering based on
+ bootstrap confidence intervals
 }
 }
 \description{

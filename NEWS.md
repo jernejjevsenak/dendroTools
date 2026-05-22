@@ -1,3 +1,6 @@
+# dendroTools 1.2.17
+* Added the argument `remove_insignificant_boot` to response-function workflows, allowing insignificant values to be removed based on bootstrap confidence intervals. When enabled, values are retained only if the bootstrap confidence interval excludes zero. This option is available in `daily_response()`, `daily_response_seascorr()`, `monthly_response()`, and `monthly_response_seascorr()`.
+
 # dendroTools 1.2.16
 * Added new quantile-probability arguments:
   - `quantile_prob` for `daily_response()` and `monthly_response()`
