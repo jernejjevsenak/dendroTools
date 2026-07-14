@@ -4,7 +4,7 @@
 \alias{boot_f_cor}
 \title{boot_f_cor}
 \usage{
-boot_f_cor(data, indices, cor.type)
+boot_f_cor(data, indices, cor.type, cor.use = "everything")
 }
 \arguments{
 \item{data}{A vector, matrix, or data frame containing the input data.
@@ -18,6 +18,13 @@ of the 'data' are to be included in the analysis}
 \item{cor.type}{A string specifying the method of correlation to be applied
 in the bootstrap procedure. Available options are "pearson" (default),
 "kendall", or "spearman".}
+
+\item{cor.use}{This argument is passed both to the point estimate and, when boot = TRUE, to
+every bootstrap replicate. Note that aggregate_function computes window values
+with na.rm = TRUE, so a partially missing window returns the mean of the
+available days rather than NA; only fully missing windows become NA and are
+handled by cor_na_use. Users with gappy env_data should check per-window
+coverage before interpreting the results.}
 }
 \value{
 A matrix with bootstrapped estimates of correlation coefficients

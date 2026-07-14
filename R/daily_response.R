@@ -1008,6 +1008,17 @@ daily_response <- function(response, env_data, method = "cor",
 
   }
 
+  # env_data with NAs + boot + a non-NA-aware cor_na_use silently yields NA in
+  # every window that contains a fully missing year. Tell the user why.
+  if (boot == TRUE && method == "cor" && anyNA(env_data) &&
+      !(cor_na_use %in% c("complete.obs", "na.or.complete", "pairwise.complete.obs"))) {
+
+    warning(paste0("env_data contains missing values and boot = TRUE, but ",
+                   "cor_na_use = '", cor_na_use, "'. Windows containing a fully ",
+                   "missing year will return NA. Set cor_na_use = ",
+                   "'pairwise.complete.obs' or remove incomplete years."))
+  }
+
   # Previous-year climate data have already been added by
   # build_lagged_env_data().
 
@@ -1184,9 +1195,11 @@ daily_response <- function(response, env_data, method = "cor",
       } else if (boot == TRUE){
 
         temp_df_boot <- cbind(response[, 1], x[, 1])
-        calc <- boot(temp_df_boot, boot_f_cor, cor.type = cor_method, R = boot_n)
 
-        temporal_correlation <- colMeans(calc$t)[1]
+        calc <- boot(temp_df_boot, boot_f_cor, cor.type = cor_method,
+                     cor.use = cor_na_use, R = boot_n)
+
+        temporal_correlation <- mean(calc$t[, 1], na.rm = TRUE)
 
         ci_int <- try(boot.ci(calc, conf = boot_conf_int, type = boot_ci_type), silent = TRUE)
 
@@ -1827,9 +1840,11 @@ daily_response <- function(response, env_data, method = "cor",
         } else if (boot == TRUE){
 
           temp_df_boot <- cbind(response[, 1], x[, 1])
-          calc <- boot(temp_df_boot, boot_f_cor, cor.type = cor_method, R = boot_n)
 
-          temporal_correlation <- colMeans(calc$t)[1]
+          calc <- boot(temp_df_boot, boot_f_cor, cor.type = cor_method,
+                       cor.use = cor_na_use, R = boot_n)
+
+          temporal_correlation <- mean(calc$t[, 1], na.rm = TRUE)
 
           ci_int <- try(boot.ci(calc, conf = boot_conf_int, type = boot_ci_type), silent = TRUE)
 

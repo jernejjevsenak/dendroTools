@@ -1,5 +1,8 @@
 # dendroTools 1.2.17
 * Added the argument `remove_insignificant_boot` to response-function workflows, allowing insignificant values to be removed based on bootstrap confidence intervals. When enabled, values are retained only if the bootstrap confidence interval excludes zero. This option is available in `daily_response()`, `daily_response_seascorr()`, `monthly_response()`, and `monthly_response_seascorr()`.
+* Fixed: `cor_na_use` was ignored when `boot = TRUE`, causing all-NA results for gappy `env_data` with no explanatory warning (#issue).
+* Fixed: a single failed bootstrap replicate no longer propagates NA to the whole window estimate.
+* Added: a warning when `boot = TRUE` and `env_data` contains NAs but `cor_na_use` cannot handle them.
 
 # dendroTools 1.2.16
 * Added new quantile-probability arguments:

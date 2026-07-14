@@ -11,18 +11,25 @@
 #' @param cor.type A string specifying the method of correlation to be applied
 #' in the bootstrap procedure. Available options are "pearson" (default),
 #' "kendall", or "spearman".
+#' @param cor.use This argument is passed both to the point estimate and, when boot = TRUE, to
+#' every bootstrap replicate. Note that aggregate_function computes window values
+#' with na.rm = TRUE, so a partially missing window returns the mean of the
+#' available days rather than NA; only fully missing windows become NA and are
+#' handled by cor_na_use. Users with gappy env_data should check per-window
+#' coverage before interpreting the results.
 #'
 #' @return A matrix with bootstrapped estimates of correlation coefficients
 #'
 #' @references https://www.datacamp.com/community/tutorials/bootstrap-r
 #' @keywords internal
 #'
-boot_f_cor <- function(data, indices, cor.type){
-  dt <- data[indices,]
-    c(
-      cor(dt[,1], dt[,2], method = cor.type),
-      median(dt[,1]),
-      median(dt[,2])
-    )
+boot_f_cor <- function(data, indices, cor.type, cor.use = "everything") {
 
-  }
+  d <- data[indices, , drop = FALSE]
+
+  # with pairwise deletion a resample can end up with too few complete pairs
+  n_complete <- sum(stats::complete.cases(d[, 1], d[, 2]))
+  if (n_complete < 4) return(NA_real_)
+
+  stats::cor(d[, 1], d[, 2], method = cor.type, use = cor.use)
+}
