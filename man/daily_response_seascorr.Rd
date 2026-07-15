@@ -37,7 +37,7 @@ daily_response_seascorr(
   boot_conf_int = 0.95,
   day_interval = NULL,
   dc_method = NULL,
-  pcor_na_use = "pairwise.complete",
+  pcor_na_use = "pairwise.complete.obs",
   skip_window_length = 1,
   skip_window_position = 1
 )

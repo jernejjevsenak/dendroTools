@@ -13,9 +13,18 @@
 #'
 
 boot_f_lm <- function(data, index, lm.formula) {
-  bsFit <- lm(lm.formula, data=data[index,])
-  c(
-    summary(bsFit)$r.squared,
-    summary(bsFit)$adj.r.squared
-  )
+  d <- data[index, , drop = FALSE]
+
+  # a resample can lose complete cases; guard like boot_f_cor
+  if (sum(stats::complete.cases(d)) < 4) {
+    return(c(NA_real_, NA_real_))
+  }
+
+  bsFit <- try(lm(lm.formula, data = d), silent = TRUE)
+  if (inherits(bsFit, "try-error")) {
+    return(c(NA_real_, NA_real_))
+  }
+
+  s <- summary(bsFit)
+  c(s$r.squared, s$adj.r.squared)
 }

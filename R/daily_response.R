@@ -1019,6 +1019,15 @@ daily_response <- function(response, env_data, method = "cor",
                    "'pairwise.complete.obs' or remove incomplete years."))
   }
 
+  # ---- shared window-coverage gate (method-agnostic) -----------------
+  # A window is usable only if it has at least `min_complete` complete
+  # response/predictor pairs. Used by cor, lm and brnn so all methods
+  # return NA (not a silent partial fit) on fully/mostly missing windows.
+  min_complete <- 4L
+  window_is_usable <- function(x_vec, y_vec, min_n = min_complete) {
+    sum(stats::complete.cases(x_vec, y_vec)) >= min_n
+  }
+
   # Previous-year climate data have already been added by
   # build_lagged_env_data().
 
@@ -1354,7 +1363,16 @@ daily_response <- function(response, env_data, method = "cor",
       mm = mm + 1
 
 
-      if (boot == FALSE){
+      if (!window_is_usable(x[, 1], response[, 1])) {
+
+        temporal_r_squared <- NA
+        temporal_adj_r_squared <- NA
+        temporal_r_squared_lower <- NA
+        temporal_r_squared_upper <- NA
+        temporal_adj_r_squared_lower <- NA
+        temporal_adj_r_squared_upper <- NA
+
+      } else if (boot == FALSE){
 
         temporal_df <- data.frame(cbind(x, response))
         temporal_model <- lm(x ~ ., data = temporal_df)
@@ -1561,7 +1579,16 @@ daily_response <- function(response, env_data, method = "cor",
       list_climate[[mm]] <- x_list
       mm = mm + 1
 
-      if (boot == FALSE){
+      if (!window_is_usable(x[, 1], response[, 1])) {
+
+        temporal_r_squared <- NA
+        temporal_adj_r_squared <- NA
+        temporal_r_squared_lower <- NA
+        temporal_r_squared_upper <- NA
+        temporal_adj_r_squared_lower <- NA
+        temporal_adj_r_squared_upper <- NA
+
+      } else if (boot == FALSE){
 
         temporal_df <- data.frame(cbind(x, response))
 
@@ -1996,7 +2023,17 @@ daily_response <- function(response, env_data, method = "cor",
         list_climate[[mm]] <- x_list
         mm = mm + 1
 
-        if (boot == FALSE){
+
+        if (!window_is_usable(x[, 1], response[, 1])) {
+
+          temporal_r_squared <- NA
+          temporal_adj_r_squared <- NA
+          temporal_r_squared_lower <- NA
+          temporal_r_squared_upper <- NA
+          temporal_adj_r_squared_lower <- NA
+          temporal_adj_r_squared_upper <- NA
+
+        } else if  (boot == FALSE){
 
           temporal_df <- data.frame(cbind(x, response))
           temporal_model <- lm(x ~ ., data = temporal_df)
@@ -2205,7 +2242,16 @@ daily_response <- function(response, env_data, method = "cor",
         list_climate[[mm]] <- x_list
         mm = mm + 1
 
-        if (boot == FALSE){
+        if (!window_is_usable(x[, 1], response[, 1])) {
+
+          temporal_r_squared <- NA
+          temporal_adj_r_squared <- NA
+          temporal_r_squared_lower <- NA
+          temporal_r_squared_upper <- NA
+          temporal_adj_r_squared_lower <- NA
+          temporal_adj_r_squared_upper <- NA
+
+        } else if (boot == FALSE){
 
           temporal_df <- data.frame(cbind(x, response))
 

@@ -1101,6 +1101,15 @@ monthly_response <- function(response, env_data, method = "cor",
 
   }
 
+  # ---- shared window-coverage gate (method-agnostic) -----------------
+  # A window is usable only if it has at least `min_complete` complete
+  # response/predictor pairs. Used by cor, lm and brnn so all methods
+  # return NA (not a silent partial fit) on fully/mostly missing windows.
+  min_complete <- 4L
+  window_is_usable <- function(x_vec, y_vec, min_n = min_complete) {
+    sum(stats::complete.cases(x_vec, y_vec)) >= min_n
+  }
+
   # PART 2 - Based on the selected function arguments, different chunks of code
   # will be used. For demonstration:
   # A) Chunks are used if fixed.withd != 0
@@ -1201,7 +1210,8 @@ monthly_response <- function(response, env_data, method = "cor",
 
 
         temp_df_boot <- cbind(response[, 1], x[, 1])
-        calc <- boot(temp_df_boot, boot_f_cor, cor.type = cor_method, R = boot_n)
+        calc <- boot(temp_df_boot, boot_f_cor, cor.type = cor_method,
+                     cor.use = cor_na_use, R = boot_n)
 
         temporal_correlation <- colMeans(calc$t)[1]
 
@@ -1367,7 +1377,16 @@ monthly_response <- function(response, env_data, method = "cor",
       list_climate[[mm]] <- x_list
       mm = mm + 1
 
-      if (boot == FALSE){
+      if (!window_is_usable(x, response[, 1])) {
+
+        temporal_r_squared <- NA
+        temporal_adj_r_squared <- NA
+        temporal_r_squared_lower <- NA
+        temporal_r_squared_upper <- NA
+        temporal_adj_r_squared_lower <- NA
+        temporal_adj_r_squared_upper <- NA
+
+      } else if (boot == FALSE){
 
         temporal_df <- data.frame(cbind(x, response))
         temporal_model <- lm(x ~ ., data = temporal_df)
@@ -1793,7 +1812,8 @@ monthly_response <- function(response, env_data, method = "cor",
           temporal_upper <- NA
         } else if (boot == TRUE){
           temp_df_boot <- cbind(response[, 1], x[, 1])
-          calc <- boot(temp_df_boot, boot_f_cor, cor.type = cor_method, R = boot_n)
+          calc <- boot(temp_df_boot, boot_f_cor, cor.type = cor_method,
+                       cor.use = cor_na_use, R = boot_n)
 
           temporal_correlation <- colMeans(calc$t)[1]
 
@@ -1960,7 +1980,16 @@ monthly_response <- function(response, env_data, method = "cor",
         list_climate[[mm]] <- x_list
         mm = mm + 1
 
-        if (boot == FALSE){
+        if (!window_is_usable(x, response[, 1])) {
+
+          temporal_r_squared <- NA
+          temporal_adj_r_squared <- NA
+          temporal_r_squared_lower <- NA
+          temporal_r_squared_upper <- NA
+          temporal_adj_r_squared_lower <- NA
+          temporal_adj_r_squared_upper <- NA
+
+        } else if (boot == FALSE){
 
           temporal_df <- data.frame(cbind(x, response))
           temporal_model <- lm(x ~ ., data = temporal_df)

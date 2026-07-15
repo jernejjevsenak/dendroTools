@@ -37,7 +37,7 @@ monthly_response_seascorr(
   boot_conf_int = 0.95,
   month_interval = NULL,
   dc_method = NULL,
-  pcor_na_use = "pairwise.complete"
+  pcor_na_use = "pairwise.complete.obs"
 )
 }
 \arguments{
@@ -266,7 +266,7 @@ example_extended <- monthly_response_seascorr(response = data_MVA,
    remove_insignificant = FALSE,
    aggregate_function_env_data_primary = 'mean',
    aggregate_function_env_data_control = 'mean',
-   alpha = 0.05, pcor_na_use = "pairwise.complete",
+   alpha = 0.05, pcor_na_use = "pairwise.complete.obs",
    reference_window = "end",
    tidy_env_data_primary = FALSE,
    tidy_env_data_control = TRUE)

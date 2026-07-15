@@ -4,7 +4,7 @@
 \alias{boot_f_pcor}
 \title{boot_f_pcor}
 \usage{
-boot_f_pcor(data, indices, cor.type)
+boot_f_pcor(data, indices, cor.type, pcor.use = "pairwise.complete.obs")
 }
 \arguments{
 \item{data}{A vector, matrix, or data frame containing the input data.

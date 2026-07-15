@@ -17,11 +17,22 @@
 #' @references https://www.datacamp.com/community/tutorials/bootstrap-r
 #' @keywords internal
 #'
-boot_f_pcor <- function(data, indices, cor.type){
+boot_f_pcor <- function(data, indices, cor.type, pcor.use = "pairwise.complete.obs") {
 
-    partial.r(data=data[indices,], x=c("x","y"), y="z", use= "pairwise" , method = cor.type)[2]
+  d <- data[indices, , drop = FALSE]
 
+  if (sum(stats::complete.cases(d[, c("x", "y", "z")])) < 4) {
+    return(NA_real_)
   }
+
+  out <- try(
+    psych::partial.r(data = d, x = c("x", "y"), y = "z",
+                     use = pcor.use, method = cor.type)[2],
+    silent = TRUE
+  )
+  if (inherits(out, "try-error")) return(NA_real_)
+  as.numeric(out)
+}
 
 
 

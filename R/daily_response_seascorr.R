@@ -299,7 +299,7 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
                                     boot_ci_type = "norm", boot_conf_int = 0.95,
                                     day_interval = NULL,
                                     dc_method = NULL,
-                                    pcor_na_use = "pairwise.complete",
+                                    pcor_na_use = "pairwise.complete.obs",
                                     skip_window_length = 1,
                                     skip_window_position = 1){
 
@@ -939,6 +939,13 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
 
   }
 
+  # ---- shared window-coverage gate (method-agnostic) -----------------
+  # A window is usable only if it has at least `min_complete` complete
+  # response/predictor pairs. Used by cor, lm and brnn so all methods
+  # return NA (not a silent partial fit) on fully/mostly missing windows.
+  window_is_usable_pcor <- function(df, min_n = 4L) {
+    sum(stats::complete.cases(df[, c("x", "y", "z")])) >= min_n
+  }
 
   # PART 2 - the calculation of day-wise correlations
   # A) fixed window approach
@@ -1056,7 +1063,9 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
       list_climate_control[[mm2]] <- x2_list
       mm2 = mm2 + 1
 
-      if (boot == FALSE){
+      if (!window_is_usable_pcor(my_temporal_data)) {
+        temporal_correlation <- NA
+      } else if (boot == FALSE){
 
         temporal_correlation <- partial.r(data=my_temporal_data, x=c("x","y"), y="z",
                                           use=pcor_na_use,method = pcor_method)[2]
@@ -1071,7 +1080,8 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
 
       } else if (boot == TRUE){
 
-        calc <- boot(data = my_temporal_data, statistic = boot_f_pcor, R = boot_n, cor.type = pcor_method)
+        calc <- boot(data = my_temporal_data, statistic = boot_f_pcor, R = boot_n,
+                     cor.type = pcor_method, pcor.use = pcor_na_use)
 
         temporal_correlation <- colMeans(calc$t)[1]
         ci_int <- try(boot.ci(calc, conf = boot_conf_int, type = boot_ci_type), silent = TRUE)
@@ -1278,7 +1288,11 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
         list_climate_control[[mm2]] <- x2_list
         mm2 = mm2 + 1
 
-        if (boot == FALSE){
+        if (!window_is_usable_pcor(my_temporal_data)) {
+
+          temporal_correlation <- NA
+
+        } else if (boot == FALSE){
 
           temporal_correlation <- partial.r(data = my_temporal_data, x=c("x","y"), y="z",
                                             use=pcor_na_use,method = pcor_method)[2]
@@ -1293,7 +1307,8 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
 
         } else if (boot == TRUE){
 
-          calc <- boot(data = my_temporal_data, statistic = boot_f_pcor, R = boot_n, cor.type = pcor_method)
+          calc <- boot(data = my_temporal_data, statistic = boot_f_pcor, R = boot_n,
+                       cor.type = pcor_method, pcor.use = pcor_na_use)
 
           temporal_correlation <- colMeans(calc$t)[1]
           ci_int <- try(boot.ci(calc, conf = boot_conf_int, type = boot_ci_type), silent = TRUE)

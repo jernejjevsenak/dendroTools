@@ -15,23 +15,30 @@
 
 boot_f_brnn <- function(data, index, brnn.formula, neurons = 3) {
 
-  capture.output(bsFit <- try(brnn(as.formula(brnn.formula), data = data[index,], neurons = neurons, tol = 1e-6), silent = TRUE))
+  d <- data[index, , drop = FALSE]
 
-  temporal_bsFit_predictions <- try(predict.brnn(bsFit, data[index,]), silent = TRUE)
-
-  if (class(bsFit)[[1]] != "try-error"){
-
-    temporal_r_squared <- 1 - (sum((data[index,][, 1] - temporal_bsFit_predictions) ^ 2) /
-                                 sum((data[index,][, 1] - mean(data[index,][, 1])) ^ 2))
-    temporal_adj_r_squared <- 1 - ((1 - temporal_r_squared) *
-                                     ((nrow(data[index,]) - 1)) /
-                                     (nrow(data[index,]) - ncol(as.data.frame(data[index,])) -  1 + 1))
-
+  if (sum(stats::complete.cases(d)) < 4) {
+    return(c(NA_real_, NA_real_))
   }
 
-  c(
-    temporal_r_squared,
-    temporal_adj_r_squared
+  capture.output(
+    bsFit <- try(brnn(as.formula(brnn.formula), data = d,
+                      neurons = neurons, tol = 1e-6), silent = TRUE)
   )
+  if (inherits(bsFit, "try-error")) {
+    return(c(NA_real_, NA_real_))
+  }
 
+  preds <- try(predict.brnn(bsFit, d), silent = TRUE)
+  if (inherits(preds, "try-error")) {
+    return(c(NA_real_, NA_real_))
+  }
+
+  temporal_r_squared <- 1 - (sum((d[, 1] - preds)^2) /
+                               sum((d[, 1] - mean(d[, 1]))^2))
+  temporal_adj_r_squared <- 1 - ((1 - temporal_r_squared) *
+                                   (nrow(d) - 1) /
+                                   (nrow(d) - ncol(as.data.frame(d)) - 1 + 1))
+
+  c(temporal_r_squared, temporal_adj_r_squared)
 }
