@@ -12,7 +12,8 @@ monthly_response_seascorr(
   number_previous_years = NULL,
   pcor_method = "pearson",
   remove_insignificant = TRUE,
-  remove_insignificant_boot = FALSE,
+  remove_insignificant_method = "alpha",
+  perm_n = 999,
   lower_limit = 1,
   upper_limit = 12,
   fixed_width = 0,
@@ -37,7 +38,7 @@ monthly_response_seascorr(
   boot_conf_int = 0.95,
   month_interval = NULL,
   dc_method = NULL,
-  pcor_na_use = "pairwise.complete.obs"
+  pcor_na_use = "everything"
 )
 }
 \arguments{
@@ -79,17 +80,26 @@ previous_year = TRUE, one previous year is included.}
 coefficient is to be computed. One of "pearson" (default), "kendall", or
 "spearman", can be abbreviated.}
 
-\item{remove_insignificant}{if set to TRUE, removes all correlations bellow
-the significant threshold level, based on a selected alpha. If
-remove_insignificant_boot = TRUE and boot = TRUE, the bootstrap-based
-filtering is used instead.}
+\item{remove_insignificant}{if set to TRUE, removes all partial correlations
+that do not meet the criterion set by remove_insignificant_method.}
 
-\item{remove_insignificant_boot}{if set to TRUE and boot = TRUE, removes all
-partial correlations for which the bootstrap confidence interval includes
-zero. If both remove_insignificant and remove_insignificant_boot are TRUE,
-the bootstrap confidence-interval filter takes priority. If boot = FALSE,
-remove_insignificant_boot is ignored with a warning and remove_insignificant
-is also ignored.}
+\item{remove_insignificant_method}{the criterion used when
+remove_insignificant = TRUE. One of "alpha" (per-window significance
+threshold; the default), "boot" (bootstrap confidence interval excludes
+zero; requires boot = TRUE), "fdr_BY" (false discovery rate,
+Benjamini-Yekutieli, valid under arbitrary dependence between windows),
+"fdr_BH" (Benjamini-Hochberg, valid under positive dependence and less
+conservative) or "maxstat" (max-statistic permutation test). The "alpha" and
+"boot" criteria are applied per window and therefore do not account for the
+number of windows screened; the FDR and "maxstat" criteria do. "maxstat"
+builds a null distribution of the largest absolute partial correlation
+obtained anywhere in the search by repeatedly shuffling the response, and
+retains only windows exceeding the resulting threshold. Degrees of freedom
+for the FDR criteria account for the control variable.}
+
+\item{perm_n}{number of permutations used when
+remove_insignificant_method = "maxstat". Defaults to 999. Ignored by all
+other criteria.}
 
 \item{lower_limit}{lower limit of window width (i.e. number of consecutive months
 to be used for calculations)}
@@ -209,7 +219,8 @@ a list with elements including:
  \item $boot_upper - matrix with upper limits of bootstrap confidence intervals
  \item $aggregated_climate_primary - matrix with all aggregated climate series of primary data
  \item $aggregated_climate_control - matrix with all aggregated climate series of control data
- \item $boot_ci_filter - list with information on bootstrap confidence-interval filtering
+ \item $significance_filter - list describing which significance filter was
+ applied, the criterion used, and how many matrix cells were retained or removed
  \item $previous_year - logical indicating whether previous-year climate data were used
  \item $number_previous_years - integer indicating how many previous years were used
 }
@@ -266,7 +277,7 @@ example_extended <- monthly_response_seascorr(response = data_MVA,
    remove_insignificant = FALSE,
    aggregate_function_env_data_primary = 'mean',
    aggregate_function_env_data_control = 'mean',
-   alpha = 0.05, pcor_na_use = "pairwise.complete.obs",
+   alpha = 0.05, pcor_na_use = "everything",
    reference_window = "end",
    tidy_env_data_primary = FALSE,
    tidy_env_data_control = TRUE)

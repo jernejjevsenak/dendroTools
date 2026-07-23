@@ -15,7 +15,8 @@ daily_response_seascorr(
   number_previous_years = NULL,
   pcor_method = "pearson",
   remove_insignificant = TRUE,
-  remove_insignificant_boot = FALSE,
+  remove_insignificant_method = "alpha",
+  perm_n = 999,
   alpha = 0.05,
   row_names_subset = FALSE,
   aggregate_function_env_data_primary = "mean",
@@ -37,7 +38,7 @@ daily_response_seascorr(
   boot_conf_int = 0.95,
   day_interval = NULL,
   dc_method = NULL,
-  pcor_na_use = "pairwise.complete.obs",
+  pcor_na_use = "everything",
   skip_window_length = 1,
   skip_window_position = 1
 )
@@ -91,11 +92,23 @@ coefficient is to be computed. One of "pearson" (default), "kendall", or
 \item{remove_insignificant}{if set to TRUE, removes all correlations bellow
 the significant threshold level, based on a selected alpha.}
 
-\item{remove_insignificant_boot}{if set to TRUE and boot = TRUE, removes
-correlations whose bootstrap confidence interval includes zero. This filter
-takes precedence over remove_insignificant. If remove_insignificant_boot = TRUE
-but boot = FALSE, both bootstrap filtering and standard remove_insignificant
-filtering are ignored with a warning.}
+\item{remove_insignificant_method}{the criterion used when
+remove_insignificant = TRUE. One of "alpha" (per-window significance
+threshold; the default), "boot" (bootstrap confidence interval excludes
+zero; requires boot = TRUE), "fdr_BY" (false discovery rate,
+Benjamini-Yekutieli, valid under arbitrary dependence between windows),
+"fdr_BH" (Benjamini-Hochberg, valid under positive dependence and less
+conservative) or "maxstat" (max-statistic permutation test). The "alpha" and
+"boot" criteria are applied per window and therefore do not account for the
+number of windows screened; the FDR and "maxstat" criteria do. "maxstat"
+builds a null distribution of the largest absolute partial correlation
+obtained anywhere in the search by repeatedly shuffling the response, and
+retains only windows exceeding the resulting threshold. Degrees of freedom
+for the FDR criteria account for the control variable.}
+
+\item{perm_n}{number of permutations used when
+remove_insignificant_method = "maxstat". Defaults to 999. Ignored by all
+other criteria.}
 
 \item{alpha}{significance level used to remove insignificant calculations.}
 
@@ -238,7 +251,9 @@ a list with 19 elements:
  \item $number_previous_years - integer indicating how many previous years were used
  \item $boot_lower - matrix with lower limit of bootstrap confidence intervals
  \item $boot_upper - matrix with upper limit of bootstrap confidence intervals
- \item $boot_ci_filter - information about bootstrap confidence-interval filtering
+ \item $significance_filter - information about the significance filter
+ applied when remove_insignificant = TRUE, including the method used,
+ the criterion, and how many cells were removed and retained
 }
 }
 \description{

@@ -55,12 +55,23 @@
 #' the significant threshold level, based on a selected alpha. For "lm" and
 #' "brnn" method, squared threshold is used, which corresponds to R squared
 #' statistics.
-#' @param remove_insignificant_boot if set to TRUE, removes calculations whose
-#' bootstrap confidence interval includes zero. This argument requires
-#' boot = TRUE. If both remove_insignificant and remove_insignificant_boot are
-#' TRUE, the bootstrap confidence-interval filter is used and the standard
-#' alpha-based filter is skipped. If remove_insignificant_boot = TRUE but
-#' boot = FALSE, both significance filters are ignored and a warning is issued.
+#' @param remove_insignificant_method the criterion used when
+#' remove_insignificant = TRUE. One of "alpha" (per-window significance
+#' threshold; the default), "boot" (bootstrap confidence interval excludes
+#' zero; requires boot = TRUE), "fdr_BY" (false discovery rate,
+#' Benjamini-Yekutieli, valid under arbitrary dependence between windows),
+#' "fdr_BH" (Benjamini-Hochberg, valid under positive dependence and less
+#' conservative) or "maxstat" (max-statistic permutation test). The "alpha" and
+#' "boot" criteria are applied per window and therefore do not account for the
+#' number of windows screened; the FDR and "maxstat" criteria do. "maxstat"
+#' builds a null distribution of the largest absolute correlation obtained
+#' anywhere in the search by repeatedly shuffling the response, and retains
+#' only windows exceeding the resulting threshold. It is available for
+#' method = "cor" and for method = "lm" with a single predictor, but not for
+#' method = "brnn".
+#' @param perm_n number of permutations used when
+#' remove_insignificant_method = "maxstat". Defaults to 999. Ignored by all
+#' other criteria.
 #' @param alpha significance level used to remove insignificant calculations.
 #' @param row_names_subset if set to TRUE, row.names are used to subset
 #' env_data and response data frames. Only years from both data frames are
@@ -136,8 +147,8 @@
 #'  \item $reference_window - character string, which reference window was used for calculations
 #'  \item $boot_lower - matrix with lower limit of confidence intervals of bootstrap calculations
 #'  \item $boot_upper - matrix with upper limit of confidence intervals of bootstrap calculations
-#'  \item $boot_ci_filter - list describing whether bootstrap confidence-interval
-#'  filtering was applied and how many matrix cells were retained or removed
+#'  \item $significance_filter - list describing which significance filter was
+#'  applied, the criterion used, and how many matrix cells were retained or removed
 #'  \item $aggregated_climate - matrix with all aggregated climate series
 #'  \item $previous_year - logical indicating whether previous-year climate data were used
 #'  \item $number_previous_years - integer indicating how many previous years were used
@@ -266,7 +277,8 @@ monthly_response <- function(response, env_data, method = "cor",
                              lower_limit = 1, upper_limit = 12,
                              fixed_width = 0, brnn_smooth = TRUE,
                              remove_insignificant = TRUE,
-                             remove_insignificant_boot = FALSE,
+                             remove_insignificant_method = "alpha",
+                             perm_n = 999,
                              alpha = .05, row_names_subset = FALSE,
                              reference_window = "start",
                              aggregate_function = 'mean',
@@ -462,19 +474,77 @@ monthly_response <- function(response, env_data, method = "cor",
     set.seed(seed)
   }
 
-  if (!is.logical(remove_insignificant_boot) ||
-      length(remove_insignificant_boot) != 1 ||
-      is.na(remove_insignificant_boot)) {
-    stop("remove_insignificant_boot must be either TRUE or FALSE.")
+
+  # Studentized intervals need a variance estimate for every bootstrap
+  # replicate. The statistics computed here return a single value per
+  # replicate, so boot.ci() cannot build a studentized interval and previously
+  # failed in a way that produced an uninformative error.
+
+  # Missing values are not handled automatically. Tell the user explicitly,
+  # so that an all-NA surface is never a silent surprise.
+  if (anyNA(env_data) &&
+      !(cor_na_use %in% c("complete.obs", "na.or.complete",
+                          "pairwise.complete.obs"))) {
+
+    warning(paste0("env_data contains missing values and cor_na_use = '",
+                   cor_na_use, "'. Any window overlapping a missing value ",
+                   "will return NA. Set cor_na_use = 'pairwise.complete.obs' ",
+                   "to compute over the available years instead."))
   }
 
-  if (isTRUE(remove_insignificant_boot) && isFALSE(boot)) {
-    warning(paste0("remove_insignificant_boot = TRUE requires boot = TRUE. ",
-                   "Because boot = FALSE, both remove_insignificant_boot ",
-                   "and remove_insignificant are ignored."))
+  allowed_boot_ci_types <- c("norm", "perc", "basic", "bca")
 
-    remove_insignificant_boot <- FALSE
+  if (!(boot_ci_type %in% allowed_boot_ci_types)) {
+    stop(paste0("boot_ci_type is '", boot_ci_type, "'. Instead it should be ",
+                "one of: ", paste(allowed_boot_ci_types, collapse = ", "),
+                ". Studentized intervals are not available because they ",
+                "require a variance estimate for each bootstrap replicate."))
+  }
+  allowed_significance_methods <- c("alpha", "boot", "fdr_BY", "fdr_BH",
+                                    "maxstat")
+
+  if (!(remove_insignificant_method %in% allowed_significance_methods)) {
+    stop(paste0("remove_insignificant_method is '", remove_insignificant_method,
+                "'. Instead it should be one of: ",
+                paste(allowed_significance_methods, collapse = ", "), "."))
+  }
+
+  # The bootstrap filter needs bootstrap intervals to exist.
+  if (isTRUE(remove_insignificant) &&
+      remove_insignificant_method == "boot" && isFALSE(boot)) {
+
+    warning(paste0("remove_insignificant_method = 'boot' requires boot = TRUE. ",
+                   "No significance filter is applied."))
+
     remove_insignificant <- FALSE
+  }
+
+  # The max-statistic permutation test re-correlates a shuffled response with
+  # every aggregated window. For "cor" this is a vectorised operation, and for
+  # a single-predictor "lm" the R squared equals the squared correlation, so the
+  # same null distribution applies. For "brnn", and for "lm" with more than one
+  # predictor, no such shortcut exists and the test would require refitting the
+  # model at every window in every permutation.
+  if (isTRUE(remove_insignificant) &&
+      remove_insignificant_method == "maxstat") {
+
+    if (!is.numeric(perm_n) || length(perm_n) != 1 || is.na(perm_n) ||
+        perm_n < 99) {
+      stop("perm_n must be a single number of at least 99.")
+    }
+
+    if (method == "brnn") {
+      stop(paste0("remove_insignificant_method = 'maxstat' is not available for ",
+                  "method = 'brnn', because the permutation would require ",
+                  "refitting the network at every window. Use 'fdr_BY', ",
+                  "'fdr_BH' or 'alpha' instead."))
+    }
+
+    if (method == "lm" && ncol(response) > 1) {
+      stop(paste0("remove_insignificant_method = 'maxstat' is only available for ",
+                  "method = 'lm' with a single predictor. Use 'fdr_BY', ",
+                  "'fdr_BH' or 'alpha' instead."))
+    }
   }
 
   if (fixed_width != 0){
@@ -1126,6 +1196,21 @@ monthly_response <- function(response, env_data, method = "cor",
   list_climate <- list()
   mm <- 1
 
+  # Vectorised bootstrap. The resample indices are drawn once and shared by
+  # every window, and each replicate correlation is obtained from matrix
+  # products rather than from a resampling loop. Used only for method = "cor"
+  # with interval types computable directly from the replicates; "bca" needs
+  # jackknife estimates and keeps the boot() route.
+  boot_fast_obj <- NULL
+  if (boot == TRUE && method == "cor" &&
+      boot_ci_type %in% c("norm", "perc", "basic")) {
+
+    boot_fast_obj <- boot_fast_prep(y = response[, 1],
+                                    boot_n = boot_n,
+                                    cor_method = cor_method,
+                                    cor_na_use = cor_na_use)
+  }
+
   # A.1 method = "cor"
   if (fixed_width != 0 & method == "cor") {
     if (reference_window == 'start'){
@@ -1209,6 +1294,23 @@ monthly_response <- function(response, env_data, method = "cor",
       } else if (boot == TRUE){
 
 
+        if (!is.null(boot_fast_obj)) {
+
+          boot_t <- boot_fast_replicates(boot_fast_obj, x[, 1])
+          boot_t0 <- suppressWarnings(
+            cor(response[, 1], x[, 1], method = cor_method, use = cor_na_use))
+
+          temporal_correlation <- mean(boot_t)
+
+          boot_ci_vals <- boot_fast_ci(boot_t, boot_t0,
+                                       conf = boot_conf_int,
+                                       type = boot_ci_type)
+          temporal_lower <- boot_ci_vals[1]
+          temporal_upper <- boot_ci_vals[2]
+          ci_int <- NULL
+
+        } else {
+
         temp_df_boot <- cbind(response[, 1], x[, 1])
         calc <- boot(temp_df_boot, boot_f_cor, cor.type = cor_method,
                      cor.use = cor_na_use, R = boot_n)
@@ -1254,6 +1356,7 @@ monthly_response <- function(response, env_data, method = "cor",
             stop("boot_ci_type should be 'norm', 'perc', 'stud', 'basic' or 'bca'")
 
           }
+        }
         }
 
       } else {
@@ -1811,6 +1914,23 @@ monthly_response <- function(response, env_data, method = "cor",
           temporal_lower <- NA
           temporal_upper <- NA
         } else if (boot == TRUE){
+          if (!is.null(boot_fast_obj)) {
+
+            boot_t <- boot_fast_replicates(boot_fast_obj, x[, 1])
+            boot_t0 <- suppressWarnings(
+              cor(response[, 1], x[, 1], method = cor_method, use = cor_na_use))
+
+            temporal_correlation <- mean(boot_t)
+
+            boot_ci_vals <- boot_fast_ci(boot_t, boot_t0,
+                                         conf = boot_conf_int,
+                                         type = boot_ci_type)
+            temporal_lower <- boot_ci_vals[1]
+            temporal_upper <- boot_ci_vals[2]
+            ci_int <- NULL
+
+          } else {
+
           temp_df_boot <- cbind(response[, 1], x[, 1])
           calc <- boot(temp_df_boot, boot_f_cor, cor.type = cor_method,
                        cor.use = cor_na_use, R = boot_n)
@@ -1857,6 +1977,7 @@ monthly_response <- function(response, env_data, method = "cor",
 
             }
 
+          }
           }
 
         } else {
@@ -2341,67 +2462,219 @@ monthly_response <- function(response, env_data, method = "cor",
                                      repeats = 2)
   }
 
-  boot_ci_filter <- list(
+  # To enhance the visualisation, insignificant values are removed if
+  # remove_insignificant == TRUE. The criterion is set by
+  # remove_insignificant_method:
+  #   "alpha"  per-window significance threshold; does not account for how
+  #            many windows were screened
+  #   "boot"   bootstrap confidence interval excludes zero (per-window)
+  #   "fdr_BY" false discovery rate, Benjamini-Yekutieli, valid under
+  #            arbitrary dependence between windows
+  #   "fdr_BH" false discovery rate, Benjamini-Hochberg, valid under positive
+  #            dependence and less conservative than BY
+  significance_filter <- list(
     applied = FALSE,
+    method = NA_character_,
     criterion = NA_character_,
     removed_cells = NA_integer_,
     retained_cells = NA_integer_,
     total_cells = length(temporal_matrix)
   )
 
-  # To enhance the visualisation, insignificant values can be removed either
-  # with the standard alpha-based threshold or, if requested, with bootstrap
-  # confidence intervals. The bootstrap filter has priority when both filters
-  # are requested.
-  if (isTRUE(remove_insignificant_boot) && isTRUE(boot)) {
+  if (isTRUE(remove_insignificant)) {
 
-    if (is.null(temporal_matrix_lower) ||
-        is.null(temporal_matrix_upper) ||
-        !all(dim(temporal_matrix) == dim(temporal_matrix_lower)) ||
-        !all(dim(temporal_matrix) == dim(temporal_matrix_upper))) {
+    n_obs <- nrow(response)
+    keep  <- NULL
 
-      warning(paste0("remove_insignificant_boot = TRUE was requested, but ",
-                     "bootstrap confidence-interval matrices are missing or ",
-                     "do not match the calculation matrix. The bootstrap ",
-                     "filter is ignored."))
+    # 1 Plain alpha threshold
+    if (remove_insignificant_method == "alpha") {
 
-    } else {
+      critical_threshold_cor <- critical_r(n_obs, alpha = alpha)
+      critical_threshold_cor2 <- critical_threshold_cor ^ 2
 
-      keep_boot <- (temporal_matrix_lower > 0 & temporal_matrix_upper > 0) |
-        (temporal_matrix_lower < 0 & temporal_matrix_upper < 0)
+      if (method == "cor") {
 
-      keep_boot[is.na(keep_boot)] <- FALSE
+        keep <- abs(temporal_matrix) >= abs(critical_threshold_cor)
 
-      temporal_matrix[!keep_boot] <- NA
+      } else if (method == "lm" | method == "brnn") {
 
-      boot_ci_filter <- list(
-        applied = TRUE,
-        criterion = "Bootstrap confidence interval excludes zero",
-        removed_cells = sum(!keep_boot, na.rm = TRUE),
-        retained_cells = sum(keep_boot, na.rm = TRUE),
-        total_cells = length(keep_boot)
-      )
+        keep <- abs(temporal_matrix) >= abs(critical_threshold_cor2)
+      }
+
+      significance_filter$applied <- TRUE
+      significance_filter$method <- "alpha"
+      significance_filter$criterion <- paste0("|r| >= ",
+                                              round(critical_threshold_cor, 3),
+                                              " (alpha = ", alpha, ")")
+
+      # 2 Bootstrap confidence interval
+    } else if (remove_insignificant_method == "boot") {
+
+      if (is.null(temporal_matrix_lower) ||
+          is.null(temporal_matrix_upper) ||
+          !all(dim(temporal_matrix) == dim(temporal_matrix_lower)) ||
+          !all(dim(temporal_matrix) == dim(temporal_matrix_upper))) {
+
+        warning(paste0("remove_insignificant_method = 'boot' was requested, but ",
+                       "bootstrap confidence-interval matrices are missing or ",
+                       "do not match the calculation matrix. The significance ",
+                       "filter is ignored."))
+
+      } else {
+
+        keep <- (temporal_matrix_lower > 0 & temporal_matrix_upper > 0) |
+          (temporal_matrix_lower < 0 & temporal_matrix_upper < 0)
+
+        significance_filter$applied <- TRUE
+        significance_filter$method <- "boot"
+        significance_filter$criterion <- "Bootstrap confidence interval excludes zero"
+      }
+
+      # 3 False discovery rate
+    } else if (remove_insignificant_method == "fdr_BY" |
+               remove_insignificant_method == "fdr_BH") {
+
+      fdr_type <- sub("^fdr_", "", remove_insignificant_method)
+
+      if (method == "cor") {
+
+        r_surface <- temporal_matrix
+
+      } else if (method == "lm" | method == "brnn") {
+
+        r_surface <- sqrt(abs(temporal_matrix))
+      }
+
+      t_surface <- r_surface * sqrt((n_obs - 2) / (1 - r_surface ^ 2))
+      p_surface <- 2 * stats::pt(-abs(t_surface), df = n_obs - 2)
+
+      p_adjusted <- stats::p.adjust(as.vector(p_surface), method = fdr_type)
+      p_adjusted <- matrix(p_adjusted, nrow = nrow(p_surface))
+
+      keep <- p_adjusted < alpha
+
+      significance_filter$applied <- TRUE
+      significance_filter$method <- remove_insignificant_method
+      significance_filter$criterion <- paste0("Adjusted p < ", alpha,
+                                              " (", fdr_type, ")")
+
+      # 4 Max-statistic permutation
+    } else if (remove_insignificant_method == "maxstat") {
+
+      climate_matrix <- do.call(cbind, list_climate)
+
+      if (is.null(climate_matrix) || ncol(climate_matrix) < 1) {
+
+        warning(paste0("remove_insignificant_method = 'maxstat' was requested, ",
+                       "but the matrix of aggregated climate windows is not ",
+                       "available. The significance filter is ignored."))
+
+      } else {
+
+        shared_years <- intersect(row.names(response), row.names(climate_matrix))
+
+        if (length(shared_years) < 10) {
+
+          warning(paste0("remove_insignificant_method = 'maxstat' was requested, ",
+                         "but fewer than 10 years are shared between the response ",
+                         "and the aggregated climate windows. The significance ",
+                         "filter is ignored."))
+
+        } else {
+
+          y_perm <- response[shared_years, 1]
+          x_perm <- climate_matrix[shared_years, , drop = FALSE]
+
+          # Null distribution of the largest absolute correlation obtained
+          # anywhere in the search when the response is unrelated to climate.
+          null_max <- rep(NA_real_, perm_n)
+
+          for (perm_i in seq_len(perm_n)) {
+
+            perm_cor <- suppressWarnings(
+              stats::cor(sample(y_perm), x_perm,
+                         method = cor_method, use = cor_na_use))
+
+            null_max[perm_i] <- max(abs(perm_cor), na.rm = TRUE)
+          }
+
+          critical_threshold_perm <- as.numeric(
+            stats::quantile(null_max, probs = 1 - alpha, na.rm = TRUE))
+
+          # For "lm" the stored statistic is R squared, so the threshold is
+          # squared as well. This is exact for a single predictor.
+          if (method == "cor") {
+
+            observed_max <- max(abs(temporal_matrix), na.rm = TRUE)
+            keep <- abs(temporal_matrix) >= critical_threshold_perm
+
+          } else if (method == "lm") {
+
+            observed_max <- sqrt(max(abs(temporal_matrix), na.rm = TRUE))
+            keep <- abs(temporal_matrix) >= critical_threshold_perm ^ 2
+          }
+
+          p_global <- (sum(null_max >= observed_max, na.rm = TRUE) + 1) /
+            (perm_n + 1)
+
+          significance_filter$applied <- TRUE
+          significance_filter$method <- "maxstat"
+          significance_filter$criterion <- paste0("|r| >= ",
+                                                  round(critical_threshold_perm, 3),
+                                                  " (max-statistic permutation, ",
+                                                  perm_n, " permutations, alpha = ",
+                                                  alpha, ")")
+          significance_filter$critical_r <- critical_threshold_perm
+          significance_filter$observed_max_r <- observed_max
+          significance_filter$p_global <- p_global
+          significance_filter$perm_n <- perm_n
+          significance_filter$n_windows_searched <- ncol(x_perm)
+        }
+      }
     }
 
-  } else if (remove_insignificant == TRUE) {
+    # Apply whichever mask was produced
+    if (!is.null(keep)) {
 
-    critical_threshold_cor <- critical_r(nrow(response), alpha = alpha)
-    critical_threshold_cor2 <- critical_threshold_cor ^ 2
+      keep[is.na(keep)] <- FALSE
 
-    # 1 Method is correlation
-    if (method == "cor") {
-      temporal_matrix[abs(temporal_matrix) < abs(critical_threshold_cor)] <- NA
-      # 2 lm and brnn method
-    } else if (method == "lm" | method == "brnn") {
-      temporal_matrix[abs(temporal_matrix) < abs(critical_threshold_cor2)] <- NA
+      temporal_matrix[!keep] <- NA
 
+      # The same mask is applied to the confidence-interval matrices, so that
+      # a filtered surface is not accompanied by intervals for windows the
+      # filter removed.
+      if (exists("temporal_matrix_lower") && !is.null(temporal_matrix_lower) &&
+          all(dim(temporal_matrix_lower) == dim(temporal_matrix))) {
+        temporal_matrix_lower[!keep] <- NA
+        temporal_matrix_upper[!keep] <- NA
+      }
+
+      significance_filter$removed_cells  <- sum(!keep, na.rm = TRUE)
+      significance_filter$retained_cells <- sum(keep, na.rm = TRUE)
+      significance_filter$total_cells    <- length(keep)
     }
   }
 
 
   if(is.finite(mean(temporal_matrix, na.rm = TRUE)) == FALSE){
 
-    warning("All calculations are insignificant! Please change the alpha argument.")
+    if (isTRUE(significance_filter$applied) &&
+        identical(significance_filter$method, "maxstat")) {
+
+      warning(paste0("No window exceeded the max-statistic permutation ",
+                     "threshold (global p = ",
+                     signif(significance_filter$p_global, 3),
+                     "). This indicates that the strongest correlation found ",
+                     "anywhere in the search is no larger than expected when ",
+                     "the response is unrelated to climate."))
+
+    } else if (isTRUE(significance_filter$applied)) {
+      warning(paste0("All calculations were removed by the significance filter (",
+                     significance_filter$method, "). Change alpha or ",
+                     "remove_insignificant_method."))
+    } else {
+      warning("All calculations are insignificant! Please change the alpha argument.")
+    }
 
     final_list <- list(calculations = temporal_matrix,
                        method = method,
@@ -2417,7 +2690,7 @@ monthly_response <- function(response, env_data, method = "cor",
                        reference_window = reference_window,
                        boot_lower = temporal_matrix_lower,
                        boot_upper = temporal_matrix_upper,
-                       boot_ci_filter = boot_ci_filter,
+                       significance_filter = significance_filter,
                        aggregated_climate = NA )
 
     class(final_list) <- 'dmrs'
@@ -3270,7 +3543,7 @@ monthly_response <- function(response, env_data, method = "cor",
                        aggregated_climate = do.call(cbind, list_climate),
                        previous_year = previous_year,
                        number_previous_years = number_previous_years,
-                       boot_ci_filter = boot_ci_filter)
+                       significance_filter = significance_filter)
   }
 
   if (method == "cor"){
@@ -3283,7 +3556,7 @@ monthly_response <- function(response, env_data, method = "cor",
                        aggregated_climate = do.call(cbind, list_climate),
                        previous_year = previous_year,
                        number_previous_years = number_previous_years,
-                       boot_ci_filter = boot_ci_filter)
+                       significance_filter = significance_filter)
   }
 
 
@@ -3308,7 +3581,7 @@ monthly_response <- function(response, env_data, method = "cor",
                        aggregated_climate = do.call(cbind, list_climate),
                        previous_year = previous_year,
                        number_previous_years = number_previous_years,
-                       boot_ci_filter = boot_ci_filter)
+                       significance_filter = significance_filter)
   }
 
   if (method == "cor"){
@@ -3328,7 +3601,7 @@ monthly_response <- function(response, env_data, method = "cor",
                        aggregated_climate = do.call(cbind, list_climate),
                        previous_year = previous_year,
                        number_previous_years = number_previous_years,
-                       boot_ci_filter = boot_ci_filter)
+                       significance_filter = significance_filter)
   }
 
   class(final_list) <- 'dmrs'

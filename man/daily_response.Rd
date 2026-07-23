@@ -18,7 +18,8 @@ daily_response(
   neurons = 1,
   brnn_smooth = TRUE,
   remove_insignificant = FALSE,
-  remove_insignificant_boot = FALSE,
+  remove_insignificant_method = "alpha",
+  perm_n = 999,
   alpha = 0.05,
   row_names_subset = FALSE,
   aggregate_function = "mean",
@@ -95,13 +96,24 @@ removes unrealistic calculations which are a result of neural net failure.}
 the significant threshold level, based on a selected alpha. For "lm" and
 "brnn" method, squared correlation is used as a threshold}
 
-\item{remove_insignificant_boot}{if set to TRUE and boot = TRUE, removes all
-values for which the bootstrap confidence interval includes zero. The
-filtering is based on the boot_lower and boot_upper matrices. Values are kept
-only when both bootstrap limits are above zero or both are below zero. If
-both remove_insignificant and remove_insignificant_boot are TRUE, the
-bootstrap confidence-interval filter takes priority and the standard
-alpha-based filter is not applied.}
+\item{remove_insignificant_method}{the criterion used when
+remove_insignificant = TRUE. One of "alpha" (per-window significance
+threshold; the default and the behaviour of earlier versions), "boot"
+(bootstrap confidence interval excludes zero; requires boot = TRUE),
+"fdr_BY" (false discovery rate, Benjamini-Yekutieli, valid under arbitrary
+dependence between windows), "fdr_BH" (Benjamini-Hochberg, valid under
+positive dependence and less conservative) or "maxstat" (max-statistic
+permutation test). The "alpha" and "boot" criteria are applied per window
+and therefore do not account for the number of windows screened; the FDR
+and "maxstat" criteria do. "maxstat" builds a null distribution of the
+largest absolute correlation obtained anywhere in the search by repeatedly
+shuffling the response, and retains only windows exceeding the resulting
+threshold. It is available for method = "cor" and for method = "lm" with a
+single predictor, but not for method = "brnn".}
+
+\item{perm_n}{number of permutations used when
+remove_insignificant_method = "maxstat". Defaults to 999. Ignored by all
+other criteria.}
 
 \item{alpha}{significance level used to remove insignificant calculations.}
 
@@ -238,8 +250,9 @@ a list with 19 elements:
  \item $aggregated_climate - matrix with all aggregated climate series
  \item $previous_year - logical indicating whether previous-year climate data were used
  \item $number_previous_years - integer indicating how many previous years were used
- \item $boot_ci_filter - information about optional filtering based on
- bootstrap confidence intervals
+ \item $significance_filter - information about the significance filter
+ applied when remove_insignificant = TRUE, including the method used,
+ the criterion, and how many cells were removed and retained
 }
 }
 \description{

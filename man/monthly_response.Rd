@@ -18,7 +18,8 @@ monthly_response(
   fixed_width = 0,
   brnn_smooth = TRUE,
   remove_insignificant = TRUE,
-  remove_insignificant_boot = FALSE,
+  remove_insignificant_method = "alpha",
+  perm_n = 999,
   alpha = 0.05,
   row_names_subset = FALSE,
   reference_window = "start",
@@ -96,12 +97,24 @@ the significant threshold level, based on a selected alpha. For "lm" and
 "brnn" method, squared threshold is used, which corresponds to R squared
 statistics.}
 
-\item{remove_insignificant_boot}{if set to TRUE, removes calculations whose
-bootstrap confidence interval includes zero. This argument requires
-boot = TRUE. If both remove_insignificant and remove_insignificant_boot are
-TRUE, the bootstrap confidence-interval filter is used and the standard
-alpha-based filter is skipped. If remove_insignificant_boot = TRUE but
-boot = FALSE, both significance filters are ignored and a warning is issued.}
+\item{remove_insignificant_method}{the criterion used when
+remove_insignificant = TRUE. One of "alpha" (per-window significance
+threshold; the default), "boot" (bootstrap confidence interval excludes
+zero; requires boot = TRUE), "fdr_BY" (false discovery rate,
+Benjamini-Yekutieli, valid under arbitrary dependence between windows),
+"fdr_BH" (Benjamini-Hochberg, valid under positive dependence and less
+conservative) or "maxstat" (max-statistic permutation test). The "alpha" and
+"boot" criteria are applied per window and therefore do not account for the
+number of windows screened; the FDR and "maxstat" criteria do. "maxstat"
+builds a null distribution of the largest absolute correlation obtained
+anywhere in the search by repeatedly shuffling the response, and retains
+only windows exceeding the resulting threshold. It is available for
+method = "cor" and for method = "lm" with a single predictor, but not for
+method = "brnn".}
+
+\item{perm_n}{number of permutations used when
+remove_insignificant_method = "maxstat". Defaults to 999. Ignored by all
+other criteria.}
 
 \item{alpha}{significance level used to remove insignificant calculations.}
 
@@ -204,8 +217,8 @@ a list with 19 elements:
  \item $reference_window - character string, which reference window was used for calculations
  \item $boot_lower - matrix with lower limit of confidence intervals of bootstrap calculations
  \item $boot_upper - matrix with upper limit of confidence intervals of bootstrap calculations
- \item $boot_ci_filter - list describing whether bootstrap confidence-interval
- filtering was applied and how many matrix cells were retained or removed
+ \item $significance_filter - list describing which significance filter was
+ applied, the criterion used, and how many matrix cells were retained or removed
  \item $aggregated_climate - matrix with all aggregated climate series
  \item $previous_year - logical indicating whether previous-year climate data were used
  \item $number_previous_years - integer indicating how many previous years were used

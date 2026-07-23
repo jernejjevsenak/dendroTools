@@ -1,8 +1,101 @@
 # dendroTools 1.2.17
-* Added the argument `remove_insignificant_boot` to response-function workflows, allowing insignificant values to be removed based on bootstrap confidence intervals. When enabled, values are retained only if the bootstrap confidence interval excludes zero. This option is available in `daily_response()`, `daily_response_seascorr()`, `monthly_response()`, and `monthly_response_seascorr()`.
-* Fixed: `cor_na_use` was ignored when `boot = TRUE`, causing all-NA results for gappy `env_data` with no explanatory warning (#issue).
-* Fixed: a single failed bootstrap replicate no longer propagates NA to the whole window estimate.
-* Added: a warning when `boot = TRUE` and `env_data` contains NAs but `cor_na_use` cannot handle them.
+
+## Significance filtering: new interface
+
+The logical argument `remove_insignificant_boot` has been removed and replaced
+by `remove_insignificant_method`, which selects the criterion applied when
+`remove_insignificant = TRUE`. This keeps one switch for whether to filter and
+one for how, rather than adding an argument per method.
+
+`remove_insignificant_method` accepts:
+
+* `"alpha"` — per-window significance threshold. This is the default and
+  reproduces the behaviour of earlier versions.
+* `"boot"` — the bootstrap confidence interval excludes zero. Requires
+  `boot = TRUE`.
+* `"fdr_BY"` — false discovery rate, Benjamini–Yekutieli. Valid under
+  arbitrary dependence between windows.
+* `"fdr_BH"` — false discovery rate, Benjamini–Hochberg. Valid under positive
+  dependence and less conservative than BY.
+* `"maxstat"` — max-statistic permutation test.
+
+The `"alpha"` and `"boot"` criteria are applied one window at a time and
+therefore do not account for how many windows were screened. The FDR and
+`"maxstat"` criteria do.
+
+`"maxstat"` builds a null distribution of the largest absolute correlation
+obtained anywhere in the search by repeatedly shuffling the response, and
+retains only windows exceeding the resulting threshold. The number of
+permutations is set by the new argument `perm_n` (default 999). It is
+available for `method = "cor"` and for `method = "lm"` with a single
+predictor, but not for `method = "brnn"`, where the permutation would require
+refitting the network at every window.
+
+For the seascorr functions the degrees of freedom used by the FDR criteria
+account for the control variable.
+
+Applies to `daily_response()`, `monthly_response()`,
+`daily_response_seascorr()` and `monthly_response_seascorr()`.
+
+The returned list element `$boot_ci_filter` has been renamed
+`$significance_filter`. It records which method was applied, the criterion
+used, and how many matrix cells were retained or removed. For `"maxstat"` it
+additionally reports the permutation threshold (`critical_r`), the observed
+maximum (`observed_max_r`), the global p value (`p_global`), the number of
+permutations, and the number of windows searched.
+
+When `"maxstat"` removes every window, the message now reports the global p
+value and states that no correlation exceeded what the search alone would
+produce, rather than suggesting that the threshold be relaxed.
+
+## Bootstrap performance
+
+The bootstrap for `method = "cor"`, and for the partial correlations in the
+seascorr functions, is now computed by matrix algebra rather than by
+resampling loops. Each replicate correlation is obtained from weighted sums
+over the original observations, so a whole window's replicates come from a
+single matrix product.
+
+Approximate speedups on a search of about 6500 windows with 1000 replicates:
+
+| correlation | before | after |
+|---|---|---|
+| Pearson | ~3 min | ~4 s |
+| Spearman | ~9 min | ~45 s |
+| Kendall | ~19 min | ~55 s |
+
+Confidence intervals of type `"norm"`, `"perc"` and `"basic"` are now computed
+directly from the replicates and reproduce `boot::boot.ci()` exactly. The
+`"bca"` type, and the `"lm"` and `"brnn"` methods, are unchanged and continue
+to use `boot::boot()`.
+
+**Results will differ slightly from earlier versions even with the same seed.**
+Resample indices are now drawn once and shared by every window, instead of
+being redrawn for each window. Differences are of the order of Monte Carlo
+error (typically below 0.02 in correlation units). The shared resamples mean
+all windows are evaluated on the same resampled years, so bootstrap surfaces
+are internally comparable rather than each window carrying independent noise.
+
+`cor_na_use` and `pcor_na_use` are honoured by the new code path, including
+`"everything"`, under which any replicate that draws a missing value returns
+`NA`, matching `stats::cor()`.
+
+## Bug fixes
+
+* `boot_ci_type = "stud"` is now rejected, with a message explaining that
+  studentized intervals require a variance estimate for each bootstrap
+  replicate, which is not available for correlation statistics. Previously
+  this combination was accepted, ran the full search, and then failed part
+  way through with the uninformative error `number of items to replace is not
+  a multiple of replacement length`. `boot_ci_type` is validated once at the
+  start of the call, so an invalid value now fails immediately rather than
+  after minutes of computation.
+
+* When `remove_insignificant = TRUE`, the confidence-interval matrices
+  `$boot_lower` and `$boot_upper` are now masked with the same criterion as
+  `$calculations`. Previously they retained values for windows the filter had
+  removed, so plotting intervals over a filtered surface could suggest
+  significance for windows that had in fact been rejected.
 
 # dendroTools 1.2.16
 * Added new quantile-probability arguments:
