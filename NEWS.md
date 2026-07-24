@@ -18,21 +18,69 @@ one for how, rather than adding an argument per method.
 * `"fdr_BH"` — false discovery rate, Benjamini–Hochberg. Valid under positive
   dependence and less conservative than BY.
 * `"maxstat"` — max-statistic permutation test.
+* `"sidak"` — Šidák correction on the effective number of tests.
+* `"cluster"` — cluster-extent inference.
 
 The `"alpha"` and `"boot"` criteria are applied one window at a time and
-therefore do not account for how many windows were screened. The FDR and
-`"maxstat"` criteria do.
+therefore do not account for how many windows were screened. The remaining
+criteria do.
 
 `"maxstat"` builds a null distribution of the largest absolute correlation
 obtained anywhere in the search by repeatedly shuffling the response, and
 retains only windows exceeding the resulting threshold. The number of
-permutations is set by the new argument `perm_n` (default 999). It is
-available for `method = "cor"` and for `method = "lm"` with a single
-predictor, but not for `method = "brnn"`, where the permutation would require
-refitting the network at every window.
+permutations is set by the new argument `perm_n` (default 999). It makes no
+distributional assumptions, but requires `perm_n` re-evaluations of the whole
+search. It is available for `method = "cor"` and for `method = "lm"` with a
+single predictor, but not for `method = "brnn"`, where the permutation would
+require refitting the network at every window.
 
-For the seascorr functions the degrees of freedom used by the FDR criteria
-account for the control variable.
+`"sidak"` targets the same family-wise error rate as `"maxstat"` but estimates
+it analytically. Because neighbouring windows overlap, the number of windows
+screened greatly overstates the number of independent tests. The effective
+number is obtained from the eigenvalues of the correlation matrix among the
+screened windows, following Li and Ji (2005), and a Šidák correction is applied
+to that number rather than to the nominal count. The correlation matrix has
+rank at most the number of years, so its non-zero eigenvalues are computed from
+a small years-by-years matrix; no permutations are needed and the criterion is
+effectively instantaneous. It is available for every method, including
+`method = "brnn"`, where `"maxstat"` cannot run.
+
+`"sidak"` is an approximation to `"maxstat"`. Across 54 combinations of site and
+climate variable the two thresholds agreed to within 0.016 on average, with a
+maximum discrepancy of 0.038, for ordinary correlations; for partial
+correlations the corresponding figures were 0.020 and 0.046. The approximation
+is close to exact for strongly autocorrelated variables such as temperature and
+tends to be slightly permissive for weakly autocorrelated variables such as
+daily precipitation, because the eigenvalue approach does not represent
+temporal autocorrelation. `"maxstat"` is therefore preferable for final results,
+while `"sidak"` suits exploratory work and `method = "brnn"`.
+
+`"cluster"` is cluster-extent inference, adapted from neuroimaging. The surface
+is thresholded at the new argument `cluster_threshold`, connected regions of
+supra-threshold windows are identified, and each region's mass, the sum of
+absolute correlations inside it, is compared against the largest mass arising
+in permuted surfaces. It controls the family-wise error rate over *clusters*
+rather than over windows, so it establishes that a region contains signal
+without identifying which windows within it carry that signal. It is available
+for `method = "cor"`, because the permuted statistic has to be laid out on the
+same surface as the observed one.
+
+`"cluster"` has little discriminating power on tree-ring response surfaces, and
+is provided mainly for completeness and comparison. A real climate signal forms
+one large connected region whose mass greatly exceeds anything the permuted
+surfaces produce, so on daily surfaces every cluster that forms is retained and
+the permutation step never rejects; the number of windows kept is then set by
+`cluster_threshold` rather than by the data. On a daily search of about 3,400
+windows, raising the threshold from the nominal critical correlation to 0.45
+reduced the retained area from 95 to 40 per cent while the max-statistic
+threshold on the same data stayed near 0.36. On the much smaller monthly
+surfaces the permutation occasionally does reject a cluster, but not stably
+between runs. `"maxstat"` or `"sidak"` are preferable when the question is
+which windows carry signal.
+
+For the seascorr functions the degrees of freedom account for the control
+variable throughout, and the effective number of tests is estimated from the
+primary windows.
 
 Applies to `daily_response()`, `monthly_response()`,
 `daily_response_seascorr()` and `monthly_response_seascorr()`.
@@ -42,11 +90,40 @@ The returned list element `$boot_ci_filter` has been renamed
 used, and how many matrix cells were retained or removed. For `"maxstat"` it
 additionally reports the permutation threshold (`critical_r`), the observed
 maximum (`observed_max_r`), the global p value (`p_global`), the number of
-permutations, and the number of windows searched.
+permutations, and the number of windows searched. For `"sidak"` it reports the
+threshold (`critical_r`), the effective number of tests (`effective_tests`),
+the per-test significance level (`alpha_per_test`), and the number of windows
+searched. For `"cluster"` it reports the forming threshold used
+(`forming_threshold`), the critical cluster mass
+(`cluster_mass_critical`), how many clusters formed and how many were retained
+(`n_clusters_formed`, `n_clusters_retained`), the largest observed mass, and
+the max-statistic threshold from the same permutations
+(`maxstat_critical_r`), so the two criteria can be compared directly.
 
 When `"maxstat"` removes every window, the message now reports the global p
 value and states that no correlation exceeded what the search alone would
 produce, rather than suggesting that the threshold be relaxed.
+
+## Missing values: consistent behaviour across functions
+
+Missing values are no longer handled silently. All four functions now default
+to `cor_na_use = "everything"` or `pcor_na_use = "everything"`, so a window
+overlapping a missing value returns `NA` and the user decides explicitly how to
+proceed. Previously the seascorr functions defaulted to
+`pcor_na_use = "pairwise.complete.obs"` and quietly computed over the available
+years, which was inconsistent with `daily_response()` and `monthly_response()`.
+
+All four functions now warn when the climate data contain missing values and
+the chosen rule does not handle them, naming the argument to set. Previously
+only `daily_response()` did so.
+
+`daily_response()` no longer applies `na.rm = TRUE` when averaging bootstrap
+replicates, matching the other three functions. A window whose bootstrap
+produces any missing replicate is now `NA` rather than being computed from the
+remaining replicates.
+
+Windows are still aggregated with `na.rm = TRUE`, so a window with a small
+number of missing days is aggregated from the days that are present.
 
 ## Bootstrap performance
 
@@ -96,6 +173,15 @@ are internally comparable rather than each window carrying independent noise.
   `$calculations`. Previously they retained values for windows the filter had
   removed, so plotting intervals over a filtered surface could suggest
   significance for windows that had in fact been rejected.
+
+## References
+
+Li, J. and Ji, L. (2005). Adjusting multiple testing in multilocus analyses
+using the eigenvalues of a correlation matrix. *Heredity* 95, 221–227.
+
+Nichols, T. E. and Holmes, A. P. (2002). Nonparametric permutation tests for
+functional neuroimaging: a primer with examples. *Human Brain Mapping* 15,
+1–25.
 
 # dendroTools 1.2.16
 * Added new quantile-probability arguments:

@@ -51,13 +51,59 @@
 #' zero; requires boot = TRUE), "fdr_BY" (false discovery rate,
 #' Benjamini-Yekutieli, valid under arbitrary dependence between windows),
 #' "fdr_BH" (Benjamini-Hochberg, valid under positive dependence and less
-#' conservative) or "maxstat" (max-statistic permutation test). The "alpha" and
-#' "boot" criteria are applied per window and therefore do not account for the
-#' number of windows screened; the FDR and "maxstat" criteria do. "maxstat"
-#' builds a null distribution of the largest absolute partial correlation
-#' obtained anywhere in the search by repeatedly shuffling the response, and
-#' retains only windows exceeding the resulting threshold. Degrees of freedom
-#' for the FDR criteria account for the control variable.
+#' conservative), "maxstat" (max-statistic permutation test), "sidak"
+#' (Sidak correction on the effective number of tests) or "cluster"
+#' (cluster-extent inference). The "alpha" and "boot" criteria are applied per
+#' window and therefore do not account for the number of windows screened; the
+#' remaining criteria do.
+#' Degrees of freedom account for the control variable throughout.
+#'
+#' "maxstat" builds a null distribution of the largest absolute partial
+#' correlation obtained anywhere in the search by repeatedly shuffling the
+#' response, and retains only windows exceeding the resulting threshold. It
+#' makes no distributional assumptions but requires perm_n re-evaluations of
+#' the whole search.
+#'
+#' "sidak" targets the same family-wise error rate but estimates it
+#' analytically and requires no permutations. The effective number of
+#' independent tests among the screened primary windows is obtained from the
+#' eigenvalues of their correlation matrix following Li and Ji (2005), and a
+#' Sidak correction is applied to that number rather than to the nominal count
+#' of windows.
+#'
+#' "sidak" is an approximation to "maxstat", and a rougher one for partial
+#' correlations than for ordinary ones, because the null distribution also
+#' depends on the control series. Across 54 combinations of site and
+#' primary/control pairing the two thresholds agreed to within 0.020 on
+#' average, with a maximum discrepancy of 0.046. The approximation is close to
+#' exact when the primary variable is strongly autocorrelated (mean error
+#' -0.005 for temperature controlling for precipitation) and permissive when
+#' it is not (mean error -0.031 for precipitation controlling for
+#' temperature), because the eigenvalue approach does not represent temporal
+#' autocorrelation. "maxstat" is therefore preferable for final results, while
+#' "sidak" suits exploratory work.
+#'
+#' "cluster" is cluster-extent inference, adapted from neuroimaging. The
+#' surface is thresholded at cluster_threshold, connected regions of
+#' supra-threshold windows are identified, and each region's mass, the sum of
+#' absolute partial correlations inside it, is compared against the largest
+#' mass arising in permuted surfaces. It controls the family-wise error rate
+#' over CLUSTERS rather than over windows, so it establishes that a region
+#' contains signal without identifying which windows within it carry it.
+#'
+#' In tree-ring response surfaces this method has little discriminating power.
+#' A real climate signal forms one large connected region whose mass greatly
+#' exceeds anything the permuted surfaces produce, so every cluster that forms
+#' is usually retained and the permutation step rarely rejects. The number of
+#' windows kept is then determined by cluster_threshold rather than by the
+#' data. It is provided for completeness and comparison; "maxstat" or "sidak"
+#' are preferable when the question is which windows carry signal.
+#' @param cluster_threshold the absolute partial correlation at which clusters
+#' are formed when remove_insignificant_method = "cluster". Either "nominal",
+#' the default, which uses the critical correlation at the chosen alpha, or a
+#' single number between 0 and 1. This is a free parameter and it largely
+#' determines how many windows are retained, so the value used is reported in
+#' $significance_filter. Ignored by all other criteria.
 #' @param perm_n number of permutations used when
 #' remove_insignificant_method = "maxstat". Defaults to 999. Ignored by all
 #' other criteria.
@@ -299,6 +345,7 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
                                     remove_insignificant = TRUE,
                                     remove_insignificant_method = "alpha",
                                     perm_n = 999,
+                                    cluster_threshold = "nominal",
                                     alpha = .05, row_names_subset = FALSE,
                                     aggregate_function_env_data_primary = 'mean',
                                     quantile_prob_env_data_primary = 0.5,
@@ -519,7 +566,7 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
                 "require a variance estimate for each bootstrap replicate."))
   }
   allowed_significance_methods <- c("alpha", "boot", "fdr_BY", "fdr_BH",
-                                    "maxstat")
+                                    "maxstat", "sidak", "cluster")
 
   if (!(remove_insignificant_method %in% allowed_significance_methods)) {
     stop(paste0("remove_insignificant_method is '", remove_insignificant_method,
@@ -548,6 +595,27 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
   # primary and control windows does not change when only the response is
   # shuffled, it is computed once and reused, so each permutation costs two
   # vectorised correlations rather than a partial correlation per window.
+
+  # Cluster-extent inference needs the same permutation machinery as the
+  # max-statistic test, plus a threshold at which clusters are formed.
+  if (isTRUE(remove_insignificant) &&
+      remove_insignificant_method == "cluster") {
+
+    if (!is.numeric(perm_n) || length(perm_n) != 1 || is.na(perm_n) ||
+        perm_n < 99) {
+      stop("perm_n must be a single number of at least 99.")
+    }
+
+    if (!(identical(cluster_threshold, "nominal") ||
+          (is.numeric(cluster_threshold) && length(cluster_threshold) == 1 &&
+           !is.na(cluster_threshold) && cluster_threshold > 0 &&
+           cluster_threshold < 1))) {
+      stop(paste0("cluster_threshold must be \"nominal\" or a single number ",
+                  "between 0 and 1 giving the absolute partial correlation at ",
+                  "which clusters are formed."))
+    }
+  }
+
   if (isTRUE(remove_insignificant) &&
       remove_insignificant_method == "maxstat") {
 
@@ -1168,50 +1236,50 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
 
         } else {
 
-        calc <- boot(data = my_temporal_data, statistic = boot_f_pcor, R = boot_n,
-                     cor.type = pcor_method, pcor.use = pcor_na_use)
+          calc <- boot(data = my_temporal_data, statistic = boot_f_pcor, R = boot_n,
+                       cor.type = pcor_method, pcor.use = pcor_na_use)
 
-        temporal_correlation <- colMeans(calc$t)[1]
-        ci_int <- try(boot.ci(calc, conf = boot_conf_int, type = boot_ci_type), silent = TRUE)
+          temporal_correlation <- colMeans(calc$t)[1]
+          ci_int <- try(boot.ci(calc, conf = boot_conf_int, type = boot_ci_type), silent = TRUE)
 
-        if (class(ci_int)[[1]] == "try-error"){
+          if (class(ci_int)[[1]] == "try-error"){
 
-          temporal_lower <- NA
-          temporal_upper <- NA
-
-        } else {
-
-          if (boot_ci_type == "norm"){
-
-            temporal_lower <- ci_int$norm[2]
-            temporal_upper <- ci_int$norm[3]
-
-          } else if (boot_ci_type == "perc"){
-
-            temporal_lower <- ci_int$perc[4]
-            temporal_upper <- ci_int$perc[5]
-
-          } else if (boot_ci_type == "stud") {
-
-            temporal_lower <- ci_int$student[4]
-            temporal_upper <- ci_int$student[5]
-
-          } else if (boot_ci_type == "basic") {
-
-            temporal_lower <- ci_int$basic[4]
-            temporal_upper <- ci_int$basic[5]
-
-          } else if (boot_ci_type == "bca") {
-
-            temporal_lower <- ci_int$bca[4]
-            temporal_upper <- ci_int$bca[5]
+            temporal_lower <- NA
+            temporal_upper <- NA
 
           } else {
 
-            stop("boot_ci_type should be 'norm', 'perc', 'stud', 'basic' or 'bca'")
+            if (boot_ci_type == "norm"){
 
+              temporal_lower <- ci_int$norm[2]
+              temporal_upper <- ci_int$norm[3]
+
+            } else if (boot_ci_type == "perc"){
+
+              temporal_lower <- ci_int$perc[4]
+              temporal_upper <- ci_int$perc[5]
+
+            } else if (boot_ci_type == "stud") {
+
+              temporal_lower <- ci_int$student[4]
+              temporal_upper <- ci_int$student[5]
+
+            } else if (boot_ci_type == "basic") {
+
+              temporal_lower <- ci_int$basic[4]
+              temporal_upper <- ci_int$basic[5]
+
+            } else if (boot_ci_type == "bca") {
+
+              temporal_lower <- ci_int$bca[4]
+              temporal_upper <- ci_int$bca[5]
+
+            } else {
+
+              stop("boot_ci_type should be 'norm', 'perc', 'stud', 'basic' or 'bca'")
+
+            }
           }
-        }
         }
 
         if (reference_window == 'start'){
@@ -1418,49 +1486,49 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
 
           } else {
 
-          calc <- boot(data = my_temporal_data, statistic = boot_f_pcor, R = boot_n,
-                       cor.type = pcor_method, pcor.use = pcor_na_use)
+            calc <- boot(data = my_temporal_data, statistic = boot_f_pcor, R = boot_n,
+                         cor.type = pcor_method, pcor.use = pcor_na_use)
 
-          temporal_correlation <- colMeans(calc$t)[1]
-          ci_int <- try(boot.ci(calc, conf = boot_conf_int, type = boot_ci_type), silent = TRUE)
+            temporal_correlation <- colMeans(calc$t)[1]
+            ci_int <- try(boot.ci(calc, conf = boot_conf_int, type = boot_ci_type), silent = TRUE)
 
-          if (class(ci_int)[[1]] == "try-error"){
+            if (class(ci_int)[[1]] == "try-error"){
 
-            temporal_lower <- NA
-            temporal_upper <- NA
-
-          } else {
-            if (boot_ci_type == "norm"){
-
-              temporal_lower <- ci_int$norm[2]
-              temporal_upper <- ci_int$norm[3]
-
-            } else if (boot_ci_type == "perc"){
-
-              temporal_lower <- ci_int$perc[4]
-              temporal_upper <- ci_int$perc[5]
-
-            } else if (boot_ci_type == "stud") {
-
-              temporal_lower <- ci_int$student[4]
-              temporal_upper <- ci_int$student[5]
-
-            } else if (boot_ci_type == "basic") {
-
-              temporal_lower <- ci_int$basic[4]
-              temporal_upper <- ci_int$basic[5]
-
-            } else if (boot_ci_type == "bca") {
-
-              temporal_lower <- ci_int$bca[4]
-              temporal_upper <- ci_int$bca[5]
+              temporal_lower <- NA
+              temporal_upper <- NA
 
             } else {
+              if (boot_ci_type == "norm"){
 
-              stop("boot_ci_type should be 'norm', 'perc', 'stud', 'basic' or 'bca'")
+                temporal_lower <- ci_int$norm[2]
+                temporal_upper <- ci_int$norm[3]
 
+              } else if (boot_ci_type == "perc"){
+
+                temporal_lower <- ci_int$perc[4]
+                temporal_upper <- ci_int$perc[5]
+
+              } else if (boot_ci_type == "stud") {
+
+                temporal_lower <- ci_int$student[4]
+                temporal_upper <- ci_int$student[5]
+
+              } else if (boot_ci_type == "basic") {
+
+                temporal_lower <- ci_int$basic[4]
+                temporal_upper <- ci_int$basic[5]
+
+              } else if (boot_ci_type == "bca") {
+
+                temporal_lower <- ci_int$bca[4]
+                temporal_upper <- ci_int$bca[5]
+
+              } else {
+
+                stop("boot_ci_type should be 'norm', 'perc', 'stud', 'basic' or 'bca'")
+
+              }
             }
-          }
           }
 
 
@@ -1686,6 +1754,295 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
           significance_filter$p_global <- p_global
           significance_filter$perm_n <- perm_n
           significance_filter$n_windows_searched <- ncol(x1_perm)
+        }
+      }
+
+      # 5 Sidak correction on the effective number of tests
+    } else if (remove_insignificant_method == "sidak") {
+
+      climate_primary <- do.call(cbind, list_climate_primary)
+      climate_control <- do.call(cbind, list_climate_control)
+
+      if (is.null(climate_primary) || is.null(climate_control) ||
+          ncol(climate_primary) < 2 ||
+          ncol(climate_primary) != ncol(climate_control)) {
+
+        warning(paste0("remove_insignificant_method = 'sidak' was requested, ",
+                       "but the matrices of aggregated primary and control ",
+                       "windows are not available or do not match. The ",
+                       "significance filter is ignored."))
+
+      } else {
+
+        shared_years <- intersect(row.names(response), row.names(climate_primary))
+
+        if (length(shared_years) < 10) {
+
+          warning(paste0("remove_insignificant_method = 'sidak' was requested, ",
+                         "but fewer than 10 years are shared between the ",
+                         "response and the aggregated climate windows. The ",
+                         "significance filter is ignored."))
+
+        } else {
+
+          n_obs_sidak <- length(shared_years)
+
+          x1_sidak <- climate_primary[shared_years, , drop = FALSE]
+          x2_sidak <- climate_control[shared_years, , drop = FALSE]
+
+          complete_win <- colSums(is.na(x1_sidak)) == 0 &
+            colSums(is.na(x2_sidak)) == 0
+          x1_sidak <- x1_sidak[, complete_win, drop = FALSE]
+          x2_sidak <- x2_sidak[, complete_win, drop = FALSE]
+
+          if (ncol(x1_sidak) < 2) {
+
+            warning(paste0("remove_insignificant_method = 'sidak' was ",
+                           "requested, but fewer than two complete window ",
+                           "pairs remain. The significance filter is ",
+                           "ignored."))
+
+          } else {
+
+            x1_sidak <- x1_sidak[, apply(x1_sidak, 2, stats::sd) > 0,
+                                 drop = FALSE]
+
+            if (ncol(x1_sidak) < 2) {
+
+              warning(paste0("remove_insignificant_method = 'sidak' was ",
+                             "requested, but fewer than two primary windows ",
+                             "vary. The significance filter is ignored."))
+
+            } else {
+
+              # Effective number of independent tests among the screened
+              # primary windows, following Li and Ji (2005). The correlation
+              # matrix among windows has rank at most the number of years, so
+              # its non-zero eigenvalues come from the years-by-years matrix
+              # rather than the windows-by-windows one.
+              z_sidak <- scale(x1_sidak)
+              gram <- tcrossprod(z_sidak) / (n_obs_sidak - 1)
+
+              eig <- eigen(gram, symmetric = TRUE, only.values = TRUE)$values
+              eig <- eig[eig > 1e-10]
+
+              m_eff <- sum((eig >= 1) + (eig - floor(eig)))
+
+              # One degree of freedom is spent on the control variable
+              alpha_sidak <- 1 - (1 - alpha) ^ (1 / m_eff)
+              t_sidak <- stats::qt(1 - alpha_sidak / 2, df = n_obs_sidak - 3)
+              critical_threshold_sidak <- t_sidak /
+                sqrt(t_sidak ^ 2 + (n_obs_sidak - 3))
+
+              keep <- abs(temporal_matrix) >= critical_threshold_sidak
+
+              significance_filter$applied <- TRUE
+              significance_filter$method <- "sidak"
+              significance_filter$criterion <- paste0("|partial r| >= ",
+                                                      round(critical_threshold_sidak, 3),
+                                                      " (Sidak on ", round(m_eff, 1),
+                                                      " effective tests, alpha = ",
+                                                      alpha, ")")
+              significance_filter$critical_r <- critical_threshold_sidak
+              significance_filter$effective_tests <- m_eff
+              significance_filter$alpha_per_test <- alpha_sidak
+              significance_filter$n_windows_searched <- ncol(x1_sidak)
+            }
+          }
+        }
+      }
+
+      # 6 Cluster-extent inference
+    } else if (remove_insignificant_method == "cluster") {
+
+      climate_primary <- do.call(cbind, list_climate_primary)
+      climate_control <- do.call(cbind, list_climate_control)
+
+      if (is.null(climate_primary) || is.null(climate_control) ||
+          ncol(climate_primary) < 1 ||
+          ncol(climate_primary) != ncol(climate_control)) {
+
+        warning(paste0("remove_insignificant_method = 'cluster' was requested, ",
+                       "but the matrices of aggregated primary and control ",
+                       "windows are not available or do not match. The ",
+                       "significance filter is ignored."))
+
+      } else {
+
+        shared_years <- intersect(row.names(response), row.names(climate_primary))
+
+        if (length(shared_years) < 10) {
+
+          warning(paste0("remove_insignificant_method = 'cluster' was ",
+                         "requested, but fewer than 10 years are shared ",
+                         "between the response and the aggregated climate ",
+                         "windows. The significance filter is ignored."))
+
+        } else {
+
+          y_perm <- response[shared_years, 1]
+          x1_perm <- climate_primary[shared_years, , drop = FALSE]
+          x2_perm <- climate_control[shared_years, , drop = FALSE]
+          n_obs_cl <- length(shared_years)
+
+          # Cluster inference needs the permuted statistics laid out on the
+          # same surface as the observed ones, unlike the max-statistic test
+          # which needs only their maximum. Each aggregated window is named
+          # "start_end", which gives its width and position; the mapping is
+          # checked against the observed surface before it is used.
+          win_nm <- colnames(x1_perm)
+          parts <- strsplit(win_nm, "_", fixed = TRUE)
+          w_start <- suppressWarnings(as.numeric(vapply(parts, `[`, "", 1)))
+          w_end <- suppressWarnings(as.numeric(vapply(parts, `[`, "", 2)))
+          w_width <- w_end - w_start + 1
+
+          surf_widths <- suppressWarnings(as.numeric(row.names(temporal_matrix)))
+
+          if (nrow(temporal_matrix) == 1) {
+            row_idx <- rep(1L, length(w_width))
+          } else {
+            row_idx <- match(w_width, surf_widths)
+          }
+
+          col_idx <- if (reference_window == "start") {
+            w_start
+          } else if (reference_window == "end") {
+            w_end
+          } else {
+            round2(w_start + w_width / 2, 0)
+          }
+
+          usable <- !is.na(row_idx) & !is.na(col_idx) &
+            row_idx >= 1 & row_idx <= nrow(temporal_matrix) &
+            col_idx >= 1 & col_idx <= ncol(temporal_matrix)
+
+          map_ok <- FALSE
+          if (any(usable)) {
+
+            r_xy_o <- suppressWarnings(
+              as.numeric(stats::cor(y_perm, x1_perm[, usable, drop = FALSE],
+                                    method = pcor_method, use = pcor_na_use)))
+            r_xz_o <- suppressWarnings(
+              as.numeric(stats::cor(y_perm, x2_perm[, usable, drop = FALSE],
+                                    method = pcor_method, use = pcor_na_use)))
+            r_yz_o <- vapply(which(usable), function(win_i) {
+              suppressWarnings(stats::cor(x1_perm[, win_i], x2_perm[, win_i],
+                                          method = pcor_method,
+                                          use = pcor_na_use))
+            }, numeric(1))
+
+            obs_pcor <- (r_xy_o - r_xz_o * r_yz_o) /
+              (sqrt(1 - r_xz_o ^ 2) * sqrt(1 - r_yz_o ^ 2))
+
+            on_surface <- temporal_matrix[cbind(row_idx[usable],
+                                                col_idx[usable])]
+            both <- is.finite(obs_pcor) & is.finite(on_surface)
+            map_ok <- sum(both) > 0 &&
+              max(abs(obs_pcor[both] - on_surface[both])) < 1e-8
+          }
+
+          if (!map_ok) {
+
+            warning(paste0("remove_insignificant_method = 'cluster' was ",
+                           "requested, but the aggregated windows could not be ",
+                           "matched to their positions on the response ",
+                           "surface. The significance filter is ignored."))
+
+          } else {
+
+            idx_cells <- cbind(row_idx[usable], col_idx[usable])
+            x1_use <- x1_perm[, usable, drop = FALSE]
+            x2_use <- x2_perm[, usable, drop = FALSE]
+
+            form_thr <- if (identical(cluster_threshold, "nominal")) {
+              critical_r(n_obs_cl, alpha = alpha)
+            } else {
+              cluster_threshold
+            }
+
+            # the primary-control correlation does not involve the response,
+            # so it is unchanged by permutation and computed only once
+            r_yz <- vapply(seq_len(ncol(x1_use)), function(win_i) {
+              suppressWarnings(stats::cor(x1_use[, win_i], x2_use[, win_i],
+                                          method = pcor_method,
+                                          use = pcor_na_use))
+            }, numeric(1))
+            denom_z <- sqrt(1 - r_yz ^ 2)
+
+            null_clust <- rep(NA_real_, perm_n)
+            null_max <- rep(NA_real_, perm_n)
+
+            perm_surface <- matrix(NA_real_, nrow(temporal_matrix),
+                                   ncol(temporal_matrix))
+
+            for (perm_i in seq_len(perm_n)) {
+
+              y_shuffled <- sample(y_perm)
+
+              r_xy <- suppressWarnings(
+                as.numeric(stats::cor(y_shuffled, x1_use,
+                                      method = pcor_method, use = pcor_na_use)))
+              r_xz <- suppressWarnings(
+                as.numeric(stats::cor(y_shuffled, x2_use,
+                                      method = pcor_method, use = pcor_na_use)))
+
+              perm_pcor <- (r_xy - r_xz * r_yz) /
+                (sqrt(1 - r_xz ^ 2) * denom_z)
+
+              perm_surface[] <- NA_real_
+              perm_surface[idx_cells] <- perm_pcor
+
+              null_max[perm_i] <- max(abs(perm_pcor), na.rm = TRUE)
+              null_clust[perm_i] <- max(cluster_fast_masses(perm_surface,
+                                                            form_thr))
+            }
+
+            crit_mass <- as.numeric(
+              stats::quantile(null_clust, probs = 1 - alpha, na.rm = TRUE))
+            crit_max_cl <- as.numeric(
+              stats::quantile(null_max, probs = 1 - alpha, na.rm = TRUE))
+
+            obs_mask <- !is.na(temporal_matrix) &
+              abs(temporal_matrix) > form_thr
+            cc <- cluster_fast_label(obs_mask)
+
+            keep <- matrix(FALSE, nrow(temporal_matrix),
+                           ncol(temporal_matrix))
+            n_retained <- 0L
+            obs_masses <- numeric(0)
+
+            if (cc$n > 0L) {
+              for (cl in seq_len(cc$n)) {
+                in_cl <- cc$labels == cl
+                mass <- sum(abs(temporal_matrix[in_cl]), na.rm = TRUE)
+                obs_masses <- c(obs_masses, mass)
+                if (mass > crit_mass) {
+                  keep[in_cl] <- TRUE
+                  n_retained <- n_retained + 1L
+                }
+              }
+            }
+
+            significance_filter$applied <- TRUE
+            significance_filter$method <- "cluster"
+            significance_filter$criterion <- paste0("cluster mass > ",
+                                                    round(crit_mass, 1),
+                                                    ", clusters formed at ",
+                                                    "|partial r| > ",
+                                                    round(form_thr, 3), " (",
+                                                    perm_n,
+                                                    " permutations, alpha = ",
+                                                    alpha, ")")
+            significance_filter$forming_threshold <- form_thr
+            significance_filter$cluster_mass_critical <- crit_mass
+            significance_filter$n_clusters_formed <- cc$n
+            significance_filter$n_clusters_retained <- n_retained
+            significance_filter$largest_cluster_mass <-
+              if (length(obs_masses)) max(obs_masses) else 0
+            significance_filter$maxstat_critical_r <- crit_max_cl
+            significance_filter$perm_n <- perm_n
+            significance_filter$n_windows_searched <- ncol(x1_use)
+          }
         }
       }
     }

@@ -14,6 +14,7 @@ monthly_response_seascorr(
   remove_insignificant = TRUE,
   remove_insignificant_method = "alpha",
   perm_n = 999,
+  cluster_threshold = "nominal",
   lower_limit = 1,
   upper_limit = 12,
   fixed_width = 0,
@@ -89,17 +90,64 @@ threshold; the default), "boot" (bootstrap confidence interval excludes
 zero; requires boot = TRUE), "fdr_BY" (false discovery rate,
 Benjamini-Yekutieli, valid under arbitrary dependence between windows),
 "fdr_BH" (Benjamini-Hochberg, valid under positive dependence and less
-conservative) or "maxstat" (max-statistic permutation test). The "alpha" and
-"boot" criteria are applied per window and therefore do not account for the
-number of windows screened; the FDR and "maxstat" criteria do. "maxstat"
-builds a null distribution of the largest absolute partial correlation
-obtained anywhere in the search by repeatedly shuffling the response, and
-retains only windows exceeding the resulting threshold. Degrees of freedom
-for the FDR criteria account for the control variable.}
+conservative), "maxstat" (max-statistic permutation test), "sidak"
+(Sidak correction on the effective number of tests) or "cluster"
+(cluster-extent inference). The "alpha" and "boot" criteria are applied per
+window and therefore do not account for the number of windows screened; the
+remaining criteria do.
+Degrees of freedom account for the control variable throughout.
+
+"maxstat" builds a null distribution of the largest absolute partial
+correlation obtained anywhere in the search by repeatedly shuffling the
+response, and retains only windows exceeding the resulting threshold. It
+makes no distributional assumptions but requires perm_n re-evaluations of
+the whole search.
+
+"sidak" targets the same family-wise error rate but estimates it
+analytically and requires no permutations. The effective number of
+independent tests among the screened primary windows is obtained from the
+eigenvalues of their correlation matrix following Li and Ji (2005), and a
+Sidak correction is applied to that number rather than to the nominal count
+of windows.
+
+"sidak" is an approximation to "maxstat", and a rougher one for partial
+correlations than for ordinary ones, because the null distribution also
+depends on the control series. Across 54 combinations of site and
+primary/control pairing the two thresholds agreed to within 0.020 on
+average, with a maximum discrepancy of 0.046. The approximation is close to
+exact when the primary variable is strongly autocorrelated (mean error
+-0.005 for temperature controlling for precipitation) and permissive when
+it is not (mean error -0.031 for precipitation controlling for
+temperature), because the eigenvalue approach does not represent temporal
+autocorrelation. "maxstat" is therefore preferable for final results, while
+"sidak" suits exploratory work.
+
+"cluster" is cluster-extent inference, adapted from neuroimaging. The
+surface is thresholded at cluster_threshold, connected regions of
+supra-threshold windows are identified, and each region's mass, the sum of
+absolute partial correlations inside it, is compared against the largest
+mass arising in permuted surfaces. It controls the family-wise error rate
+over CLUSTERS rather than over windows, so it establishes that a region
+contains signal without identifying which windows within it carry it.
+
+In tree-ring response surfaces this method has little discriminating power.
+A real climate signal forms one large connected region whose mass greatly
+exceeds anything the permuted surfaces produce, so every cluster that forms
+is usually retained and the permutation step rarely rejects. The number of
+windows kept is then determined by cluster_threshold rather than by the
+data. It is provided for completeness and comparison; "maxstat" or "sidak"
+are preferable when the question is which windows carry signal.}
 
 \item{perm_n}{number of permutations used when
 remove_insignificant_method = "maxstat". Defaults to 999. Ignored by all
 other criteria.}
+
+\item{cluster_threshold}{the absolute partial correlation at which clusters
+are formed when remove_insignificant_method = "cluster". Either "nominal",
+the default, which uses the critical correlation at the chosen alpha, or a
+single number between 0 and 1. This is a free parameter and it largely
+determines how many windows are retained, so the value used is reported in
+$significance_filter. Ignored by all other criteria.}
 
 \item{lower_limit}{lower limit of window width (i.e. number of consecutive months
 to be used for calculations)}
