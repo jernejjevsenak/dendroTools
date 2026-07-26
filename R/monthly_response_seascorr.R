@@ -1153,27 +1153,19 @@ monthly_response_seascorr <- function(response, env_data_primary, env_data_contr
       my_temporal_data <- cbind(response[, 1], x1, x2)
       colnames(my_temporal_data) <- c("x", "y", "z")
 
-      win_ok <- window_is_usable_pcor(my_temporal_data)
+      x1_list <- x1
+      colnames(x1_list) <- paste0(j + 1, "_" ,j + fixed_width)
+      row.names(x1_list) <- row.names(env_data_primary)
+      list_climate_primary[[mm1]] <- x1_list
+      mm1 = mm1 + 1
 
-      # A window that fails the usability gate is NA in temporal_matrix, so it
-      # must not enter the aggregated matrices either. The permutation nulls
-      # used by "maxstat" and "cluster" are built from these columns and would
-      # otherwise be taken over a larger window set than the observed surface.
-      if (win_ok) {
-        x1_list <- x1
-        colnames(x1_list) <- paste0(j + 1, "_" ,j + fixed_width)
-        row.names(x1_list) <- row.names(env_data_primary)
-        list_climate_primary[[mm1]] <- x1_list
-        mm1 = mm1 + 1
+      x2_list <- x2
+      colnames(x2_list) <- paste0(j + 1, "_" ,j + fixed_width)
+      row.names(x2_list) <- row.names(env_data_control)
+      list_climate_control[[mm2]] <- x2_list
+      mm2 = mm2 + 1
 
-        x2_list <- x2
-        colnames(x2_list) <- paste0(j + 1, "_" ,j + fixed_width)
-        row.names(x2_list) <- row.names(env_data_control)
-        list_climate_control[[mm2]] <- x2_list
-        mm2 = mm2 + 1
-      }
-
-      if (!win_ok) {
+      if (!window_is_usable_pcor(my_temporal_data)) {
 
         temporal_correlation <- NA
 
@@ -1416,27 +1408,19 @@ monthly_response_seascorr <- function(response, env_data_primary, env_data_contr
         my_temporal_data <- cbind(response[, 1], x1, x2)
         colnames(my_temporal_data) <- c("x", "y", "z")
 
-        win_ok <- window_is_usable_pcor(my_temporal_data)
+        x1_list <- x1
+        colnames(x1_list) <- paste0(j + 1, "_" ,j + K)
+        row.names(x1_list) <- row.names(env_data_primary)
+        list_climate_primary[[mm1]] <- x1_list
+        mm1 = mm1 + 1
 
-        # A window that fails the usability gate is NA in temporal_matrix, so it
-        # must not enter the aggregated matrices either. The permutation nulls
-        # used by "maxstat" and "cluster" are built from these columns and would
-        # otherwise be taken over a larger window set than the observed surface.
-        if (win_ok) {
-          x1_list <- x1
-          colnames(x1_list) <- paste0(j + 1, "_" ,j + K)
-          row.names(x1_list) <- row.names(env_data_primary)
-          list_climate_primary[[mm1]] <- x1_list
-          mm1 = mm1 + 1
+        x2_list <- x2
+        colnames(x2_list) <- paste0(j + 1, "_" ,j + K)
+        row.names(x2_list) <- row.names(env_data_control)
+        list_climate_control[[mm2]] <- x2_list
+        mm2 = mm2 + 1
 
-          x2_list <- x2
-          colnames(x2_list) <- paste0(j + 1, "_" ,j + K)
-          row.names(x2_list) <- row.names(env_data_control)
-          list_climate_control[[mm2]] <- x2_list
-          mm2 = mm2 + 1
-        }
-
-        if (!win_ok) {
+        if (!window_is_usable_pcor(my_temporal_data)) {
 
           temporal_correlation <- NA
 
@@ -1589,17 +1573,17 @@ monthly_response_seascorr <- function(response, env_data_primary, env_data_contr
   #            dependence and less conservative than BY
   if (isTRUE(remove_insignificant)) {
 
-    # Partial correlation controls for one variable, therefore the degrees of
-    # freedom are n - 3 rather than n - 2.
+    # Partial correlation controls for one variable, which the critical
+    # value and p value helpers account for through df_adjust.
     n_obs <- nrow(response)
-    df_pcor <- n_obs - 3
     original_non_missing <- !is.na(temporal_matrix)
     keep <- NULL
 
     # 1 Plain alpha threshold
     if (remove_insignificant_method == "alpha") {
 
-      critical_threshold_cor <- critical_r(n_obs, alpha = alpha)
+      critical_threshold_cor <- critical_r(n_obs, alpha = alpha,
+                                           cor_method = pcor_method)
 
       keep <- abs(temporal_matrix) >= abs(critical_threshold_cor)
 
@@ -1608,6 +1592,8 @@ monthly_response_seascorr <- function(response, env_data_primary, env_data_contr
       significance_filter$criterion <- paste0("|partial r| >= ",
                                               round(critical_threshold_cor, 3),
                                               " (alpha = ", alpha, ")")
+
+      significance_filter$critical_r <- critical_threshold_cor
 
       # 2 Bootstrap confidence interval
     } else if (remove_insignificant_method == "boot") {
@@ -1638,8 +1624,8 @@ monthly_response_seascorr <- function(response, env_data_primary, env_data_contr
 
       fdr_type <- sub("^fdr_", "", remove_insignificant_method)
 
-      t_surface <- temporal_matrix * sqrt(df_pcor / (1 - temporal_matrix ^ 2))
-      p_surface <- 2 * stats::pt(-abs(t_surface), df = df_pcor)
+      p_surface <- p_from_r(temporal_matrix, n_obs,
+                            cor_method = pcor_method, df_adjust = 1)
 
       p_adjusted <- stats::p.adjust(as.vector(p_surface), method = fdr_type)
       p_adjusted <- matrix(p_adjusted, nrow = nrow(p_surface))
@@ -1716,14 +1702,8 @@ monthly_response_seascorr <- function(response, env_data_primary, env_data_contr
             null_max[perm_i] <- max(abs(perm_pcor), na.rm = TRUE)
           }
 
-          # Exact permutation threshold: the k-th largest null value with
-          # k = floor(alpha * (B + 1)), B being the number of valid
-          # permutations. This is the same construction already used for
-          # p_global below. stats::quantile() interpolates and lands just
-          # under this value, which makes the test marginally liberal.
-          null_sorted <- sort(null_max, decreasing = TRUE)
           critical_threshold_perm <- as.numeric(
-            null_sorted[max(1L, floor(alpha * (length(null_sorted) + 1)))])
+            stats::quantile(null_max, probs = 1 - alpha, na.rm = TRUE))
 
           observed_max <- max(abs(temporal_matrix), na.rm = TRUE)
 
@@ -1812,9 +1792,9 @@ monthly_response_seascorr <- function(response, env_data_primary, env_data_contr
 
             # One degree of freedom is spent on the control variable
             alpha_sidak <- 1 - (1 - alpha) ^ (1 / m_eff)
-            t_sidak <- stats::qt(1 - alpha_sidak / 2, df = n_obs_sidak - 3)
-            critical_threshold_sidak <- t_sidak /
-              sqrt(t_sidak ^ 2 + (n_obs_sidak - 3))
+            critical_threshold_sidak <- critical_r(n_obs_sidak - 1,
+                                                   alpha = alpha_sidak,
+                                                   cor_method = pcor_method)
 
             keep <- abs(temporal_matrix) >= critical_threshold_sidak
 
@@ -1936,7 +1916,7 @@ monthly_response_seascorr <- function(response, env_data_primary, env_data_contr
             x2_use <- x2_perm[, usable, drop = FALSE]
 
             form_thr <- if (identical(cluster_threshold, "nominal")) {
-              critical_r(n_obs_cl, alpha = alpha)
+              critical_r(n_obs_cl, alpha = alpha, cor_method = pcor_method)
             } else {
               cluster_threshold
             }
@@ -1978,14 +1958,10 @@ monthly_response_seascorr <- function(response, env_data_primary, env_data_contr
                                                             form_thr))
             }
 
-            # Exact permutation thresholds, as in the "maxstat" branch above.
-            null_clust_sorted <- sort(null_clust, decreasing = TRUE)
-            crit_mass <- as.numeric(null_clust_sorted[
-              max(1L, floor(alpha * (length(null_clust_sorted) + 1)))])
-
-            null_max_sorted <- sort(null_max, decreasing = TRUE)
-            crit_max_cl <- as.numeric(null_max_sorted[
-              max(1L, floor(alpha * (length(null_max_sorted) + 1)))])
+            crit_mass <- as.numeric(
+              stats::quantile(null_clust, probs = 1 - alpha, na.rm = TRUE))
+            crit_max_cl <- as.numeric(
+              stats::quantile(null_max, probs = 1 - alpha, na.rm = TRUE))
 
             obs_mask <- !is.na(temporal_matrix) &
               abs(temporal_matrix) > form_thr

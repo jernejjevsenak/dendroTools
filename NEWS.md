@@ -1,5 +1,36 @@
 # dendroTools 1.2.17
 
+## Correlation-specific critical values (changes Kendall results)
+
+`critical_r()` derived its threshold from the Pearson sampling distribution
+regardless of which coefficient was actually computed, and the criteria that
+rely on it — `"alpha"`, `"fdr_BH"`, `"fdr_BY"` and `"sidak"` — inherited that
+assumption. Kendall's tau has a different null distribution, so those criteria
+were far too strict on tau surfaces and discarded genuine climate responses.
+
+`critical_r()` gains a `cor_method` argument, accepting `"pearson"` (the
+default, unchanged), `"spearman"` (which uses the same transformation applied
+to ranks) and `"kendall"`. For Kendall's tau the critical value now follows the
+normal approximation with variance 2(2n + 5) / 9n(n − 1), the same null
+distribution `stats::cor.test()` uses when `exact = FALSE`. The four response
+functions pass their `cor_method` or `pcor_method` through, and the false
+discovery rate criteria build their p values from the matching distribution.
+
+**Results change for anyone using `cor_method = "kendall"` or
+`pcor_method = "kendall"` together with `remove_insignificant = TRUE`.** More
+windows are now retained, correctly so. The magnitude depends on sample size:
+the old threshold was 41 per cent too strict at n = 24 and 47 per cent too
+strict at n = 73. On one test surface the `"sidak"` threshold fell from 0.443,
+which retained no windows at all, to 0.276, against 0.297 from the permutation
+test that had always been correct.
+
+`"maxstat"` and `"cluster"` were never affected, because they build their null
+by permuting the statistic actually being computed and so make no
+distributional assumption. They remain the most reliable choice for rank
+correlations, and for partial correlations with Kendall's tau in particular,
+where the effective-sample-size adjustment used by the analytic criteria is
+itself an approximation.
+
 ## Significance filtering: new interface
 
 The logical argument `remove_insignificant_boot` has been removed and replaced
@@ -87,17 +118,17 @@ Applies to `daily_response()`, `monthly_response()`,
 
 The returned list element `$boot_ci_filter` has been renamed
 `$significance_filter`. It records which method was applied, the criterion
-used, and how many matrix cells were retained or removed. For `"maxstat"` it
-additionally reports the permutation threshold (`critical_r`), the observed
-maximum (`observed_max_r`), the global p value (`p_global`), the number of
+used, and how many matrix cells were retained or removed. `"alpha"`, `"sidak"`,
+`"maxstat"` and `"cluster"` also report the threshold applied, as
+`critical_r`. For `"maxstat"` it additionally reports the observed maximum
+(`observed_max_r`), the global p value (`p_global`), the number of
 permutations, and the number of windows searched. For `"sidak"` it reports the
-threshold (`critical_r`), the effective number of tests (`effective_tests`),
-the per-test significance level (`alpha_per_test`), and the number of windows
-searched. For `"cluster"` it reports the forming threshold used
-(`forming_threshold`), the critical cluster mass
-(`cluster_mass_critical`), how many clusters formed and how many were retained
-(`n_clusters_formed`, `n_clusters_retained`), the largest observed mass, and
-the max-statistic threshold from the same permutations
+effective number of tests (`effective_tests`), the per-test significance level
+(`alpha_per_test`), and the number of windows searched. For `"cluster"` it
+reports the forming threshold used (`forming_threshold`), the critical cluster
+mass (`cluster_mass_critical`), how many clusters formed and how many were
+retained (`n_clusters_formed`, `n_clusters_retained`), the largest observed
+mass, and the max-statistic threshold from the same permutations
 (`maxstat_critical_r`), so the two criteria can be compared directly.
 
 When `"maxstat"` removes every window, the message now reports the global p
@@ -117,10 +148,13 @@ All four functions now warn when the climate data contain missing values and
 the chosen rule does not handle them, naming the argument to set. Previously
 only `daily_response()` did so.
 
-`daily_response()` no longer applies `na.rm = TRUE` when averaging bootstrap
-replicates, matching the other three functions. A window whose bootstrap
-produces any missing replicate is now `NA` rather than being computed from the
-remaining replicates.
+For `method = "cor"` and for the seascorr partial correlations, a window whose
+bootstrap produces any missing replicate is now `NA` in all four functions,
+rather than being computed from the remaining replicates. For `method = "lm"`
+and `method = "brnn"` the opposite rule applies, again in all four functions: a
+missing replicate there indicates a model fit that did not converge rather than
+missing data, so it is dropped and the window is computed from the replicates
+that succeeded.
 
 Windows are still aggregated with `na.rm = TRUE`, so a window with a small
 number of missing days is aggregated from the days that are present.
@@ -175,6 +209,9 @@ are internally comparable rather than each window carrying independent noise.
   significance for windows that had in fact been rejected.
 
 ## References
+
+Kendall, M. G. (1938). A new measure of rank correlation. *Biometrika* 30,
+81–93.
 
 Li, J. and Ji, L. (2005). Adjusting multiple testing in multilocus analyses
 using the eigenvalues of a correlation matrix. *Heredity* 95, 221–227.

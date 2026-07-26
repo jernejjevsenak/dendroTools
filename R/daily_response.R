@@ -1353,53 +1353,53 @@ daily_response <- function(response, env_data, method = "cor",
 
         } else {
 
-          temp_df_boot <- cbind(response[, 1], x[, 1])
+        temp_df_boot <- cbind(response[, 1], x[, 1])
 
-          calc <- boot(temp_df_boot, boot_f_cor, cor.type = cor_method,
-                       cor.use = cor_na_use, R = boot_n)
+        calc <- boot(temp_df_boot, boot_f_cor, cor.type = cor_method,
+                     cor.use = cor_na_use, R = boot_n)
 
-          temporal_correlation <- mean(calc$t[, 1])
+        temporal_correlation <- mean(calc$t[, 1])
 
-          ci_int <- try(boot.ci(calc, conf = boot_conf_int, type = boot_ci_type), silent = TRUE)
+        ci_int <- try(boot.ci(calc, conf = boot_conf_int, type = boot_ci_type), silent = TRUE)
 
-          if (class(ci_int)[[1]] == "try-error"){
+        if (class(ci_int)[[1]] == "try-error"){
 
-            temporal_lower <- NA
-            temporal_upper <- NA
+          temporal_lower <- NA
+          temporal_upper <- NA
+
+        } else {
+
+          if (boot_ci_type == "norm"){
+
+            temporal_lower <- ci_int$norm[2]
+            temporal_upper <- ci_int$norm[3]
+
+          } else if (boot_ci_type == "perc"){
+
+            temporal_lower <- ci_int$perc[4]
+            temporal_upper <- ci_int$perc[5]
+
+          } else if (boot_ci_type == "stud") {
+
+            temporal_lower <- ci_int$student[4]
+            temporal_upper <- ci_int$student[5]
+
+          } else if (boot_ci_type == "basic") {
+
+            temporal_lower <- ci_int$basic[4]
+            temporal_upper <- ci_int$basic[5]
+
+          } else if (boot_ci_type == "bca") {
+
+            temporal_lower <- ci_int$bca[4]
+            temporal_upper <- ci_int$bca[5]
 
           } else {
 
-            if (boot_ci_type == "norm"){
+            stop("boot_ci_type should be 'norm', 'perc', 'stud', 'basic' or 'bca'")
 
-              temporal_lower <- ci_int$norm[2]
-              temporal_upper <- ci_int$norm[3]
-
-            } else if (boot_ci_type == "perc"){
-
-              temporal_lower <- ci_int$perc[4]
-              temporal_upper <- ci_int$perc[5]
-
-            } else if (boot_ci_type == "stud") {
-
-              temporal_lower <- ci_int$student[4]
-              temporal_upper <- ci_int$student[5]
-
-            } else if (boot_ci_type == "basic") {
-
-              temporal_lower <- ci_int$basic[4]
-              temporal_upper <- ci_int$basic[5]
-
-            } else if (boot_ci_type == "bca") {
-
-              temporal_lower <- ci_int$bca[4]
-              temporal_upper <- ci_int$bca[5]
-
-            } else {
-
-              stop("boot_ci_type should be 'norm', 'perc', 'stud', 'basic' or 'bca'")
-
-            }
           }
+        }
         }
       } else {
         print(paste0("boot should be TRUE or FALSE, instead it is ", boot))
@@ -1507,22 +1507,14 @@ daily_response <- function(response, env_data, method = "cor",
 
       }
 
-      win_ok <- window_is_usable(x[, 1], response[, 1])
-
-      # A window that fails the usability gate is NA in temporal_matrix, so it
-      # must not enter list_climate either. The permutation nulls used by
-      # "maxstat" and "cluster" are built from these columns and would
-      # otherwise be taken over a larger window set than the observed surface.
-      if (win_ok) {
-        x_list <- x
-        colnames(x_list) <- paste0(j + 1, "_" ,j + fixed_width)
-        row.names(x_list) <- row.names(env_data)
-        list_climate[[mm]] <- x_list
-        mm = mm + 1
-      }
+      x_list <- x
+      colnames(x_list) <- paste0(j + 1, "_" ,j + fixed_width)
+      row.names(x_list) <- row.names(env_data)
+      list_climate[[mm]] <- x_list
+      mm = mm + 1
 
 
-      if (!win_ok) {
+      if (!window_is_usable(x[, 1], response[, 1])) {
 
         temporal_r_squared <- NA
         temporal_adj_r_squared <- NA
@@ -1732,21 +1724,13 @@ daily_response <- function(response, env_data, method = "cor",
 
       }
 
-      win_ok <- window_is_usable(x[, 1], response[, 1])
+      x_list <- x
+      colnames(x_list) <- paste0(j + 1, "_" ,j + fixed_width)
+      row.names(x_list) <- row.names(env_data)
+      list_climate[[mm]] <- x_list
+      mm = mm + 1
 
-      # A window that fails the usability gate is NA in temporal_matrix, so it
-      # must not enter list_climate either. The permutation nulls used by
-      # "maxstat" and "cluster" are built from these columns and would
-      # otherwise be taken over a larger window set than the observed surface.
-      if (win_ok) {
-        x_list <- x
-        colnames(x_list) <- paste0(j + 1, "_" ,j + fixed_width)
-        row.names(x_list) <- row.names(env_data)
-        list_climate[[mm]] <- x_list
-        mm = mm + 1
-      }
-
-      if (!win_ok) {
+      if (!window_is_usable(x[, 1], response[, 1])) {
 
         temporal_r_squared <- NA
         temporal_adj_r_squared <- NA
@@ -2050,53 +2034,53 @@ daily_response <- function(response, env_data, method = "cor",
 
           } else {
 
-            temp_df_boot <- cbind(response[, 1], x[, 1])
+          temp_df_boot <- cbind(response[, 1], x[, 1])
 
-            calc <- boot(temp_df_boot, boot_f_cor, cor.type = cor_method,
-                         cor.use = cor_na_use, R = boot_n)
+          calc <- boot(temp_df_boot, boot_f_cor, cor.type = cor_method,
+                       cor.use = cor_na_use, R = boot_n)
 
-            temporal_correlation <- mean(calc$t[, 1])
+          temporal_correlation <- mean(calc$t[, 1])
 
-            ci_int <- try(boot.ci(calc, conf = boot_conf_int, type = boot_ci_type), silent = TRUE)
+          ci_int <- try(boot.ci(calc, conf = boot_conf_int, type = boot_ci_type), silent = TRUE)
 
-            if (class(ci_int)[[1]] == "try-error"){
+          if (class(ci_int)[[1]] == "try-error"){
 
-              temporal_lower <- NA
-              temporal_upper <- NA
+            temporal_lower <- NA
+            temporal_upper <- NA
+
+          } else {
+
+            if (boot_ci_type == "norm"){
+
+              temporal_lower <- ci_int$norm[2]
+              temporal_upper <- ci_int$norm[3]
+
+            } else if (boot_ci_type == "perc"){
+
+              temporal_lower <- ci_int$perc[4]
+              temporal_upper <- ci_int$perc[5]
+
+            } else if (boot_ci_type == "stud") {
+
+              temporal_lower <- ci_int$student[4]
+              temporal_upper <- ci_int$student[5]
+
+            } else if (boot_ci_type == "basic") {
+
+              temporal_lower <- ci_int$basic[4]
+              temporal_upper <- ci_int$basic[5]
+
+            } else if (boot_ci_type == "bca") {
+
+              temporal_lower <- ci_int$bca[4]
+              temporal_upper <- ci_int$bca[5]
 
             } else {
 
-              if (boot_ci_type == "norm"){
+              stop("boot_ci_type should be 'norm', 'perc', 'stud', 'basic' or 'bca'")
 
-                temporal_lower <- ci_int$norm[2]
-                temporal_upper <- ci_int$norm[3]
-
-              } else if (boot_ci_type == "perc"){
-
-                temporal_lower <- ci_int$perc[4]
-                temporal_upper <- ci_int$perc[5]
-
-              } else if (boot_ci_type == "stud") {
-
-                temporal_lower <- ci_int$student[4]
-                temporal_upper <- ci_int$student[5]
-
-              } else if (boot_ci_type == "basic") {
-
-                temporal_lower <- ci_int$basic[4]
-                temporal_upper <- ci_int$basic[5]
-
-              } else if (boot_ci_type == "bca") {
-
-                temporal_lower <- ci_int$bca[4]
-                temporal_upper <- ci_int$bca[5]
-
-              } else {
-
-                stop("boot_ci_type should be 'norm', 'perc', 'stud', 'basic' or 'bca'")
-
-              }
             }
+          }
           }
         } else {
           print(paste0("boot should be TRUE or FALSE, instead it is ", boot))
@@ -2202,22 +2186,14 @@ daily_response <- function(response, env_data, method = "cor",
 
         }
 
-        win_ok <- window_is_usable(x[, 1], response[, 1])
-
-        # A window that fails the usability gate is NA in temporal_matrix, so it
-        # must not enter list_climate either. The permutation nulls used by
-        # "maxstat" and "cluster" are built from these columns and would
-        # otherwise be taken over a larger window set than the observed surface.
-        if (win_ok) {
-          x_list <- x
-          colnames(x_list) <- paste0(j + 1, "_" ,j + K)
-          row.names(x_list) <- row.names(env_data)
-          list_climate[[mm]] <- x_list
-          mm = mm + 1
-        }
+        x_list <- x
+        colnames(x_list) <- paste0(j + 1, "_" ,j + K)
+        row.names(x_list) <- row.names(env_data)
+        list_climate[[mm]] <- x_list
+        mm = mm + 1
 
 
-        if (!win_ok) {
+        if (!window_is_usable(x[, 1], response[, 1])) {
 
           temporal_r_squared <- NA
           temporal_adj_r_squared <- NA
@@ -2429,21 +2405,13 @@ daily_response <- function(response, env_data, method = "cor",
 
         }
 
-        win_ok <- window_is_usable(x[, 1], response[, 1])
+        x_list <- x
+        colnames(x_list) <- paste0(j + 1, "_" ,j + K)
+        row.names(x_list) <- row.names(env_data)
+        list_climate[[mm]] <- x_list
+        mm = mm + 1
 
-        # A window that fails the usability gate is NA in temporal_matrix, so it
-        # must not enter list_climate either. The permutation nulls used by
-        # "maxstat" and "cluster" are built from these columns and would
-        # otherwise be taken over a larger window set than the observed surface.
-        if (win_ok) {
-          x_list <- x
-          colnames(x_list) <- paste0(j + 1, "_" ,j + K)
-          row.names(x_list) <- row.names(env_data)
-          list_climate[[mm]] <- x_list
-          mm = mm + 1
-        }
-
-        if (!win_ok) {
+        if (!window_is_usable(x[, 1], response[, 1])) {
 
           temporal_r_squared <- NA
           temporal_adj_r_squared <- NA
@@ -2672,7 +2640,8 @@ daily_response <- function(response, env_data, method = "cor",
     # 1 Plain alpha threshold
     if (remove_insignificant_method == "alpha") {
 
-      critical_threshold_cor <- critical_r(n_obs, alpha = alpha)
+      critical_threshold_cor <- critical_r(n_obs, alpha = alpha,
+                                           cor_method = cor_method)
       critical_threshold_cor2 <- critical_threshold_cor ^ 2
 
       if (method == "cor") {
@@ -2688,7 +2657,8 @@ daily_response <- function(response, env_data, method = "cor",
         applied = TRUE,
         method = "alpha",
         criterion = paste0("|r| >= ", round(critical_threshold_cor, 3),
-                           " (alpha = ", alpha, ")")
+                           " (alpha = ", alpha, ")"),
+        critical_r = critical_threshold_cor
       )
 
       # 2 Bootstrap confidence interval
@@ -2735,8 +2705,8 @@ daily_response <- function(response, env_data, method = "cor",
         r_surface <- sqrt(abs(temporal_matrix))
       }
 
-      t_surface <- r_surface * sqrt((n_obs - 2) / (1 - r_surface ^ 2))
-      p_surface <- 2 * stats::pt(-abs(t_surface), df = n_obs - 2)
+      p_surface <- p_from_r(r_surface, n_obs,
+                            cor_method = cor_method)
 
       p_adjusted <- stats::p.adjust(as.vector(p_surface), method = fdr_type)
       p_adjusted <- matrix(p_adjusted, nrow = nrow(p_surface))
@@ -2791,14 +2761,8 @@ daily_response <- function(response, env_data, method = "cor",
             null_max[perm_i] <- max(abs(perm_cor), na.rm = TRUE)
           }
 
-          # Exact permutation threshold: the k-th largest null value with
-          # k = floor(alpha * (B + 1)), B being the number of valid
-          # permutations. This is the same construction already used for
-          # p_global below. stats::quantile() interpolates and lands just
-          # under this value, which makes the test marginally liberal.
-          null_sorted <- sort(null_max, decreasing = TRUE)
           critical_threshold_perm <- as.numeric(
-            null_sorted[max(1L, floor(alpha * (length(null_sorted) + 1)))])
+            stats::quantile(null_max, probs = 1 - alpha, na.rm = TRUE))
 
           # For "lm" the stored statistic is R squared, so the threshold is
           # squared as well. This is exact for a single predictor.
@@ -2885,9 +2849,9 @@ daily_response <- function(response, env_data, method = "cor",
             # Sidak correction using the effective rather than the nominal
             # number of tests
             alpha_sidak <- 1 - (1 - alpha) ^ (1 / m_eff)
-            t_sidak <- stats::qt(1 - alpha_sidak / 2, df = n_obs_sidak - 2)
-            critical_threshold_sidak <- t_sidak /
-              sqrt(t_sidak ^ 2 + (n_obs_sidak - 2))
+            critical_threshold_sidak <- critical_r(n_obs_sidak,
+                                                   alpha = alpha_sidak,
+                                                   cor_method = cor_method)
 
             if (method == "cor") {
 
@@ -3002,7 +2966,7 @@ daily_response <- function(response, env_data, method = "cor",
             # and it largely determines the outcome, so it is reported back
             # rather than hidden.
             form_thr <- if (identical(cluster_threshold, "nominal")) {
-              critical_r(n_obs_cl, alpha = alpha)
+              critical_r(n_obs_cl, alpha = alpha, cor_method = cor_method)
             } else {
               cluster_threshold
             }
@@ -3030,14 +2994,10 @@ daily_response <- function(response, env_data, method = "cor",
                                                             form_thr))
             }
 
-            # Exact permutation thresholds, as in the "maxstat" branch above.
-            null_clust_sorted <- sort(null_clust, decreasing = TRUE)
-            crit_mass <- as.numeric(null_clust_sorted[
-              max(1L, floor(alpha * (length(null_clust_sorted) + 1)))])
-
-            null_max_sorted <- sort(null_max, decreasing = TRUE)
-            crit_max_cl <- as.numeric(null_max_sorted[
-              max(1L, floor(alpha * (length(null_max_sorted) + 1)))])
+            crit_mass <- as.numeric(
+              stats::quantile(null_clust, probs = 1 - alpha, na.rm = TRUE))
+            crit_max_cl <- as.numeric(
+              stats::quantile(null_max, probs = 1 - alpha, na.rm = TRUE))
 
             obs_mask <- !is.na(temporal_matrix) &
               abs(temporal_matrix) > form_thr
