@@ -1507,14 +1507,22 @@ daily_response <- function(response, env_data, method = "cor",
 
       }
 
-      x_list <- x
-      colnames(x_list) <- paste0(j + 1, "_" ,j + fixed_width)
-      row.names(x_list) <- row.names(env_data)
-      list_climate[[mm]] <- x_list
-      mm = mm + 1
+      win_ok <- window_is_usable(x[, 1], response[, 1])
+
+      # A window that fails the usability gate is NA in temporal_matrix, so it
+      # must not enter list_climate either. The permutation nulls used by
+      # "maxstat" and "cluster" are built from these columns and would
+      # otherwise be taken over a larger window set than the observed surface.
+      if (win_ok) {
+        x_list <- x
+        colnames(x_list) <- paste0(j + 1, "_" ,j + fixed_width)
+        row.names(x_list) <- row.names(env_data)
+        list_climate[[mm]] <- x_list
+        mm = mm + 1
+      }
 
 
-      if (!window_is_usable(x[, 1], response[, 1])) {
+      if (!win_ok) {
 
         temporal_r_squared <- NA
         temporal_adj_r_squared <- NA
@@ -1724,13 +1732,21 @@ daily_response <- function(response, env_data, method = "cor",
 
       }
 
-      x_list <- x
-      colnames(x_list) <- paste0(j + 1, "_" ,j + fixed_width)
-      row.names(x_list) <- row.names(env_data)
-      list_climate[[mm]] <- x_list
-      mm = mm + 1
+      win_ok <- window_is_usable(x[, 1], response[, 1])
 
-      if (!window_is_usable(x[, 1], response[, 1])) {
+      # A window that fails the usability gate is NA in temporal_matrix, so it
+      # must not enter list_climate either. The permutation nulls used by
+      # "maxstat" and "cluster" are built from these columns and would
+      # otherwise be taken over a larger window set than the observed surface.
+      if (win_ok) {
+        x_list <- x
+        colnames(x_list) <- paste0(j + 1, "_" ,j + fixed_width)
+        row.names(x_list) <- row.names(env_data)
+        list_climate[[mm]] <- x_list
+        mm = mm + 1
+      }
+
+      if (!win_ok) {
 
         temporal_r_squared <- NA
         temporal_adj_r_squared <- NA
@@ -2186,14 +2202,22 @@ daily_response <- function(response, env_data, method = "cor",
 
         }
 
-        x_list <- x
-        colnames(x_list) <- paste0(j + 1, "_" ,j + K)
-        row.names(x_list) <- row.names(env_data)
-        list_climate[[mm]] <- x_list
-        mm = mm + 1
+        win_ok <- window_is_usable(x[, 1], response[, 1])
+
+        # A window that fails the usability gate is NA in temporal_matrix, so it
+        # must not enter list_climate either. The permutation nulls used by
+        # "maxstat" and "cluster" are built from these columns and would
+        # otherwise be taken over a larger window set than the observed surface.
+        if (win_ok) {
+          x_list <- x
+          colnames(x_list) <- paste0(j + 1, "_" ,j + K)
+          row.names(x_list) <- row.names(env_data)
+          list_climate[[mm]] <- x_list
+          mm = mm + 1
+        }
 
 
-        if (!window_is_usable(x[, 1], response[, 1])) {
+        if (!win_ok) {
 
           temporal_r_squared <- NA
           temporal_adj_r_squared <- NA
@@ -2405,13 +2429,21 @@ daily_response <- function(response, env_data, method = "cor",
 
         }
 
-        x_list <- x
-        colnames(x_list) <- paste0(j + 1, "_" ,j + K)
-        row.names(x_list) <- row.names(env_data)
-        list_climate[[mm]] <- x_list
-        mm = mm + 1
+        win_ok <- window_is_usable(x[, 1], response[, 1])
 
-        if (!window_is_usable(x[, 1], response[, 1])) {
+        # A window that fails the usability gate is NA in temporal_matrix, so it
+        # must not enter list_climate either. The permutation nulls used by
+        # "maxstat" and "cluster" are built from these columns and would
+        # otherwise be taken over a larger window set than the observed surface.
+        if (win_ok) {
+          x_list <- x
+          colnames(x_list) <- paste0(j + 1, "_" ,j + K)
+          row.names(x_list) <- row.names(env_data)
+          list_climate[[mm]] <- x_list
+          mm = mm + 1
+        }
+
+        if (!win_ok) {
 
           temporal_r_squared <- NA
           temporal_adj_r_squared <- NA
@@ -2759,8 +2791,14 @@ daily_response <- function(response, env_data, method = "cor",
             null_max[perm_i] <- max(abs(perm_cor), na.rm = TRUE)
           }
 
+          # Exact permutation threshold: the k-th largest null value with
+          # k = floor(alpha * (B + 1)), B being the number of valid
+          # permutations. This is the same construction already used for
+          # p_global below. stats::quantile() interpolates and lands just
+          # under this value, which makes the test marginally liberal.
+          null_sorted <- sort(null_max, decreasing = TRUE)
           critical_threshold_perm <- as.numeric(
-            stats::quantile(null_max, probs = 1 - alpha, na.rm = TRUE))
+            null_sorted[max(1L, floor(alpha * (length(null_sorted) + 1)))])
 
           # For "lm" the stored statistic is R squared, so the threshold is
           # squared as well. This is exact for a single predictor.
@@ -2992,10 +3030,14 @@ daily_response <- function(response, env_data, method = "cor",
                                                             form_thr))
             }
 
-            crit_mass <- as.numeric(
-              stats::quantile(null_clust, probs = 1 - alpha, na.rm = TRUE))
-            crit_max_cl <- as.numeric(
-              stats::quantile(null_max, probs = 1 - alpha, na.rm = TRUE))
+            # Exact permutation thresholds, as in the "maxstat" branch above.
+            null_clust_sorted <- sort(null_clust, decreasing = TRUE)
+            crit_mass <- as.numeric(null_clust_sorted[
+              max(1L, floor(alpha * (length(null_clust_sorted) + 1)))])
+
+            null_max_sorted <- sort(null_max, decreasing = TRUE)
+            crit_max_cl <- as.numeric(null_max_sorted[
+              max(1L, floor(alpha * (length(null_max_sorted) + 1)))])
 
             obs_mask <- !is.na(temporal_matrix) &
               abs(temporal_matrix) > form_thr

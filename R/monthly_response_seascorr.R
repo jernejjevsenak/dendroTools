@@ -1153,19 +1153,27 @@ monthly_response_seascorr <- function(response, env_data_primary, env_data_contr
       my_temporal_data <- cbind(response[, 1], x1, x2)
       colnames(my_temporal_data) <- c("x", "y", "z")
 
-      x1_list <- x1
-      colnames(x1_list) <- paste0(j + 1, "_" ,j + fixed_width)
-      row.names(x1_list) <- row.names(env_data_primary)
-      list_climate_primary[[mm1]] <- x1_list
-      mm1 = mm1 + 1
+      win_ok <- window_is_usable_pcor(my_temporal_data)
 
-      x2_list <- x2
-      colnames(x2_list) <- paste0(j + 1, "_" ,j + fixed_width)
-      row.names(x2_list) <- row.names(env_data_control)
-      list_climate_control[[mm2]] <- x2_list
-      mm2 = mm2 + 1
+      # A window that fails the usability gate is NA in temporal_matrix, so it
+      # must not enter the aggregated matrices either. The permutation nulls
+      # used by "maxstat" and "cluster" are built from these columns and would
+      # otherwise be taken over a larger window set than the observed surface.
+      if (win_ok) {
+        x1_list <- x1
+        colnames(x1_list) <- paste0(j + 1, "_" ,j + fixed_width)
+        row.names(x1_list) <- row.names(env_data_primary)
+        list_climate_primary[[mm1]] <- x1_list
+        mm1 = mm1 + 1
 
-      if (!window_is_usable_pcor(my_temporal_data)) {
+        x2_list <- x2
+        colnames(x2_list) <- paste0(j + 1, "_" ,j + fixed_width)
+        row.names(x2_list) <- row.names(env_data_control)
+        list_climate_control[[mm2]] <- x2_list
+        mm2 = mm2 + 1
+      }
+
+      if (!win_ok) {
 
         temporal_correlation <- NA
 
@@ -1408,19 +1416,27 @@ monthly_response_seascorr <- function(response, env_data_primary, env_data_contr
         my_temporal_data <- cbind(response[, 1], x1, x2)
         colnames(my_temporal_data) <- c("x", "y", "z")
 
-        x1_list <- x1
-        colnames(x1_list) <- paste0(j + 1, "_" ,j + K)
-        row.names(x1_list) <- row.names(env_data_primary)
-        list_climate_primary[[mm1]] <- x1_list
-        mm1 = mm1 + 1
+        win_ok <- window_is_usable_pcor(my_temporal_data)
 
-        x2_list <- x2
-        colnames(x2_list) <- paste0(j + 1, "_" ,j + K)
-        row.names(x2_list) <- row.names(env_data_control)
-        list_climate_control[[mm2]] <- x2_list
-        mm2 = mm2 + 1
+        # A window that fails the usability gate is NA in temporal_matrix, so it
+        # must not enter the aggregated matrices either. The permutation nulls
+        # used by "maxstat" and "cluster" are built from these columns and would
+        # otherwise be taken over a larger window set than the observed surface.
+        if (win_ok) {
+          x1_list <- x1
+          colnames(x1_list) <- paste0(j + 1, "_" ,j + K)
+          row.names(x1_list) <- row.names(env_data_primary)
+          list_climate_primary[[mm1]] <- x1_list
+          mm1 = mm1 + 1
 
-        if (!window_is_usable_pcor(my_temporal_data)) {
+          x2_list <- x2
+          colnames(x2_list) <- paste0(j + 1, "_" ,j + K)
+          row.names(x2_list) <- row.names(env_data_control)
+          list_climate_control[[mm2]] <- x2_list
+          mm2 = mm2 + 1
+        }
+
+        if (!win_ok) {
 
           temporal_correlation <- NA
 
@@ -1700,8 +1716,14 @@ monthly_response_seascorr <- function(response, env_data_primary, env_data_contr
             null_max[perm_i] <- max(abs(perm_pcor), na.rm = TRUE)
           }
 
+          # Exact permutation threshold: the k-th largest null value with
+          # k = floor(alpha * (B + 1)), B being the number of valid
+          # permutations. This is the same construction already used for
+          # p_global below. stats::quantile() interpolates and lands just
+          # under this value, which makes the test marginally liberal.
+          null_sorted <- sort(null_max, decreasing = TRUE)
           critical_threshold_perm <- as.numeric(
-            stats::quantile(null_max, probs = 1 - alpha, na.rm = TRUE))
+            null_sorted[max(1L, floor(alpha * (length(null_sorted) + 1)))])
 
           observed_max <- max(abs(temporal_matrix), na.rm = TRUE)
 
@@ -1956,10 +1978,14 @@ monthly_response_seascorr <- function(response, env_data_primary, env_data_contr
                                                             form_thr))
             }
 
-            crit_mass <- as.numeric(
-              stats::quantile(null_clust, probs = 1 - alpha, na.rm = TRUE))
-            crit_max_cl <- as.numeric(
-              stats::quantile(null_max, probs = 1 - alpha, na.rm = TRUE))
+            # Exact permutation thresholds, as in the "maxstat" branch above.
+            null_clust_sorted <- sort(null_clust, decreasing = TRUE)
+            crit_mass <- as.numeric(null_clust_sorted[
+              max(1L, floor(alpha * (length(null_clust_sorted) + 1)))])
+
+            null_max_sorted <- sort(null_max, decreasing = TRUE)
+            crit_max_cl <- as.numeric(null_max_sorted[
+              max(1L, floor(alpha * (length(null_max_sorted) + 1)))])
 
             obs_mask <- !is.na(temporal_matrix) &
               abs(temporal_matrix) > form_thr
