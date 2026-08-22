@@ -40,6 +40,12 @@ daily_response(
   boot_conf_int = 0.95,
   day_interval = NULL,
   dc_method = NULL,
+  dc_nyrs = NULL,
+  dc_f = 0.5,
+  dc_difference = FALSE,
+  dc_span = "cv",
+  dc_bass = 0,
+  dc_scale = NULL,
   cor_na_use = "everything",
   skip_window_length = 1,
   skip_window_position = 1
@@ -246,9 +252,52 @@ included previous year. For example, previous_year = TRUE,
 number_previous_years = 2 and day_interval = c(-1, 366) analyses the full
 sequence from DOY 1 of year t - 2 to DOY 366 of year t.}
 
-\item{dc_method}{a character string to determine the method to detrend climate
-data.  Possible values are "none" (default) and "SLD" which refers to Simple
-Linear Detrending}
+\item{dc_method}{a character string specifying how the aggregated climate
+series of each moving window should be detrended before the climate-growth
+relationship is calculated. Detrending is applied to the aggregated series,
+i.e. to a vector with one value per year, and not to the raw daily data.
+Possible values are "none" (or NULL, the default, no detrending), "SLD"
+(Simple Linear Detrending, the historical dendroTools option), and the
+smoothers "Spline", "Mean", "Ar" and "Friedman", which follow
+dplR::detrend().
+The growth-specific options of dplR::detrend() ("ModNegExp",
+"ModHugershoff", "AgeDepSpline") are not available, because they assume
+strictly positive series with a biological growth trend.}
+
+\item{dc_nyrs}{a number giving the rigidity of the smoothing spline when
+dc_method = "Spline". Defaults to NULL, i.e. 0.67 times the length of the
+series, exactly as in dplR::detrend(). Ignored by the other methods.}
+
+\item{dc_f}{a number between 0 and 1 giving the frequency response at the
+wavelength given by dc_nyrs when dc_method = "Spline". Defaults to 0.5.
+Ignored by the other methods.}
+
+\item{dc_difference}{logical. If FALSE (default, as in dplR::detrend()),
+the detrended series is calculated as a ratio between the observed series
+and the fitted curve. If TRUE, it is calculated as a difference. Ratio
+detrending is only defined for strictly positive data, such as precipitation
+sums, so the function stops if env_data contains negative values. Windows
+whose aggregated series still contains a zero, for example a completely dry
+precipitation window, are returned as NA. For temperature and for any other
+variable that can be negative, use dc_difference = TRUE. Ignored when
+dc_method = "SLD", which is always residual based.}
+
+\item{dc_span}{the span used by the Friedman super smoother when
+dc_method = "Friedman". Either "cv" (default, cross-validation) or a
+number between 0 and 1. See also stats::supsmu(). Ignored by the other
+methods.}
+
+\item{dc_bass}{a number between 0 and 10 controlling the smoothness of the
+Friedman super smoother when dc_method = "Friedman". Defaults to 0. See also
+stats::supsmu(). Ignored by the other methods.}
+
+\item{dc_scale}{logical or NULL. If TRUE, the detrended series is divided by
+the standard deviation of its own values. The default (NULL) uses the
+convention of the selected method: TRUE for dc_method = "SLD", which
+preserves the behaviour of earlier dendroTools versions, and FALSE for the
+dplR methods, which are not rescaled in dplR::detrend(). Rescaling does not
+affect correlations, but it does affect the scale of $optimized_return and
+of the transfer function.}
 
 \item{cor_na_use}{an optional character string giving a method for computing
 covariances in the presence of missing values for correlation coefficients.
@@ -279,7 +328,7 @@ one. This parameter allows for controlling the granularity of the analysis
 and can help in reducing computation time by focusing on a subset of the data.}
 }
 \value{
-a list with 19 elements:
+a list with 20 elements:
 \enumerate{
  \item $calculations - a matrix with calculated metrics
  \item $method - the character string of a method
@@ -302,6 +351,8 @@ a list with 19 elements:
  \item $significance_filter - information about the significance filter
  applied when remove_insignificant = TRUE, including the method used,
  the criterion, and how many cells were removed and retained
+ \item $detrending - information about the climate detrending applied,
+ i.e. the method and the settings that were used, or "none"
 }
 }
 \description{
@@ -351,6 +402,26 @@ example_basic <- daily_response(response = data_MVA,
                           reference_window = "end", k = 5,
                           dc_method = "SLD",
                           day_interval = c(1, 250))
+
+# Detrending the climate series with a smoother, following dplR::detrend().
+# LJ_daily_temperatures are temperatures in degrees Celsius and therefore
+# cross zero, so differences must be used instead of the default ratios.
+example_detrended <- daily_response(response = data_MVA,
+                          env_data = LJ_daily_temperatures,
+                          method = "cor", cor_method = "pearson",
+                          row_names_subset = TRUE,
+                          fixed_width = 25,
+                          previous_year = FALSE,
+                          remove_insignificant = FALSE,
+                          aggregate_function = 'mean',
+                          skip_window_length = 50,
+                          skip_window_position = 50,
+                          reference_window = "end", k = 5,
+                          dc_method = "Friedman",
+                          dc_difference = TRUE,
+                          day_interval = c(1, 250))
+
+# example_detrended$detrending
 
 # 1 Example with fixed width. Lower and upper limits are ignored.
 example_daily_response <- daily_response(response = data_MVA,

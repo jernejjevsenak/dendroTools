@@ -177,9 +177,46 @@
 #' included previous year. For example, previous_year = TRUE,
 #' number_previous_years = 2 and day_interval = c(-1, 366) analyses the full
 #' sequence from DOY 1 of year t - 2 to DOY 366 of year t.
-#' @param dc_method a character string to determine the method to detrend climate
-#' data.  Possible values are "none" (default) and "SLD" which refers to Simple
-#' Linear Detrending
+#' @param dc_method a character string specifying how the aggregated climate
+#' series of each moving window should be detrended before the climate-growth
+#' relationship is calculated. Detrending is applied to the aggregated series,
+#' i.e. to a vector with one value per year, and not to the raw daily data.
+#' Possible values are "none" (or NULL, the default, no detrending), "SLD"
+#' (Simple Linear Detrending, the historical dendroTools option), and the
+#' smoothers "Spline", "Mean", "Ar" and "Friedman", which follow
+#' dplR::detrend().
+#' The growth-specific options of dplR::detrend() ("ModNegExp",
+#' "ModHugershoff", "AgeDepSpline") are not available, because they assume
+#' strictly positive series with a biological growth trend.
+#' @param dc_nyrs a number giving the rigidity of the smoothing spline when
+#' dc_method = "Spline". Defaults to NULL, i.e. 0.67 times the length of the
+#' series, exactly as in dplR::detrend(). Ignored by the other methods.
+#' @param dc_f a number between 0 and 1 giving the frequency response at the
+#' wavelength given by dc_nyrs when dc_method = "Spline". Defaults to 0.5.
+#' Ignored by the other methods.
+#' @param dc_difference logical. If FALSE (default, as in dplR::detrend()),
+#' the detrended series is calculated as a ratio between the observed series
+#' and the fitted curve. If TRUE, it is calculated as a difference. Ratio
+#' detrending is only defined for strictly positive data, such as precipitation
+#' sums, so the function stops if env_data contains negative values. Windows
+#' whose aggregated series still contains a zero, for example a completely dry
+#' precipitation window, are returned as NA. For temperature and for any other
+#' variable that can be negative, use dc_difference = TRUE. Ignored when
+#' dc_method = "SLD", which is always residual based.
+#' @param dc_span the span used by the Friedman super smoother when
+#' dc_method = "Friedman". Either "cv" (default, cross-validation) or a
+#' number between 0 and 1. See also stats::supsmu(). Ignored by the other
+#' methods.
+#' @param dc_bass a number between 0 and 10 controlling the smoothness of the
+#' Friedman super smoother when dc_method = "Friedman". Defaults to 0. See also
+#' stats::supsmu(). Ignored by the other methods.
+#' @param dc_scale logical or NULL. If TRUE, the detrended series is divided by
+#' the standard deviation of its own values. The default (NULL) uses the
+#' convention of the selected method: TRUE for dc_method = "SLD", which
+#' preserves the behaviour of earlier dendroTools versions, and FALSE for the
+#' dplR methods, which are not rescaled in dplR::detrend(). Rescaling does not
+#' affect correlations, but it does affect the scale of $optimized_return and
+#' of the transfer function.
 #' @param cor_na_use an optional character string giving a method for computing
 #' covariances in the presence of missing values for correlation coefficients.
 #' This must be (an abbreviation of) one of the strings "everything" (default),
@@ -206,7 +243,7 @@
 #' one. This parameter allows for controlling the granularity of the analysis
 #' and can help in reducing computation time by focusing on a subset of the data.
 #'
-#' @return a list with 19 elements:
+#' @return a list with 20 elements:
 #' \enumerate{
 #'  \item $calculations - a matrix with calculated metrics
 #'  \item $method - the character string of a method
@@ -229,6 +266,8 @@
 #'  \item $significance_filter - information about the significance filter
 #'  applied when remove_insignificant = TRUE, including the method used,
 #'  the criterion, and how many cells were removed and retained
+#'  \item $detrending - information about the climate detrending applied,
+#'  i.e. the method and the settings that were used, or "none"
 #'}
 #' @export
 #'
@@ -267,6 +306,26 @@
 #'                           reference_window = "end", k = 5,
 #'                           dc_method = "SLD",
 #'                           day_interval = c(1, 250))
+#'
+#' # Detrending the climate series with a smoother, following dplR::detrend().
+#' # LJ_daily_temperatures are temperatures in degrees Celsius and therefore
+#' # cross zero, so differences must be used instead of the default ratios.
+#' example_detrended <- daily_response(response = data_MVA,
+#'                           env_data = LJ_daily_temperatures,
+#'                           method = "cor", cor_method = "pearson",
+#'                           row_names_subset = TRUE,
+#'                           fixed_width = 25,
+#'                           previous_year = FALSE,
+#'                           remove_insignificant = FALSE,
+#'                           aggregate_function = 'mean',
+#'                           skip_window_length = 50,
+#'                           skip_window_position = 50,
+#'                           reference_window = "end", k = 5,
+#'                           dc_method = "Friedman",
+#'                           dc_difference = TRUE,
+#'                           day_interval = c(1, 250))
+#'
+#' # example_detrended$detrending
 #'
 #' # 1 Example with fixed width. Lower and upper limits are ignored.
 #' example_daily_response <- daily_response(response = data_MVA,
@@ -416,6 +475,12 @@ daily_response <- function(response, env_data, method = "cor",
                            boot_ci_type = "norm", boot_conf_int = 0.95,
                            day_interval = NULL,
                            dc_method = NULL,
+                           dc_nyrs = NULL,
+                           dc_f = 0.5,
+                           dc_difference = FALSE,
+                           dc_span = "cv",
+                           dc_bass = 0,
+                           dc_scale = NULL,
                            cor_na_use = "everything",
                            skip_window_length = 1,
                            skip_window_position = 1
@@ -1089,14 +1154,192 @@ daily_response <- function(response, env_data, method = "cor",
     stop(paste0("upper_limit out of bounds! It should be between 1 and ",
                 year_block_width))
 
-  # Make sure the selected method is appropriate
-  if (!is.null(dc_method)){
+  # ---- years with gaps long enough to empty a whole window -----------------
+  # aggregate_daily_window() aggregates with na.rm = TRUE, so a window is
+  # missing for a given year only when every day it covers is missing.
+  # Scattered gaps, such as DOY 366 in non-leap years, are absorbed by the
+  # aggregation and never reach the calculations, so anyNA(env_data) is far
+  # too broad a test. A year is only a problem when it contains a run of
+  # missing days at least as long as the shortest window that is evaluated.
 
-    if (!(dc_method %in% c("SLD"))){
+  min_window_width <- if (fixed_width != 0) fixed_width else lower_limit
 
-      stop(paste0('dc_method should be SLD but instead it is:',dc_method))
+  longest_na_run <- function(z) {
 
+    if (!anyNA(z)) {
+      return(0L)
     }
+
+    runs <- rle(is.na(z))
+    max(runs$lengths[runs$values])
+  }
+
+  years_with_window_gaps <- character(0)
+
+  if (anyNA(env_data)) {
+
+    na_runs <- apply(as.matrix(env_data), 1, longest_na_run)
+    years_with_window_gaps <- row.names(env_data)[na_runs >= min_window_width]
+  }
+
+  # Compact listing for the warnings below.
+  format_gap_years <- function(x) {
+
+    if (length(x) > 10) {
+      paste0(paste(x[1:10], collapse = ", "), " and ", length(x) - 10, " more")
+    } else {
+      paste(x, collapse = ", ")
+    }
+  }
+
+  # ---- climate detrending (dc_* arguments) ---------------------------------
+  # Detrending is applied to the aggregated climate series of each moving
+  # window, i.e. to a vector with one value per year. dc_method = NULL or
+  # "none" disables it. "SLD" is the historical dendroTools option. The
+  # remaining options reproduce dplR::detrend().
+
+  dc_known_methods <- c("none", "SLD", "Spline", "Mean", "Ar", "Friedman")
+
+  if (identical(dc_method, "none")) {
+    dc_method <- NULL
+  }
+
+  if (!is.null(dc_method)) {
+
+    if (!is.character(dc_method) || length(dc_method) != 1 || is.na(dc_method)) {
+      stop("dc_method must be a single character string or NULL.")
+    }
+
+    if (!(dc_method %in% dc_known_methods)) {
+      stop(paste0("dc_method should be one of ",
+                  paste(dc_known_methods, collapse = ", "),
+                  " but instead it is: ", dc_method))
+    }
+
+    if (!is.logical(dc_difference) || length(dc_difference) != 1 ||
+        is.na(dc_difference)) {
+      stop("dc_difference must be either TRUE or FALSE.")
+    }
+
+    if (!is.null(dc_nyrs) &&
+        (!is.numeric(dc_nyrs) || length(dc_nyrs) != 1 || is.na(dc_nyrs) ||
+         dc_nyrs < 3)) {
+      stop("dc_nyrs must be NULL or a single numeric value of at least 3.")
+    }
+
+    if (!is.numeric(dc_f) || length(dc_f) != 1 || is.na(dc_f) ||
+        dc_f <= 0 || dc_f >= 1) {
+      stop("dc_f must be a single numeric value between 0 and 1.")
+    }
+
+    if (!identical(dc_span, "cv") &&
+        (!is.numeric(dc_span) || length(dc_span) != 1 || is.na(dc_span) ||
+         dc_span <= 0 || dc_span > 1)) {
+      stop("dc_span must be 'cv' or a single numeric value between 0 and 1.")
+    }
+
+    if (!is.numeric(dc_bass) || length(dc_bass) != 1 || is.na(dc_bass) ||
+        dc_bass < 0 || dc_bass > 10) {
+      stop("dc_bass must be a single numeric value between 0 and 10.")
+    }
+
+    # dc_scale = NULL means "use the convention of the selected method". SLD
+    # has always been rescaled by the standard deviation of the residuals, so
+    # that default is kept for backward compatibility. The dplR methods are
+    # not rescaled, exactly as in dplR::detrend().
+    if (is.null(dc_scale)) {
+      dc_scale <- identical(dc_method, "SLD")
+    }
+
+    if (!is.logical(dc_scale) || length(dc_scale) != 1 || is.na(dc_scale)) {
+      stop("dc_scale must be TRUE, FALSE or NULL.")
+    }
+
+    # Ratio detrending divides the climate series by the fitted curve and is
+    # only defined for strictly positive values. Variables that cross zero,
+    # such as temperature in degrees Celsius, are rejected up front, because
+    # the ratio is meaningless for them and explodes near zero.
+    # Non-negative variables with occasional zeros, such as daily
+    # precipitation, are allowed here: aggregation over a window normally
+    # removes the zeros, and the few windows where it does not are returned as
+    # NA by detrend_climate().
+    if (dc_method != "SLD" && isFALSE(dc_difference)) {
+
+      env_min <- suppressWarnings(min(as.matrix(env_data), na.rm = TRUE))
+
+      if (!is.finite(env_min) || env_min < 0) {
+        stop(paste0("dc_difference = FALSE performs ratio detrending, which ",
+                    "is only defined for positive climate data, but env_data ",
+                    "contains negative values (minimum: ", format(env_min),
+                    "). Set dc_difference = TRUE to detrend by differences, ",
+                    "which is the appropriate choice for temperature and for ",
+                    "any variable that can be negative."))
+      }
+    }
+
+    # Where a window is empty for some years, detrend_climate() fits on the
+    # non-missing years and reinserts the gaps afterwards, following
+    # dplR::detrend().
+    if (length(years_with_window_gaps) > 0) {
+      warning(paste0("env_data contains gaps of at least ", min_window_width,
+                     " consecutive days, the shortest window width, in the ",
+                     "following years: ",
+                     format_gap_years(years_with_window_gaps),
+                     ". Climate detrending is fitted on the non-missing years ",
+                     "of the affected windows and the missing values are ",
+                     "reinserted afterwards, following the behaviour of ",
+                     "dplR::detrend()."))
+    }
+
+    # Prewhitening returns one missing residual for each lag of the fitted AR
+    # model, so every detrended window starts with NA values. With the default
+    # cor_na_use = 'everything' this would return NA for the whole matrix.
+    if (dc_method == "Ar" && method == "cor" &&
+        !(cor_na_use %in% c("complete.obs", "na.or.complete",
+                            "pairwise.complete.obs"))) {
+
+      warning(paste0("dc_method = 'Ar' introduces missing values at the start ",
+                     "of every detrended window. cor_na_use was changed from '",
+                     cor_na_use, "' to 'complete.obs' so that correlations can ",
+                     "be calculated."))
+
+      cor_na_use <- "complete.obs"
+    }
+  }
+
+  # Internal helper. Detrends the aggregated climate series of one window and
+  # returns it unchanged when dc_method is NULL.
+  dc_apply <- function(x) {
+
+    detrend_climate(x,
+                    dc_method = dc_method,
+                    dc_nyrs = dc_nyrs,
+                    dc_f = dc_f,
+                    dc_difference = dc_difference,
+                    dc_span = dc_span,
+                    dc_bass = dc_bass,
+                    dc_scale = isTRUE(dc_scale))
+  }
+
+  # Settings are reported back with the results.
+  if (is.null(dc_method)) {
+
+    detrending_summary <- list(dc_method = "none")
+
+  } else if (dc_method == "SLD") {
+
+    detrending_summary <- list(dc_method = dc_method,
+                               dc_scale = dc_scale)
+
+  } else {
+
+    detrending_summary <- list(dc_method = dc_method,
+                               dc_nyrs = dc_nyrs,
+                               dc_f = dc_f,
+                               dc_difference = dc_difference,
+                               dc_span = dc_span,
+                               dc_bass = dc_bass,
+                               dc_scale = dc_scale)
   }
 
 
@@ -1126,15 +1369,21 @@ daily_response <- function(response, env_data, method = "cor",
 
   }
 
-  # env_data with NAs + boot + a non-NA-aware cor_na_use silently yields NA in
-  # every window that contains a fully missing year. Tell the user why.
-  if (boot == TRUE && method == "cor" && anyNA(env_data) &&
+  # env_data with gaps + boot + a non-NA-aware cor_na_use silently yields NA in
+  # every window that is empty for one of those years. Tell the user why. Only
+  # gaps long enough to empty a whole window matter, because the aggregation
+  # removes scattered missing days.
+  if (boot == TRUE && method == "cor" && length(years_with_window_gaps) > 0 &&
       !(cor_na_use %in% c("complete.obs", "na.or.complete", "pairwise.complete.obs"))) {
 
-    warning(paste0("env_data contains missing values and boot = TRUE, but ",
-                   "cor_na_use = '", cor_na_use, "'. Windows containing a fully ",
-                   "missing year will return NA. Set cor_na_use = ",
-                   "'pairwise.complete.obs' or remove incomplete years."))
+    warning(paste0("env_data contains gaps of at least ", min_window_width,
+                   " consecutive days, the shortest window width, in the ",
+                   "following years: ",
+                   format_gap_years(years_with_window_gaps),
+                   ". boot = TRUE and cor_na_use = '", cor_na_use, "', so ",
+                   "windows that are empty for one of those years will return ",
+                   "NA. Set cor_na_use = 'pairwise.complete.obs' or remove ",
+                   "the incomplete years."))
   }
 
   # ---- shared window-coverage gate (method-agnostic) -----------------
@@ -1304,23 +1553,8 @@ daily_response <- function(response, env_data, method = "cor",
         env_data[1:nrow(env_data), (1 + j):(j + fixed_width), drop = FALSE]
       )
 
-      if (!is.null(dc_method)){
-
-        if (dc_method == "SLD"){
-
-          tmp_model <- lm(x ~ seq(1:length(x)))
-          tmp_pred <- predict(tmp_model)
-          tmp_res <- x - tmp_pred
-
-          x <- data.frame(x = tmp_res/sd(tmp_res, na.rm = TRUE))
-
-        }
-
-      } else {
-
-        x <- matrix(x, nrow = nrow(env_data), ncol = 1)
-
-      }
+      # Optional detrending of the aggregated climate series.
+      x <- matrix(dc_apply(x), nrow = nrow(env_data), ncol = 1)
 
       x_list <- x
       colnames(x_list) <- paste0(j + 1, "_" ,j + fixed_width)
@@ -1353,53 +1587,53 @@ daily_response <- function(response, env_data, method = "cor",
 
         } else {
 
-        temp_df_boot <- cbind(response[, 1], x[, 1])
+          temp_df_boot <- cbind(response[, 1], x[, 1])
 
-        calc <- boot(temp_df_boot, boot_f_cor, cor.type = cor_method,
-                     cor.use = cor_na_use, R = boot_n)
+          calc <- boot(temp_df_boot, boot_f_cor, cor.type = cor_method,
+                       cor.use = cor_na_use, R = boot_n)
 
-        temporal_correlation <- mean(calc$t[, 1])
+          temporal_correlation <- mean(calc$t[, 1])
 
-        ci_int <- try(boot.ci(calc, conf = boot_conf_int, type = boot_ci_type), silent = TRUE)
+          ci_int <- try(boot.ci(calc, conf = boot_conf_int, type = boot_ci_type), silent = TRUE)
 
-        if (class(ci_int)[[1]] == "try-error"){
+          if (class(ci_int)[[1]] == "try-error"){
 
-          temporal_lower <- NA
-          temporal_upper <- NA
-
-        } else {
-
-          if (boot_ci_type == "norm"){
-
-            temporal_lower <- ci_int$norm[2]
-            temporal_upper <- ci_int$norm[3]
-
-          } else if (boot_ci_type == "perc"){
-
-            temporal_lower <- ci_int$perc[4]
-            temporal_upper <- ci_int$perc[5]
-
-          } else if (boot_ci_type == "stud") {
-
-            temporal_lower <- ci_int$student[4]
-            temporal_upper <- ci_int$student[5]
-
-          } else if (boot_ci_type == "basic") {
-
-            temporal_lower <- ci_int$basic[4]
-            temporal_upper <- ci_int$basic[5]
-
-          } else if (boot_ci_type == "bca") {
-
-            temporal_lower <- ci_int$bca[4]
-            temporal_upper <- ci_int$bca[5]
+            temporal_lower <- NA
+            temporal_upper <- NA
 
           } else {
 
-            stop("boot_ci_type should be 'norm', 'perc', 'stud', 'basic' or 'bca'")
+            if (boot_ci_type == "norm"){
 
+              temporal_lower <- ci_int$norm[2]
+              temporal_upper <- ci_int$norm[3]
+
+            } else if (boot_ci_type == "perc"){
+
+              temporal_lower <- ci_int$perc[4]
+              temporal_upper <- ci_int$perc[5]
+
+            } else if (boot_ci_type == "stud") {
+
+              temporal_lower <- ci_int$student[4]
+              temporal_upper <- ci_int$student[5]
+
+            } else if (boot_ci_type == "basic") {
+
+              temporal_lower <- ci_int$basic[4]
+              temporal_upper <- ci_int$basic[5]
+
+            } else if (boot_ci_type == "bca") {
+
+              temporal_lower <- ci_int$bca[4]
+              temporal_upper <- ci_int$bca[5]
+
+            } else {
+
+              stop("boot_ci_type should be 'norm', 'perc', 'stud', 'basic' or 'bca'")
+
+            }
           }
-        }
         }
       } else {
         print(paste0("boot should be TRUE or FALSE, instead it is ", boot))
@@ -1489,23 +1723,8 @@ daily_response <- function(response, env_data, method = "cor",
         env_data[1:nrow(env_data), (1 + j):(j + fixed_width), drop = FALSE]
       )
 
-      if (!is.null(dc_method)){
-
-        if (dc_method == "SLD"){
-
-          tmp_model <- lm(x ~ seq(1:length(x)))
-          tmp_pred <- predict(tmp_model)
-          tmp_res <- x - tmp_pred
-
-          x <- data.frame(x = tmp_res/sd(tmp_res, na.rm = TRUE))
-
-        }
-
-      } else {
-
-        x <- matrix(x, nrow = nrow(env_data), ncol = 1)
-
-      }
+      # Optional detrending of the aggregated climate series.
+      x <- matrix(dc_apply(x), nrow = nrow(env_data), ncol = 1)
 
       x_list <- x
       colnames(x_list) <- paste0(j + 1, "_" ,j + fixed_width)
@@ -1706,23 +1925,8 @@ daily_response <- function(response, env_data, method = "cor",
         env_data[1:nrow(env_data), (1 + j):(j + fixed_width), drop = FALSE]
       )
 
-      if (!is.null(dc_method)){
-
-        if (dc_method == "SLD"){
-
-          tmp_model <- lm(x ~ seq(1:length(x)))
-          tmp_pred <- predict(tmp_model)
-          tmp_res <- x - tmp_pred
-
-          x <- data.frame(x = tmp_res/sd(tmp_res, na.rm = TRUE))
-
-        }
-
-      } else {
-
-        x <- matrix(x, nrow = nrow(env_data), ncol = 1)
-
-      }
+      # Optional detrending of the aggregated climate series.
+      x <- matrix(dc_apply(x), nrow = nrow(env_data), ncol = 1)
 
       x_list <- x
       colnames(x_list) <- paste0(j + 1, "_" ,j + fixed_width)
@@ -1984,23 +2188,8 @@ daily_response <- function(response, env_data, method = "cor",
           env_data[1:nrow(env_data), (1 + j):(j + K), drop = FALSE]
         )
 
-        if (!is.null(dc_method)){
-
-          if (dc_method == "SLD"){
-
-            tmp_model <- lm(x ~ seq(1:length(x)))
-            tmp_pred <- predict(tmp_model)
-            tmp_res <- x - tmp_pred
-
-            x <- data.frame(x = tmp_res/sd(tmp_res, na.rm = TRUE))
-
-          }
-
-        } else {
-
-          x <- matrix(x, nrow = nrow(env_data), ncol = 1)
-
-        }
+        # Optional detrending of the aggregated climate series.
+        x <- matrix(dc_apply(x), nrow = nrow(env_data), ncol = 1)
 
         # }
         x_list <- x
@@ -2034,53 +2223,53 @@ daily_response <- function(response, env_data, method = "cor",
 
           } else {
 
-          temp_df_boot <- cbind(response[, 1], x[, 1])
+            temp_df_boot <- cbind(response[, 1], x[, 1])
 
-          calc <- boot(temp_df_boot, boot_f_cor, cor.type = cor_method,
-                       cor.use = cor_na_use, R = boot_n)
+            calc <- boot(temp_df_boot, boot_f_cor, cor.type = cor_method,
+                         cor.use = cor_na_use, R = boot_n)
 
-          temporal_correlation <- mean(calc$t[, 1])
+            temporal_correlation <- mean(calc$t[, 1])
 
-          ci_int <- try(boot.ci(calc, conf = boot_conf_int, type = boot_ci_type), silent = TRUE)
+            ci_int <- try(boot.ci(calc, conf = boot_conf_int, type = boot_ci_type), silent = TRUE)
 
-          if (class(ci_int)[[1]] == "try-error"){
+            if (class(ci_int)[[1]] == "try-error"){
 
-            temporal_lower <- NA
-            temporal_upper <- NA
-
-          } else {
-
-            if (boot_ci_type == "norm"){
-
-              temporal_lower <- ci_int$norm[2]
-              temporal_upper <- ci_int$norm[3]
-
-            } else if (boot_ci_type == "perc"){
-
-              temporal_lower <- ci_int$perc[4]
-              temporal_upper <- ci_int$perc[5]
-
-            } else if (boot_ci_type == "stud") {
-
-              temporal_lower <- ci_int$student[4]
-              temporal_upper <- ci_int$student[5]
-
-            } else if (boot_ci_type == "basic") {
-
-              temporal_lower <- ci_int$basic[4]
-              temporal_upper <- ci_int$basic[5]
-
-            } else if (boot_ci_type == "bca") {
-
-              temporal_lower <- ci_int$bca[4]
-              temporal_upper <- ci_int$bca[5]
+              temporal_lower <- NA
+              temporal_upper <- NA
 
             } else {
 
-              stop("boot_ci_type should be 'norm', 'perc', 'stud', 'basic' or 'bca'")
+              if (boot_ci_type == "norm"){
 
+                temporal_lower <- ci_int$norm[2]
+                temporal_upper <- ci_int$norm[3]
+
+              } else if (boot_ci_type == "perc"){
+
+                temporal_lower <- ci_int$perc[4]
+                temporal_upper <- ci_int$perc[5]
+
+              } else if (boot_ci_type == "stud") {
+
+                temporal_lower <- ci_int$student[4]
+                temporal_upper <- ci_int$student[5]
+
+              } else if (boot_ci_type == "basic") {
+
+                temporal_lower <- ci_int$basic[4]
+                temporal_upper <- ci_int$basic[5]
+
+              } else if (boot_ci_type == "bca") {
+
+                temporal_lower <- ci_int$bca[4]
+                temporal_upper <- ci_int$bca[5]
+
+              } else {
+
+                stop("boot_ci_type should be 'norm', 'perc', 'stud', 'basic' or 'bca'")
+
+              }
             }
-          }
           }
         } else {
           print(paste0("boot should be TRUE or FALSE, instead it is ", boot))
@@ -2168,23 +2357,8 @@ daily_response <- function(response, env_data, method = "cor",
           env_data[1:nrow(env_data), (1 + j):(j + K), drop = FALSE]
         )
 
-        if (!is.null(dc_method)){
-
-          if (dc_method == "SLD"){
-
-            tmp_model <- lm(x ~ seq(1:length(x)))
-            tmp_pred <- predict(tmp_model)
-            tmp_res <- x - tmp_pred
-
-            x <- data.frame(x = tmp_res/sd(tmp_res, na.rm = TRUE))
-
-          }
-
-        } else {
-
-          x <- matrix(x, nrow = nrow(env_data), ncol = 1)
-
-        }
+        # Optional detrending of the aggregated climate series.
+        x <- matrix(dc_apply(x), nrow = nrow(env_data), ncol = 1)
 
         x_list <- x
         colnames(x_list) <- paste0(j + 1, "_" ,j + K)
@@ -2387,23 +2561,8 @@ daily_response <- function(response, env_data, method = "cor",
           env_data[1:nrow(env_data), (1 + j):(j + K), drop = FALSE]
         )
 
-        if (!is.null(dc_method)){
-
-          if (dc_method == "SLD"){
-
-            tmp_model <- lm(x ~ seq(1:length(x)))
-            tmp_pred <- predict(tmp_model)
-            tmp_res <- x - tmp_pred
-
-            x <- data.frame(x = tmp_res/sd(tmp_res, na.rm = TRUE))
-
-          }
-
-        } else {
-
-          x <- matrix(x, nrow = nrow(env_data), ncol = 1)
-
-        }
+        # Optional detrending of the aggregated climate series.
+        x <- matrix(dc_apply(x), nrow = nrow(env_data), ncol = 1)
 
         x_list <- x
         colnames(x_list) <- paste0(j + 1, "_" ,j + K)
@@ -3102,7 +3261,8 @@ daily_response <- function(response, env_data, method = "cor",
                        aggregated_climate = NA,
                        previous_year = previous_year,
                        number_previous_years = number_previous_years,
-                       significance_filter = significance_filter_summary)
+                       significance_filter = significance_filter_summary,
+                       detrending = detrending_summary)
 
     class(final_list) <- 'dmrs'
 
@@ -3185,20 +3345,7 @@ daily_response <- function(response, env_data, method = "cor",
       ))
 
       # if detrending was applied, should also be applied here
-      if (!is.null(dc_method)){
-
-        if (dc_method == "SLD"){
-
-          dataf <- as.numeric(dataf[, 1])
-          tmp_model <- lm(dataf ~ seq(1:length(dataf)))
-          tmp_pred <- predict(tmp_model)
-          tmp_res <- dataf - tmp_pred
-
-          dataf <- data.frame(tmp_res / sd(tmp_res, na.rm = TRUE))
-
-        }
-
-      }
+      dataf[, 1] <- dc_apply(dataf[, 1])
 
       dataf_full <- cbind(response, dataf)
       colnames(dataf_full)[ncol(dataf_full)] <- "Optimized_return"
@@ -3215,20 +3362,7 @@ daily_response <- function(response, env_data, method = "cor",
 
       dataf_full_original <- dataf_original
 
-      if (!is.null(dc_method)){
-
-        if (dc_method == "SLD"){
-
-          dataf_full_original <- as.numeric(dataf_full_original[, 1])
-          tmp_model <- lm(dataf_full_original ~ seq(1:length(dataf_full_original)))
-          tmp_pred <- predict(tmp_model)
-          tmp_res <- dataf_full_original - tmp_pred
-
-          dataf_full_original <- data.frame(tmp_res / sd(tmp_res, na.rm = TRUE))
-
-        }
-
-      }
+      dataf_full_original[, 1] <- dc_apply(dataf_full_original[, 1])
 
       colnames(dataf_full_original) <- "Optimized_return"
       colnames(dataf) <- "Optimized.rowNames"
@@ -3294,20 +3428,7 @@ daily_response <- function(response, env_data, method = "cor",
       ))
 
       # if detrending was applied, should also be applied here
-      if (!is.null(dc_method)){
-
-        if (dc_method == "SLD"){
-
-          dataf <- as.numeric(dataf[, 1])
-          tmp_model <- lm(dataf ~ seq(1:length(dataf)))
-          tmp_pred <- predict(tmp_model)
-          tmp_res <- dataf - tmp_pred
-
-          dataf <- data.frame(tmp_res / sd(tmp_res, na.rm = TRUE))
-
-        }
-
-      }
+      dataf[, 1] <- dc_apply(dataf[, 1])
 
       dataf_full <- cbind(response, dataf)
       colnames(dataf_full)[ncol(dataf_full)] <- "Optimized_return"
@@ -3324,20 +3445,7 @@ daily_response <- function(response, env_data, method = "cor",
 
       dataf_full_original <- dataf_original
 
-      if (!is.null(dc_method)){
-
-        if (dc_method == "SLD"){
-
-          dataf_full_original <- as.numeric(dataf_full_original[, 1])
-          tmp_model <- lm(dataf_full_original ~ seq(1:length(dataf_full_original)))
-          tmp_pred <- predict(tmp_model)
-          tmp_res <- dataf_full_original - tmp_pred
-
-          dataf_full_original <- data.frame(tmp_res / sd(tmp_res, na.rm = TRUE))
-
-        }
-
-      }
+      dataf_full_original[, 1] <- dc_apply(dataf_full_original[, 1])
 
       colnames(dataf_full_original) <- "Optimized_return"
       colnames(dataf) <- "Optimized.rowNames"
@@ -3411,20 +3519,7 @@ daily_response <- function(response, env_data, method = "cor",
       ))
 
       # if detrending was applied, should also be applied here
-      if (!is.null(dc_method)){
-
-        if (dc_method == "SLD"){
-
-          dataf <- as.numeric(dataf[, 1])
-          tmp_model <- lm(dataf ~ seq(1:length(dataf)))
-          tmp_pred <- predict(tmp_model)
-          tmp_res <- dataf - tmp_pred
-
-          dataf <- data.frame(tmp_res / sd(tmp_res, na.rm = TRUE))
-
-        }
-
-      }
+      dataf[, 1] <- dc_apply(dataf[, 1])
 
       dataf_full <- cbind(response, dataf)
       colnames(dataf_full)[ncol(dataf_full)] <- "Optimized_return"
@@ -3441,20 +3536,7 @@ daily_response <- function(response, env_data, method = "cor",
 
       dataf_full_original <- dataf_original
 
-      if (!is.null(dc_method)){
-
-        if (dc_method == "SLD"){
-
-          dataf_full_original <- as.numeric(dataf_full_original[, 1])
-          tmp_model <- lm(dataf_full_original ~ seq(1:length(dataf_full_original)))
-          tmp_pred <- predict(tmp_model)
-          tmp_res <- dataf_full_original - tmp_pred
-
-          dataf_full_original <- data.frame(tmp_res / sd(tmp_res, na.rm = TRUE))
-
-        }
-
-      }
+      dataf_full_original[, 1] <- dc_apply(dataf_full_original[, 1])
 
       colnames(dataf_full_original) <- "Optimized_return"
       colnames(dataf) <- "Optimized.rowNames"
@@ -3979,7 +4061,8 @@ daily_response <- function(response, env_data, method = "cor",
                          aggregated_climate = do.call(cbind, list_climate),
                          previous_year = previous_year,
                          number_previous_years = number_previous_years,
-                         significance_filter = significance_filter_summary)
+                         significance_filter = significance_filter_summary,
+                         detrending = detrending_summary)
     }
 
     if (method == "cor"){
@@ -3992,7 +4075,8 @@ daily_response <- function(response, env_data, method = "cor",
                          aggregated_climate = do.call(cbind, list_climate),
                          previous_year = previous_year,
                          number_previous_years = number_previous_years,
-                         significance_filter = significance_filter_summary)
+                         significance_filter = significance_filter_summary,
+                         detrending = detrending_summary)
     }
 
 
@@ -4016,7 +4100,8 @@ daily_response <- function(response, env_data, method = "cor",
                          aggregated_climate = do.call(cbind, list_climate),
                          previous_year = previous_year,
                          number_previous_years = number_previous_years,
-                         significance_filter = significance_filter_summary)
+                         significance_filter = significance_filter_summary,
+                         detrending = detrending_summary)
     }
 
     if (method == "cor"){
@@ -4036,7 +4121,8 @@ daily_response <- function(response, env_data, method = "cor",
                          aggregated_climate = do.call(cbind, list_climate),
                          previous_year = previous_year,
                          number_previous_years = number_previous_years,
-                         significance_filter = significance_filter_summary)
+                         significance_filter = significance_filter_summary,
+                         detrending = detrending_summary)
     }
 
     class(final_list) <- 'dmrs'
@@ -4044,4 +4130,159 @@ daily_response <- function(response, env_data, method = "cor",
     return(final_list)
   }
 
+}
+
+
+#' Detrend an aggregated climate series
+#'
+#' Internal helper used by daily_response() to detrend the aggregated climate
+#' series of a single moving window, i.e. a vector with one value per year.
+#'
+#' The fitted curves are the same as in dplR::detrend(): a cubic smoothing
+#' spline (dplR::caps), a horizontal mean, an autoregressive model
+#' (stats::ar) and the Friedman super smoother (stats::supsmu). For strictly
+#' positive series the returned values are therefore identical to
+#' dplR::detrend(). The ARSTAN-style safeguards of dplR, which replace a
+#' spline or a super smoother by the series mean and set negative
+#' autoregressive fits to zero whenever the fitted curve is not strictly
+#' positive, are deliberately not reproduced. They are specific to ring
+#' widths and would silently change the detrending method for climate
+#' variables that cross zero, such as temperature in degrees Celsius.
+#'
+#' @param x a numeric vector, the aggregated climate series of one window
+#' @param dc_method detrending method, see daily_response()
+#' @param dc_nyrs spline rigidity, see daily_response()
+#' @param dc_f spline frequency response, see daily_response()
+#' @param dc_difference ratios (FALSE) or differences (TRUE)
+#' @param dc_span span of the Friedman super smoother
+#' @param dc_bass smoothness of the Friedman super smoother
+#' @param dc_scale logical, divide the result by its standard deviation
+#'
+#' @return a numeric vector of the same length as x
+#' @keywords internal
+#' @noRd
+
+detrend_climate <- function(x,
+                            dc_method = NULL,
+                            dc_nyrs = NULL,
+                            dc_f = 0.5,
+                            dc_difference = FALSE,
+                            dc_span = "cv",
+                            dc_bass = 0,
+                            dc_scale = FALSE) {
+
+  x <- as.numeric(x)
+
+  if (is.null(dc_method) || identical(dc_method, "none")) {
+    return(x)
+  }
+
+  n <- length(x)
+  out <- rep(NA_real_, n)
+
+  # Missing values are removed before fitting and reinserted afterwards, so
+  # that interior gaps are handled in the same way as in dplR::detrend().
+  good <- which(!is.na(x))
+
+  min_n <- if (identical(dc_method, "SLD")) 3L else 5L
+
+  if (length(good) < min_n) {
+    return(out)
+  }
+
+  y <- x[good]
+  ny <- length(y)
+  tt <- seq_len(ny)
+
+  # Ratio detrending is undefined when the series itself is not strictly
+  # positive, for example a precipitation window in which one year is
+  # completely dry. Such a window is returned as NA. dplR instead recodes
+  # zeros to 0.001, which produces an enormous ratio for that year.
+  if (!identical(dc_method, "SLD") && isFALSE(dc_difference) && any(y <= 0)) {
+    return(out)
+  }
+
+  if (dc_method == "SLD") {
+
+    # Simple linear detrending. Always residual based, so dc_difference is not
+    # relevant here. The fitted values are calculated from the coefficients
+    # rather than with predict(), so that the length is correct when x
+    # contains missing values.
+    cf <- stats::coef(stats::lm(y ~ tt))
+    out[good] <- as.numeric(y - (cf[1] + cf[2] * tt))
+
+  } else if (dc_method == "Ar") {
+
+    # Prewhitening. stats::ar() returns one missing residual for each lag of
+    # the fitted model, so the detrended series starts with NA values.
+    ar_fit <- try(stats::ar(y), silent = TRUE)
+
+    if (inherits(ar_fit, "try-error")) {
+      return(out)
+    }
+
+    ar_series <- ar_fit$resid + ar_fit$x.mean
+    ar_mean <- mean(ar_series, na.rm = TRUE)
+
+    if (isFALSE(dc_difference) && (!is.finite(ar_mean) || ar_mean <= 0)) {
+      return(out)
+    }
+
+    if (isTRUE(dc_difference)) {      out[good] <- as.numeric(ar_series - ar_mean)
+    } else {
+      out[good] <- as.numeric(ar_series / ar_mean)
+    }
+
+  } else {
+
+    if (dc_method == "Spline") {
+
+      nyrs2 <- if (is.null(dc_nyrs)) floor(ny * 0.67) else dc_nyrs
+      curve <- try(dplR::caps(y = y, nyrs = nyrs2, f = dc_f), silent = TRUE)
+
+    } else if (dc_method == "Mean") {
+
+      curve <- rep.int(mean(y), ny)
+
+    } else if (dc_method == "Friedman") {
+
+      curve <- try(stats::supsmu(x = tt, y = y, span = dc_span,
+                                 periodic = FALSE, bass = dc_bass)[["y"]],
+                   silent = TRUE)
+
+    } else {
+
+      stop(paste0("Unknown dc_method: ", dc_method))
+
+    }
+
+    if (inherits(curve, "try-error")) {
+      return(out)
+    }
+
+    # A spline or a super smoother can undershoot below zero even when the
+    # series is positive. dplR replaces the whole curve by the series mean in
+    # that case, silently changing the method. The window is returned as NA
+    # instead.
+    if (isFALSE(dc_difference) && any(!is.finite(curve) | curve <= 0)) {
+      return(out)
+    }
+
+    if (isTRUE(dc_difference)) {      out[good] <- as.numeric(y - curve)
+    } else {
+      out[good] <- as.numeric(y / curve)
+    }
+
+  }
+
+  if (isTRUE(dc_scale)) {
+
+    sd_out <- stats::sd(out, na.rm = TRUE)
+
+    if (is.finite(sd_out) && sd_out > 0) {
+      out <- out / sd_out
+    }
+  }
+
+  out
 }

@@ -1,3 +1,40 @@
+# dendroTools 1.2.18
+
+## New features
+
+* `daily_response()` can now detrend the aggregated climate series of each
+  moving window with the smoothers used by `dplR::detrend()`. Besides the
+  existing `"SLD"`, `dc_method` accepts `"Spline"`, `"Mean"`, `"Ar"` and
+  `"Friedman"`, controlled by the new arguments `dc_nyrs`, `dc_f`,
+  `dc_difference`, `dc_span`, `dc_bass` and `dc_scale`.
+
+* For strictly positive series the results are identical to `dplR::detrend()`.
+  The ARSTAN safeguards that dplR applies when a fitted curve is not strictly
+  positive are not reproduced, because they would silently replace the selected
+  method for climate variables that cross zero; such windows return `NA`
+  instead.
+
+* `dc_difference = FALSE` (the dplR default) performs ratio detrending and is
+  rejected for variables with negative values, such as temperature in degrees
+  Celsius. Use `dc_difference = TRUE` for these.
+
+* The returned object gains a `$detrending` element recording the detrending
+  method and settings that were used.
+
+* Results for `dc_method = "SLD"` are unchanged.
+
+## Bug fixes
+
+* `dc_method = "SLD"` no longer recycles fitted values when the climate series
+  contains missing values.
+
+* `$optimized_return_all` keeps its year row names when detrending is applied.
+
+* Warnings about missing values are no longer triggered by scattered gaps, such
+  as DOY 366 in non-leap years, which the window aggregation removes. They now
+  report only the years containing a gap at least as long as the shortest
+  window width, and name those years.
+
 # dendroTools 1.2.17
 
 ## Correlation-specific critical values (changes Kendall results)
