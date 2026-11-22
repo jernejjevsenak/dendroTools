@@ -8,7 +8,9 @@
   `"Friedman"`, controlled by the new arguments `dc_nyrs`, `dc_f`,
   `dc_difference`, `dc_span`, `dc_bass` and `dc_scale`.
 
-* For strictly positive series the results are identical to `dplR::detrend()`.
+* For strictly positive series the results are identical to `dplR::detrend()`
+  in dplR 1.7.8 and later, which scales a prewhitened (`"Ar"`) series by the
+  mean of the original series.
   The ARSTAN safeguards that dplR applies when a fitted curve is not strictly
   positive are not reproduced, because they would silently replace the selected
   method for climate variables that cross zero; such windows return `NA`
@@ -23,17 +25,124 @@
 
 * Results for `dc_method = "SLD"` are unchanged.
 
+* `monthly_response()`, `daily_response_seascorr()` and
+  `monthly_response_seascorr()` gain the same climate detrending, with the
+  same arguments, defaults and checks as `daily_response()`, and their results
+  gain `$detrending`. Results without detrending are unchanged, and for
+  `dc_method = "SLD"` the (partial) correlation surfaces and
+  `$optimized_return` are unchanged.
+
+* In the two seascorr functions the primary and the control windows are
+  detrended with the same settings by default. The new argument
+  `dc_env_data_control` replaces any of them for the control windows. For
+  example, `dc_method = "Spline", dc_difference = TRUE,
+  dc_env_data_control = list(dc_difference = FALSE)` detrends temperature
+  (primary) by differences and precipitation (control) by ratios. Their
+  `$detrending` has the elements `primary` and `control`.
+
+* In all four functions the dplR methods are fitted in chronological order
+  of the years in the row names, so that results do not depend on how the
+  rows are sorted. This matters most for `"Ar"`, because the seascorr
+  functions sort the years in descending order before the analysis, and
+  `$optimized_return_all` uses the climate data in the order they were
+  supplied. `"SLD"` keeps the row order, as before; its residuals do not
+  depend on the direction of time.
+
+* `dc_method = "Ar"` changes `cor_na_use` or `pcor_na_use` to
+  `"pairwise.complete.obs"`, with a warning, unless it already excludes
+  missing values. `daily_response()` previously switched to `"complete.obs"`,
+  which stopped with "no complete element pairs" as soon as ratio detrending
+  left a window empty (for example a short precipitation sum that is zero in
+  one year) and made the cluster filter skip. For a single window both give
+  the same correlation.
+
+* All four functions share one check of the `dc_*` arguments, so the
+  arguments behave identically everywhere.
+
+## Changes in behaviour
+
+* With `boot = TRUE`, all four functions now report the coefficient of the
+  observed data (correlation, partial correlation, R squared or adjusted R
+  squared), as with `boot = FALSE`. This value enters `$calculations`, the
+  plots and the choice of the optimal window. Earlier versions reported the
+  mean of the bootstrap replicates, which differs from the coefficient of the
+  observed data and depends on the random resamples. The confidence intervals
+  in `$boot_lower` and `$boot_upper` are unchanged. Results with
+  `boot = TRUE` therefore change, and the optimal window can change with
+  them.
+
 ## Bug fixes
 
 * `dc_method = "SLD"` no longer recycles fitted values when the climate series
-  contains missing values.
+  contains missing values. This now also applies to `monthly_response()`,
+  `daily_response_seascorr()` and `monthly_response_seascorr()`.
 
 * `$optimized_return_all` keeps its year row names when detrending is applied.
+  This now also applies to `monthly_response()`, `daily_response_seascorr()`
+  and `monthly_response_seascorr()`. In the seascorr functions,
+  `dc_method = "SLD"` previously also matched the primary and control series of
+  `$optimized_return_all` by row position instead of by year and sorted the
+  rows as text ("1", "10", "100", ...), so values from different years were
+  paired. They are now merged by year.
 
-* Warnings about missing values are no longer triggered by scattered gaps, such
-  as DOY 366 in non-leap years, which the window aggregation removes. They now
-  report only the years containing a gap at least as long as the shortest
-  window width, and name those years.
+* With `dc_method = "SLD"`, `$aggregated_climate` (and
+  `$aggregated_climate_primary` and `$aggregated_climate_control`) is now a
+  matrix, as documented and as without detrending. It used to be a data frame.
+  The values are unchanged.
+
+* Warnings about missing values, in all four functions, are no longer
+  triggered by scattered gaps that the window aggregation removes, such as
+  DOY 366 in non-leap years, or by gaps in years that are not analysed, such
+  as an incomplete recent year after the end of the tree-ring record. They
+  now report only the analysed years containing a gap at least as long as
+  the shortest window width, and name those years. The seascorr functions
+  report them separately for `env_data_primary` and `env_data_control`.
+
+* With `aggregate_function = "sum"`, a window without any value in a year is
+  now `NA`, in all four functions. It used to be 0, i.e. a dry window that was
+  never observed. In `daily_response()` and `daily_response_seascorr()`,
+  `"min"` and `"max"` returned `Inf` and `-Inf` for such windows, with a
+  warning, and now also return `NA`. Windows with some values are aggregated
+  over the available days or months, as before. Results for data without
+  such gaps are unchanged.
+
+* Without detrending, results are again exactly those of 1.2.17: integer
+  climate data aggregated with `"sum"`, `"min"`, `"max"` or `"median"` were
+  returned as doubles in `$optimized_return` and `$aggregated_climate` of
+  `daily_response()`. The values were unchanged.
+
+* `remove_insignificant_method = "sidak"` (all four functions) estimated the
+  effective number of tests only from windows without a missing year. After
+  `dc_method = "Ar"`, which removes the first years of nearly every window,
+  that left a handful of windows (3 to 41 in the examples tested), so the
+  number of tests was underestimated and the filter was too permissive. A
+  year missing in every window removed every window and switched the filter
+  off. Incomplete years are now left out instead of incomplete windows, and
+  windows are dropped only if fewer than 10 complete years would remain.
+  Results for complete data are unchanged.
+
+* `$cross_validation` of `daily_response()` and `monthly_response()` returned
+  `NA` for every fold that contained a year without a climate value, for
+  example a missing year or the first years after `dc_method = "Ar"`. Such
+  years are now left out before the folds are formed. Results for complete
+  data are unchanged.
+
+* The p values in `$temporal_stability` of `daily_response_seascorr()` and
+  `monthly_response_seascorr()` ignored the degree of freedom spent on the
+  control variable (`nrow(dataset_temp - 2)` evaluated to the number of
+  rows), so they were slightly too small. They now use the number of complete
+  years minus one, as `psych::corr.p()` asks for partial correlations. This
+  changes these p values for every analysis.
+
+* The p values in `$temporal_stability` of `monthly_response()` ignored
+  `exact = FALSE`, which was misspelled in the calls to `cor.test()`, so for
+  `cor_method = "kendall"` and `"spearman"` they were exact p values whenever
+  the data had no ties. They are now the asymptotic p values, as in
+  `daily_response()`. Pearson correlations are not affected.
+
+* The documentation of `pcor_na_use` in the seascorr functions gave
+  `"pairwise.complete.obs"` as the default. The default is `"everything"`, as
+  in earlier versions.
 
 # dendroTools 1.2.17
 

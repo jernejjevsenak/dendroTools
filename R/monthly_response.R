@@ -81,6 +81,9 @@
 #' that number rather than to the nominal count of windows. No permutations
 #' are required, so it is effectively instantaneous and is available for all
 #' methods including "brnn".
+#' Years that are missing in some of the windows, such as the first years
+#' removed by dc_method = "Ar", are left out of this estimate, rather than
+#' the windows themselves.
 #'
 #' "sidak" is an approximation to "maxstat". Across 54 combinations of site
 #' and climate variable the two thresholds agreed to within 0.016 on average,
@@ -123,6 +126,8 @@
 #' @param aggregate_function character string specifying how the monthly data should be
 #' aggregated. The default is 'mean', the other options are 'median', 'sum'
 #' and 'quantile'.
+#' Missing months are skipped, so 'sum' adds only the months that are
+#' available; a window without any value is NA.
 #' @param quantile_prob numeric value between 0 and 1 specifying the quantile
 #' probability used when aggregate_function = 'quantile'. For example,
 #' quantile_prob = 0.95 calculates the 95th percentile. The default is 0.5.
@@ -147,8 +152,11 @@
 #' @param seed optional seed argument for reproducible results
 #' @param tidy_env_data if set to TRUE, env_data should be inserted as a data frame with three
 #' columns: "Year", "Month", "Precipitation/Temperature/etc."
-#' @param boot logical, if TRUE, bootstrap procedure will be used to calculate
-#' estimates correlation coefficients, R squared or adjusted R squared metrices
+#' @param boot logical, if TRUE, bootstrap confidence intervals are calculated
+#' for the correlation coefficients, R squared or adjusted R squared metrics and
+#' returned as $boot_lower and $boot_upper. The metrics themselves are those of
+#' the observed data, as with boot = FALSE. Versions before 1.2.18 reported the
+#' mean of the bootstrap replicates instead.
 #' @param boot_n The number of bootstrap replicates
 #' @param boot_ci_type A character string representing the type of bootstrap intervals
 #' required. The value should be any subset of the values c("norm","basic", "stud",
@@ -165,16 +173,57 @@
 #' example, previous_year = TRUE, number_previous_years = 2 and
 #' month_interval = c(-1, 12) analyses the full sequence from January of year
 #' t - 2 to December of year t.
-#' @param dc_method a character string to determine the method to detrend climate
-#' data.  Possible values are "none" (default) and "SLD" which refers to Simple
-#' Linear Detrending
+#' @param dc_method a character string specifying how the aggregated climate
+#' series of each moving window should be detrended before the climate-growth
+#' relationship is calculated. Detrending is applied to the aggregated series,
+#' i.e. to a vector with one value per year, and not to the raw monthly data.
+#' Possible values are "none" (or NULL, the default, no detrending), "SLD"
+#' (Simple Linear Detrending, the historical dendroTools option), and the
+#' smoothers "Spline", "Mean", "Ar" and "Friedman", which follow
+#' dplR::detrend(). The smoothers are fitted in chronological order of the
+#' years given by the row names. "Ar" (prewhitening) leaves missing values at
+#' the start of each detrended window, so for method = "cor" cor_na_use is
+#' changed to "pairwise.complete.obs", with a warning, unless it already
+#' excludes missing values.
+#' The growth-specific options of dplR::detrend() ("ModNegExp",
+#' "ModHugershoff", "AgeDepSpline") are not available, because they assume
+#' strictly positive series with a biological growth trend.
+#' @param dc_nyrs a number giving the rigidity of the smoothing spline when
+#' dc_method = "Spline". Defaults to NULL, i.e. 0.67 times the length of the
+#' series, exactly as in dplR::detrend(). Ignored by the other methods.
+#' @param dc_f a number between 0 and 1 giving the frequency response at the
+#' wavelength given by dc_nyrs when dc_method = "Spline". Defaults to 0.5.
+#' Ignored by the other methods.
+#' @param dc_difference logical. If FALSE (default, as in dplR::detrend()),
+#' the detrended series is calculated as a ratio between the observed series
+#' and the fitted curve. If TRUE, it is calculated as a difference. Ratio
+#' detrending is only defined for strictly positive data, such as precipitation
+#' sums, so the function stops if env_data contains negative values. Windows
+#' whose aggregated series still contains a zero, for example a completely dry
+#' month, are returned as NA. For temperature and for any other variable that
+#' can be negative, use dc_difference = TRUE. Ignored when dc_method = "SLD",
+#' which is always residual based.
+#' @param dc_span the span used by the Friedman super smoother when
+#' dc_method = "Friedman". Either "cv" (default, cross-validation) or a
+#' number between 0 and 1. See also stats::supsmu(). Ignored by the other
+#' methods.
+#' @param dc_bass a number between 0 and 10 controlling the smoothness of the
+#' Friedman super smoother when dc_method = "Friedman". Defaults to 0. See also
+#' stats::supsmu(). Ignored by the other methods.
+#' @param dc_scale logical or NULL. If TRUE, the detrended series is divided by
+#' the standard deviation of its own values. The default (NULL) uses the
+#' convention of the selected method: TRUE for dc_method = "SLD", which
+#' preserves the behaviour of earlier dendroTools versions, and FALSE for the
+#' dplR methods, which are not rescaled in dplR::detrend(). Rescaling does not
+#' affect correlations, but it does affect the scale of $optimized_return and
+#' of the transfer function.
 #' @param cor_na_use an optional character string giving a method for computing
 #' covariances in the presence of missing values for correlation coefficients.
 #' This must be (an abbreviation of) one of the strings "everything" (default),
 #' "all.obs", "complete.obs", "na.or.complete", or "pairwise.complete.obs". See
 #' also the documentation for the base cor() function.
 #'
-#' @return a list with 19 elements:
+#' @return a list with 20 elements:
 #' \enumerate{
 #'  \item $calculations - a matrix with calculated metrics
 #'  \item $method - the character string of a method
@@ -196,6 +245,8 @@
 #'  \item $aggregated_climate - matrix with all aggregated climate series
 #'  \item $previous_year - logical indicating whether previous-year climate data were used
 #'  \item $number_previous_years - integer indicating how many previous years were used
+#'  \item $detrending - information about the climate detrending applied,
+#'  i.e. the method and the settings that were used, or "none"
 #'}
 #'
 #' @export
@@ -313,6 +364,24 @@
 #'   aggregate_function = "mean"
 #' )
 #'
+#' # Example with climate detrending, following dplR::detrend().
+#' # LJ_monthly_temperatures are temperatures in degrees Celsius and therefore
+#' # cross zero, so differences must be used instead of the default ratios.
+#' example_detrended <- monthly_response(response = data_MVA,
+#'   env_data = LJ_monthly_temperatures,
+#'   method = "cor", row_names_subset = TRUE,
+#'   remove_insignificant = FALSE,
+#'   dc_method = "Spline", dc_difference = TRUE)
+#'
+#' # example_detrended$detrending
+#'
+#' # Precipitation sums are positive, so the default ratios can be used
+#' example_detrended_ratio <- monthly_response(response = data_MVA,
+#'   env_data = LJ_monthly_precipitation, tidy_env_data = TRUE,
+#'   method = "cor", row_names_subset = TRUE,
+#'   aggregate_function = "sum", remove_insignificant = FALSE,
+#'   dc_method = "Friedman")
+#'
 #' }
 
 monthly_response <- function(response, env_data, method = "cor",
@@ -336,6 +405,12 @@ monthly_response <- function(response, env_data, method = "cor",
                              boot_conf_int = 0.95,
                              month_interval = NULL,
                              dc_method = NULL,
+                             dc_nyrs = NULL,
+                             dc_f = 0.5,
+                             dc_difference = FALSE,
+                             dc_span = "cv",
+                             dc_bass = 0,
+                             dc_scale = NULL,
                              cor_na_use = "everything"
 ) {
 
@@ -525,18 +600,6 @@ monthly_response <- function(response, env_data, method = "cor",
   # replicate, so boot.ci() cannot build a studentized interval and previously
   # failed in a way that produced an uninformative error.
 
-  # Missing values are not handled automatically. Tell the user explicitly,
-  # so that an all-NA surface is never a silent surprise.
-  if (anyNA(env_data) &&
-      !(cor_na_use %in% c("complete.obs", "na.or.complete",
-                          "pairwise.complete.obs"))) {
-
-    warning(paste0("env_data contains missing values and cor_na_use = '",
-                   cor_na_use, "'. Any window overlapping a missing value ",
-                   "will return NA. Set cor_na_use = 'pairwise.complete.obs' ",
-                   "to compute over the available years instead."))
-  }
-
   allowed_boot_ci_types <- c("norm", "perc", "basic", "bca")
 
   if (!(boot_ci_type %in% allowed_boot_ci_types)) {
@@ -678,8 +741,13 @@ monthly_response <- function(response, env_data, method = "cor",
       return(apply(x, 1, median, na.rm = TRUE))
     }
 
+    # Missing months are skipped, so a sum adds the values that are
+    # available. A window without any value is NA: sum() would return 0,
+    # i.e. a dry window that was never observed.
     if (aggregate_function == "sum") {
-      return(apply(x, 1, sum, na.rm = TRUE))
+      out <- apply(x, 1, sum, na.rm = TRUE)
+      out[rowSums(!is.na(x)) == 0] <- NA
+      return(out)
     }
 
     if (aggregate_function == "quantile") {
@@ -813,8 +881,8 @@ monthly_response <- function(response, env_data, method = "cor",
       return(out)
     }
 
-    r_squared <- suppressWarnings(mean(calc$t[, 1], na.rm = TRUE))
-    adj_r_squared <- suppressWarnings(mean(calc$t[, 2], na.rm = TRUE))
+    r_squared <- as.numeric(calc$t0[1])
+    adj_r_squared <- as.numeric(calc$t0[2])
 
     if (is.finite(r_squared)) {
       out$r.squared <- r_squared
@@ -1129,16 +1197,54 @@ monthly_response <- function(response, env_data, method = "cor",
     stop(paste0("upper_limit out of bounds! It should be between 1 and ",
                 year_block_width))
 
-  # Make sure the selected method is appropriate
-  # Make sure the selected method is appropriate
-  if (!is.null(dc_method)){
+  # ---- climate detrending (dc_* arguments) ---------------------------------
+  # Detrending is applied to the aggregated climate series of each moving
+  # window, i.e. to a vector with one value per year, exactly as in
+  # daily_response(). dc_method = NULL or "none" disables it. "SLD" is the
+  # historical dendroTools option. The remaining options follow
+  # dplR::detrend().
+  dc_settings <- dc_check_settings(dc_method = dc_method,
+                                   dc_nyrs = dc_nyrs,
+                                   dc_f = dc_f,
+                                   dc_difference = dc_difference,
+                                   dc_span = dc_span,
+                                   dc_bass = dc_bass,
+                                   dc_scale = dc_scale,
+                                   env_list = list(env_data = env_data))
 
-    if (!(dc_method %in% c("SLD"))){
+  dc_method <- dc_settings$dc_method
+  dc_scale <- dc_settings$dc_scale
+  detrending_summary <- dc_settings$summary
 
-      stop(paste0('dc_method should be SLD but instead it is:',dc_method))
+  if (!is.null(dc_method)) {
 
+    # Prewhitening returns one missing residual for each lag of the fitted AR
+    # model, so every detrended window starts with NA values. With the default
+    # cor_na_use = 'everything' this would return NA for the whole matrix.
+    # 'pairwise.complete.obs' is used rather than 'complete.obs': for one
+    # window it gives the same value, but it returns NA instead of an error
+    # for a window without complete years (ratio detrending of a window
+    # containing a zero), and the permutation filters correlate all windows
+    # at once, where 'complete.obs' would drop a year from every window as
+    # soon as it is missing in one of them.
+    if (dc_method == "Ar" && method == "cor" &&
+        !(cor_na_use %in% c("complete.obs", "na.or.complete",
+                            "pairwise.complete.obs"))) {
+
+      warning(paste0("dc_method = 'Ar' introduces missing values at the start ",
+                     "of every detrended window. cor_na_use was changed from '",
+                     cor_na_use, "' to 'pairwise.complete.obs' so that ",
+                     "correlations can be calculated."))
+
+      cor_na_use <- "pairwise.complete.obs"
     }
   }
+
+  # Internal helper. Detrends the aggregated climate series of one window. With
+  # dc_method = NULL the series is returned untouched, so that results without
+  # detrending are exactly those of earlier versions. The years are used to
+  # fit the dplR methods in chronological order.
+  dc_apply <- dc_make_apply(dc_settings)
 
 
   # Warn users in case of missing values. The original threshold was 8 missing
@@ -1231,6 +1337,38 @@ monthly_response <- function(response, env_data, method = "cor",
 
     response <- subset(response, row.names(response) %in% subset_seq)
     env_data <- subset(env_data, row.names(env_data) %in% subset_seq)
+  }
+
+  # ---- years with gaps long enough to empty a whole window -----------------
+  # aggregate_monthly_window() skips missing values, so a window is missing
+  # for a given year only when every month it covers is missing. Scattered
+  # missing months are absorbed by the aggregation, so anyNA(env_data) is far
+  # too broad a test. A year is only a problem when it contains a run of
+  # missing months at least as long as the shortest window that is evaluated.
+  # Only the analysed years are checked, so a gap in a year outside them, for
+  # example a recent year without tree-ring data, raises no warning.
+  min_window_width <- if (fixed_width != 0) fixed_width else lower_limit
+
+  years_with_window_gaps <- window_gap_years(env_data, min_window_width)
+
+  # Where a window is empty for some years, detrend_climate() fits on the
+  # non-missing years and reinserts the gaps afterwards.
+  if (!is.null(dc_method) && length(years_with_window_gaps) > 0) {
+    warning(dc_gap_message("env_data", years_with_window_gaps,
+                           min_window_width, unit = "months"))
+  }
+
+  # Missing values are not handled automatically. Tell the user explicitly,
+  # so that an all-NA surface is never a silent surprise. Only gaps long
+  # enough to empty a window matter, and only for correlations: lm and brnn
+  # leave out incomplete years themselves.
+  if (method == "cor" && length(years_with_window_gaps) > 0 &&
+      !(cor_na_use %in% c("complete.obs", "na.or.complete",
+                          "pairwise.complete.obs"))) {
+
+    warning(na_gap_message("env_data", years_with_window_gaps,
+                           min_window_width, unit = "months",
+                           na_arg = "cor_na_use", na_value = cor_na_use))
   }
 
   # NA values are not allowed and must be removed from response data.frame
@@ -1328,28 +1466,9 @@ monthly_response <- function(response, env_data, method = "cor",
         env_data[1:nrow(env_data), (1 + j):(j + fixed_width), drop = FALSE]
       )
 
-      if (!is.null(dc_method)){
-
-        if (dc_method == "SLD"){
-
-          tmp_model <- lm(x ~ seq(1:length(x)))
-          tmp_pred <- predict(tmp_model)
-
-          if (length(x) != length(tmp_pred)) {
-            warning("Note missing values in your env_data")
-          }
-
-          tmp_res <- suppressWarnings(x - tmp_pred)
-
-          x <- data.frame(x = tmp_res/sd(tmp_res, na.rm = TRUE))
-
-        }
-
-      } else {
-
-        x <- matrix(x, nrow = nrow(env_data), ncol = 1)
-
-      }
+      # Optional detrending of the aggregated climate series.
+      x <- matrix(dc_apply(x, years = row.names(env_data)),
+                  nrow = nrow(env_data), ncol = 1)
 
       x_list <- x
       colnames(x_list) <- paste0(j + 1, "_" ,j + fixed_width)
@@ -1373,7 +1492,7 @@ monthly_response <- function(response, env_data, method = "cor",
           boot_t0 <- suppressWarnings(
             cor(response[, 1], x[, 1], method = cor_method, use = cor_na_use))
 
-          temporal_correlation <- mean(boot_t)
+          temporal_correlation <- boot_t0
 
           boot_ci_vals <- boot_fast_ci(boot_t, boot_t0,
                                        conf = boot_conf_int,
@@ -1388,7 +1507,7 @@ monthly_response <- function(response, env_data, method = "cor",
         calc <- boot(temp_df_boot, boot_f_cor, cor.type = cor_method,
                      cor.use = cor_na_use, R = boot_n)
 
-        temporal_correlation <- colMeans(calc$t)[1]
+        temporal_correlation <- as.numeric(calc$t0[1])
 
         ci_int <- try(boot.ci(calc, conf = boot_conf_int, type = boot_ci_type), silent = TRUE)
 
@@ -1524,28 +1643,9 @@ monthly_response <- function(response, env_data, method = "cor",
         env_data[1:nrow(env_data), (1 + j):(j + fixed_width), drop = FALSE]
       )
 
-      if (!is.null(dc_method)){
-
-        if (dc_method == "SLD"){
-
-          tmp_model <- lm(x ~ seq(1:length(x)))
-          tmp_pred <- predict(tmp_model)
-
-          if (length(x) != length(tmp_pred)) {
-            warning("Note missing values in your env_data")
-          }
-
-          tmp_res <- suppressWarnings(x - tmp_pred)
-
-          x <- data.frame(x = tmp_res/sd(tmp_res, na.rm = TRUE))
-
-        }
-
-      } else {
-
-        x <- matrix(x, nrow = nrow(env_data), ncol = 1)
-
-      }
+      # Optional detrending of the aggregated climate series.
+      x <- matrix(dc_apply(x, years = row.names(env_data)),
+                  nrow = nrow(env_data), ncol = 1)
 
       x_list <- x
       colnames(x_list) <- paste0(j + 1, "_" ,j + fixed_width)
@@ -1583,8 +1683,8 @@ monthly_response <- function(response, env_data, method = "cor",
         # na.rm is used here, unlike the correlation path, because an NA
         # replicate means a model fit failed to converge rather than that
         # data were missing
-        temporal_r_squared <- suppressWarnings(mean(calc$t[, 1], na.rm = TRUE))
-        temporal_adj_r_squared <- suppressWarnings(mean(calc$t[, 2], na.rm = TRUE))
+        temporal_r_squared <- as.numeric(calc$t0[1])
+        temporal_adj_r_squared <- as.numeric(calc$t0[2])
 
         ci_int_r_squared <- try(boot.ci(calc, conf = boot_conf_int, type = boot_ci_type, index = 1), silent = TRUE)
         ci_int_adj_r_squared <- try(boot.ci(calc, conf = boot_conf_int, type = boot_ci_type, index = 2), silent = TRUE)
@@ -1752,28 +1852,9 @@ monthly_response <- function(response, env_data, method = "cor",
         env_data[1:nrow(env_data), (1 + j):(j + fixed_width), drop = FALSE]
       )
 
-      if (!is.null(dc_method)){
-
-        if (dc_method == "SLD"){
-
-          tmp_model <- lm(x ~ seq(1:length(x)))
-          tmp_pred <- predict(tmp_model)
-
-          if (length(x) != length(tmp_pred)) {
-            warning("Note missing values in your env_data")
-          }
-
-          tmp_res <- suppressWarnings(x - tmp_pred)
-
-          x <- data.frame(x = tmp_res/sd(tmp_res, na.rm = TRUE))
-
-        }
-
-      } else {
-
-        x <- matrix(x, nrow = nrow(env_data), ncol = 1)
-
-      }
+      # Optional detrending of the aggregated climate series.
+      x <- matrix(dc_apply(x, years = row.names(env_data)),
+                  nrow = nrow(env_data), ncol = 1)
 
       x_list <- x
       colnames(x_list) <- paste0(j + 1, "_" ,j + fixed_width)
@@ -1956,28 +2037,9 @@ monthly_response <- function(response, env_data, method = "cor",
           env_data[1:nrow(env_data), (1 + j):(j + K), drop = FALSE]
         )
 
-        if (!is.null(dc_method)){
-
-          if (dc_method == "SLD"){
-
-            tmp_model <- lm(x ~ seq(1:length(x)))
-            tmp_pred <- predict(tmp_model)
-
-            if (length(x) != length(tmp_pred)) {
-              warning("Note missing values in your env_data")
-            }
-
-            tmp_res <- suppressWarnings(x - tmp_pred)
-
-            x <- data.frame(x = tmp_res/sd(tmp_res, na.rm = TRUE))
-
-          }
-
-        } else {
-
-          x <- matrix(x, nrow = nrow(env_data), ncol = 1)
-
-        }
+        # Optional detrending of the aggregated climate series.
+        x <- matrix(dc_apply(x, years = row.names(env_data)),
+                    nrow = nrow(env_data), ncol = 1)
 
         x_list <- x
         colnames(x_list) <- paste0(j + 1, "_" ,j + K)
@@ -1996,7 +2058,7 @@ monthly_response <- function(response, env_data, method = "cor",
             boot_t0 <- suppressWarnings(
               cor(response[, 1], x[, 1], method = cor_method, use = cor_na_use))
 
-            temporal_correlation <- mean(boot_t)
+            temporal_correlation <- boot_t0
 
             boot_ci_vals <- boot_fast_ci(boot_t, boot_t0,
                                          conf = boot_conf_int,
@@ -2011,7 +2073,7 @@ monthly_response <- function(response, env_data, method = "cor",
           calc <- boot(temp_df_boot, boot_f_cor, cor.type = cor_method,
                        cor.use = cor_na_use, R = boot_n)
 
-          temporal_correlation <- colMeans(calc$t)[1]
+          temporal_correlation <- as.numeric(calc$t0[1])
 
           ci_int <- try(boot.ci(calc, conf = boot_conf_int, type = boot_ci_type), silent = TRUE)
 
@@ -2148,28 +2210,9 @@ monthly_response <- function(response, env_data, method = "cor",
           env_data[1:nrow(env_data), (1 + j):(j + K), drop = FALSE]
         )
 
-        if (!is.null(dc_method)){
-
-          if (dc_method == "SLD"){
-
-            tmp_model <- lm(x ~ seq(1:length(x)))
-            tmp_pred <- predict(tmp_model)
-
-            if (length(x) != length(tmp_pred)) {
-              warning("Note missing values in your env_data")
-            }
-
-            tmp_res <- suppressWarnings(x - tmp_pred)
-
-            x <- data.frame(x = tmp_res/sd(tmp_res, na.rm = TRUE))
-
-          }
-
-        } else {
-
-          x <- matrix(x, nrow = nrow(env_data), ncol = 1)
-
-        }
+        # Optional detrending of the aggregated climate series.
+        x <- matrix(dc_apply(x, years = row.names(env_data)),
+                    nrow = nrow(env_data), ncol = 1)
 
         x_list <- x
         colnames(x_list) <- paste0(j + 1, "_" ,j + K)
@@ -2207,8 +2250,8 @@ monthly_response <- function(response, env_data, method = "cor",
           # na.rm is used here, unlike the correlation path, because an NA
           # replicate means a model fit failed to converge rather than that
           # data were missing
-          temporal_r_squared <- suppressWarnings(mean(calc$t[, 1], na.rm = TRUE))
-          temporal_adj_r_squared <- suppressWarnings(mean(calc$t[, 2], na.rm = TRUE))
+          temporal_r_squared <- as.numeric(calc$t0[1])
+          temporal_adj_r_squared <- as.numeric(calc$t0[2])
 
           ci_int_r_squared <- try(boot.ci(calc, conf = boot_conf_int, type = boot_ci_type, index = 1), silent = TRUE)
           ci_int_adj_r_squared <- try(boot.ci(calc, conf = boot_conf_int, type = boot_ci_type, index = 2), silent = TRUE)
@@ -2382,28 +2425,9 @@ monthly_response <- function(response, env_data, method = "cor",
           env_data[1:nrow(env_data), (1 + j):(j + K), drop = FALSE]
         )
 
-        if (!is.null(dc_method)){
-
-          if (dc_method == "SLD"){
-
-            tmp_model <- lm(x ~ seq(1:length(x)))
-            tmp_pred <- predict(tmp_model)
-
-            if (length(x) != length(tmp_pred)) {
-              warning("Note missing values in your env_data")
-            }
-
-            tmp_res <- suppressWarnings(x - tmp_pred)
-
-            x <- data.frame(x = tmp_res/sd(tmp_res, na.rm = TRUE))
-
-          }
-
-        } else {
-
-          x <- matrix(x, nrow = nrow(env_data), ncol = 1)
-
-        }
+        # Optional detrending of the aggregated climate series.
+        x <- matrix(dc_apply(x, years = row.names(env_data)),
+                    nrow = nrow(env_data), ncol = 1)
 
         x_list <- x
         colnames(x_list) <- paste0(j + 1, "_" ,j + K)
@@ -2742,7 +2766,11 @@ monthly_response <- function(response, env_data, method = "cor",
           n_obs_sidak <- length(shared_years)
 
           x_sidak <- climate_matrix[shared_years, , drop = FALSE]
-          x_sidak <- x_sidak[, colSums(is.na(x_sidak)) == 0, drop = FALSE]
+
+          # Missing years are left out rather than whole windows, so that the
+          # effective number of tests describes every screened window, see
+          # sidak_window_matrix(). Complete data are not affected.
+          x_sidak <- sidak_window_matrix(x_sidak)
           x_sidak <- x_sidak[, apply(x_sidak, 2, stats::sd) > 0, drop = FALSE]
 
           if (ncol(x_sidak) < 2) {
@@ -2760,7 +2788,7 @@ monthly_response <- function(response, env_data, method = "cor",
             # are obtained from the much smaller years-by-years matrix
             # instead of the windows-by-windows one.
             z_sidak <- scale(x_sidak)
-            gram <- tcrossprod(z_sidak) / (n_obs_sidak - 1)
+            gram <- tcrossprod(z_sidak) / (nrow(z_sidak) - 1)
 
             eig <- eigen(gram, symmetric = TRUE, only.values = TRUE)$values
             eig <- eig[eig > 1e-10]
@@ -3012,7 +3040,8 @@ monthly_response <- function(response, env_data, method = "cor",
                        boot_lower = temporal_matrix_lower,
                        boot_upper = temporal_matrix_upper,
                        significance_filter = significance_filter,
-                       aggregated_climate = NA )
+                       aggregated_climate = NA,
+                       detrending = detrending_summary)
 
     class(final_list) <- 'dmrs'
 
@@ -3081,20 +3110,8 @@ monthly_response <- function(response, env_data, method = "cor",
                  drop = FALSE]
       ))
 
-      if (!is.null(dc_method)){
-
-        if (dc_method == "SLD"){
-
-          dataf <- as.numeric(dataf[,1])
-          tmp_model <- lm(dataf ~ seq(1:length(dataf)))
-          tmp_pred <- predict(tmp_model)
-          tmp_res <- dataf - tmp_pred
-
-          dataf <- data.frame(tmp_res/sd(tmp_res, na.rm = TRUE))
-
-        }
-
-      }
+      # if detrending was applied, should also be applied here
+      dataf[, 1] <- dc_apply(dataf[, 1], years = row.names(dataf))
 
       dataf_full <- cbind(response, dataf)
       colnames(dataf_full)[ncol(dataf_full)] <- "Optimized_return"
@@ -3111,20 +3128,8 @@ monthly_response <- function(response, env_data, method = "cor",
 
       dataf_full_original <- dataf_original
 
-      if (!is.null(dc_method)){
-
-        if (dc_method == "SLD"){
-
-          dataf_full_original <- as.numeric(dataf_full_original[,1])
-          tmp_model <- lm(dataf_full_original ~ seq(1:length(dataf_full_original)))
-          tmp_pred <- predict(tmp_model)
-          tmp_res <- dataf_full_original - tmp_pred
-
-          dataf_full_original <- data.frame(tmp_res/sd(tmp_res, na.rm = TRUE))
-
-        }
-
-      }
+      dataf_full_original[, 1] <- dc_apply(dataf_full_original[, 1],
+                                           years = row.names(dataf_full_original))
 
       colnames(dataf_full_original) <- "Optimized_return"
       colnames(dataf) <- "Optimized.rowNames"
@@ -3188,20 +3193,8 @@ monthly_response <- function(response, env_data, method = "cor",
                  drop = FALSE]
       ))
 
-      if (!is.null(dc_method)){
-
-        if (dc_method == "SLD"){
-
-          dataf <- as.numeric(dataf[,1])
-          tmp_model <- lm(dataf ~ seq(1:length(dataf)))
-          tmp_pred <- predict(tmp_model)
-          tmp_res <- dataf - tmp_pred
-
-          dataf <- data.frame(tmp_res/sd(tmp_res, na.rm = TRUE))
-
-        }
-
-      }
+      # if detrending was applied, should also be applied here
+      dataf[, 1] <- dc_apply(dataf[, 1], years = row.names(dataf))
 
       dataf_full <- cbind(response, dataf)
       colnames(dataf_full)[ncol(dataf_full)] <- "Optimized_return"
@@ -3218,20 +3211,8 @@ monthly_response <- function(response, env_data, method = "cor",
 
       dataf_full_original <- dataf_original
 
-      if (!is.null(dc_method)){
-
-        if (dc_method == "SLD"){
-
-          dataf_full_original <- as.numeric(dataf_full_original[,1])
-          tmp_model <- lm(dataf_full_original ~ seq(1:length(dataf_full_original)))
-          tmp_pred <- predict(tmp_model)
-          tmp_res <- dataf_full_original - tmp_pred
-
-          dataf_full_original <- data.frame(tmp_res/sd(tmp_res, na.rm = TRUE))
-
-        }
-
-      }
+      dataf_full_original[, 1] <- dc_apply(dataf_full_original[, 1],
+                                           years = row.names(dataf_full_original))
 
       colnames(dataf_full_original) <- "Optimized_return"
       colnames(dataf) <- "Optimized.rowNames"
@@ -3303,20 +3284,8 @@ monthly_response <- function(response, env_data, method = "cor",
                  drop = FALSE]
       ))
 
-      if (!is.null(dc_method)){
-
-        if (dc_method == "SLD"){
-
-          dataf <- as.numeric(dataf[,1])
-          tmp_model <- lm(dataf ~ seq(1:length(dataf)))
-          tmp_pred <- predict(tmp_model)
-          tmp_res <- dataf - tmp_pred
-
-          dataf <- data.frame(tmp_res/sd(tmp_res, na.rm = TRUE))
-
-        }
-
-      }
+      # if detrending was applied, should also be applied here
+      dataf[, 1] <- dc_apply(dataf[, 1], years = row.names(dataf))
 
       dataf_full <- cbind(response, dataf)
       colnames(dataf_full)[ncol(dataf_full)] <- "Optimized_return"
@@ -3333,16 +3302,8 @@ monthly_response <- function(response, env_data, method = "cor",
 
       dataf_full_original <- dataf_original
 
-      if (!is.null(dc_method)){
-
-        dataf_full_original <- as.numeric(dataf_full_original[,1])
-        tmp_model <- lm(dataf_full_original ~ seq(1:length(dataf_full_original)))
-        tmp_pred <- predict(tmp_model)
-        tmp_res <- dataf_full_original - tmp_pred
-
-        dataf_full_original <- data.frame(tmp_res/sd(tmp_res, na.rm = TRUE))
-
-      }
+      dataf_full_original[, 1] <- dc_apply(dataf_full_original[, 1],
+                                           years = row.names(dataf_full_original))
 
     }
 
@@ -3514,7 +3475,7 @@ monthly_response <- function(response, env_data, method = "cor",
 
       if (method == "cor"){
         calculation <- cor(dataset_temp[,1], dataset_temp[,2], method = cor_method, use = cor_na_use)
-        sig <- cor.test(dataset_temp[,1], dataset_temp[,2], method = cor_method, exaxt= FALSE)$p.value
+        sig <- cor.test(dataset_temp[,1], dataset_temp[,2], method = cor_method, exact = FALSE)$p.value
         empty_list_significance[[m]] <- sig
         empty_list[[m]] <- calculation
         colname = "correlation"
@@ -3581,7 +3542,7 @@ monthly_response <- function(response, env_data, method = "cor",
 
       if (method == "cor"){
         calculation <- cor(dataset_temp[,1], dataset_temp[,2], method = cor_method, use = cor_na_use)
-        sig <- cor.test(dataset_temp[,1], dataset_temp[,2], method = cor_method, exaxt= FALSE)$p.value
+        sig <- cor.test(dataset_temp[,1], dataset_temp[,2], method = cor_method, exact = FALSE)$p.value
         empty_list[[m]] <- calculation
         empty_list_significance[[m]] <- sig
         colname = "correlation"
@@ -3671,7 +3632,7 @@ monthly_response <- function(response, env_data, method = "cor",
 
       if (method == "cor"){
         calculation <- cor(dataset_temp[,1], dataset_temp[,2], method = cor_method, use = cor_na_use)
-        sig <- cor.test(dataset_temp[,1], dataset_temp[,2], method = cor_method, exaxt= FALSE)$p.value
+        sig <- cor.test(dataset_temp[,1], dataset_temp[,2], method = cor_method, exact = FALSE)$p.value
         empty_list[[m]] <- calculation
         empty_list_significance[[m]] <- sig
         colname = "correlation"
@@ -3730,6 +3691,12 @@ monthly_response <- function(response, env_data, method = "cor",
   #########################################################################
 
   dataset = data.frame(optimized_return =dataf[,1], proxy = response)
+
+  # Years without a value, such as the first years of a window prewhitened
+  # with dc_method = "Ar", can neither be predicted nor used for calibration,
+  # and they made every fold that contained them return NA. They are left
+  # out before the folds are formed. Complete data are not affected.
+  dataset <- dataset[stats::complete.cases(dataset), , drop = FALSE]
 
   empty_list = list()
   empty_list_period = list()
@@ -3864,7 +3831,8 @@ monthly_response <- function(response, env_data, method = "cor",
                        aggregated_climate = do.call(cbind, list_climate),
                        previous_year = previous_year,
                        number_previous_years = number_previous_years,
-                       significance_filter = significance_filter)
+                       significance_filter = significance_filter,
+                       detrending = detrending_summary)
   }
 
   if (method == "cor"){
@@ -3877,7 +3845,8 @@ monthly_response <- function(response, env_data, method = "cor",
                        aggregated_climate = do.call(cbind, list_climate),
                        previous_year = previous_year,
                        number_previous_years = number_previous_years,
-                       significance_filter = significance_filter)
+                       significance_filter = significance_filter,
+                       detrending = detrending_summary)
   }
 
 
@@ -3902,7 +3871,8 @@ monthly_response <- function(response, env_data, method = "cor",
                        aggregated_climate = do.call(cbind, list_climate),
                        previous_year = previous_year,
                        number_previous_years = number_previous_years,
-                       significance_filter = significance_filter)
+                       significance_filter = significance_filter,
+                       detrending = detrending_summary)
   }
 
   if (method == "cor"){
@@ -3922,7 +3892,8 @@ monthly_response <- function(response, env_data, method = "cor",
                        aggregated_climate = do.call(cbind, list_climate),
                        previous_year = previous_year,
                        number_previous_years = number_previous_years,
-                       significance_filter = significance_filter)
+                       significance_filter = significance_filter,
+                       detrending = detrending_summary)
   }
 
   class(final_list) <- 'dmrs'

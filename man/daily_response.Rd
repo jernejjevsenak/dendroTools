@@ -129,6 +129,9 @@ matrix following Li and Ji (2005), and a Sidak correction is applied to
 that number rather than to the nominal count of windows. No permutations
 are required, so it is effectively instantaneous and is available for all
 methods including "brnn".
+Years that are missing in some of the windows, such as the first years
+removed by dc_method = "Ar", are left out of this estimate, rather than
+the windows themselves.
 
 "sidak" is an approximation to "maxstat". Across 54 combinations of site
 and climate variable the two thresholds agreed to within 0.016 on average,
@@ -178,7 +181,9 @@ kept.}
 
 \item{aggregate_function}{character string specifying how the daily data
 should be aggregated. The default is 'mean', the other options are 'median',
-'sum', 'min', 'max' and 'quantile'.}
+'sum', 'min', 'max' and 'quantile'.
+Missing days are skipped, so 'sum' adds only the days that are available;
+a window without any value is NA.}
 
 \item{quantile_prob}{numeric value between 0 and 1 specifying the quantile
 probability used when aggregate_function = 'quantile'. For example,
@@ -229,8 +234,11 @@ The optimal selection, which describes the optimal consecutive days that returns
 the highest calculated metric and is obtained by the $plot_extreme output, is the
 same for all three reference windows.}
 
-\item{boot}{logical, if TRUE, bootstrap procedure will be used to calculate
-estimates correlation coefficients, R squared or adjusted R squared metrices}
+\item{boot}{logical, if TRUE, bootstrap confidence intervals are calculated
+for the correlation coefficients, R squared or adjusted R squared metrics and
+returned as $boot_lower and $boot_upper. The metrics themselves are those of
+the observed data, as with boot = FALSE. Versions before 1.2.18 reported the
+mean of the bootstrap replicates instead.}
 
 \item{boot_n}{The number of bootstrap replicates}
 
@@ -259,7 +267,11 @@ i.e. to a vector with one value per year, and not to the raw daily data.
 Possible values are "none" (or NULL, the default, no detrending), "SLD"
 (Simple Linear Detrending, the historical dendroTools option), and the
 smoothers "Spline", "Mean", "Ar" and "Friedman", which follow
-dplR::detrend().
+dplR::detrend(). The smoothers are fitted in chronological order of the
+years given by the row names. "Ar" (prewhitening) leaves missing values at
+the start of each detrended window, so for method = "cor" cor_na_use is
+changed to "pairwise.complete.obs", with a warning, unless it already
+excludes missing values.
 The growth-specific options of dplR::detrend() ("ModNegExp",
 "ModHugershoff", "AgeDepSpline") are not available, because they assume
 strictly positive series with a biological growth trend.}

@@ -39,6 +39,13 @@ monthly_response_seascorr(
   boot_conf_int = 0.95,
   month_interval = NULL,
   dc_method = NULL,
+  dc_nyrs = NULL,
+  dc_f = 0.5,
+  dc_difference = FALSE,
+  dc_span = "cv",
+  dc_bass = 0,
+  dc_scale = NULL,
+  dc_env_data_control = NULL,
   pcor_na_use = "everything"
 )
 }
@@ -109,6 +116,9 @@ independent tests among the screened primary windows is obtained from the
 eigenvalues of their correlation matrix following Li and Ji (2005), and a
 Sidak correction is applied to that number rather than to the nominal count
 of windows.
+Years that are missing in some of the windows, such as the first years
+removed by dc_method = "Ar", are left out of this estimate, rather than
+the windows themselves.
 
 "sidak" is an approximation to "maxstat", and a rougher one for partial
 correlations than for ordinary ones, because the null distribution also
@@ -173,7 +183,9 @@ to the ending day of window calculation.}
 
 \item{aggregate_function_env_data_primary}{character string specifying how the
 monthly data from env_data_primary should be aggregated. The default is 'mean',
-the other options are 'median', 'sum' and 'quantile'.}
+the other options are 'median', 'sum' and 'quantile'.
+Missing months are skipped, so 'sum' adds only the months that are
+available; a window without any value is NA.}
 
 \item{quantile_prob_env_data_primary}{numeric value between 0 and 1 specifying
 the quantile probability used when aggregate_function_env_data_primary =
@@ -181,7 +193,9 @@ the quantile probability used when aggregate_function_env_data_primary =
 
 \item{aggregate_function_env_data_control}{character string specifying how the
 monthly data from env_data_control should be aggregated. The default is 'mean',
-the other options are 'median', 'sum' and 'quantile'.}
+the other options are 'median', 'sum' and 'quantile'.
+Missing months are skipped, so 'sum' adds only the months that are
+available; a window without any value is NA.}
 
 \item{quantile_prob_env_data_control}{numeric value between 0 and 1 specifying
 the quantile probability used when aggregate_function_env_data_control =
@@ -214,8 +228,11 @@ data frame with three columns: "Year", "Month", "Precipitation/Temperature/etc."
 \item{tidy_env_data_control}{if set to TRUE, env_data_control should be inserted as a
 data frame with three columns: "Year", "Month", "Precipitation/Temperature/etc."}
 
-\item{boot}{logical, if TRUE, bootstrap procedure will be used to calculate
-partial correlation coefficients}
+\item{boot}{logical, if TRUE, bootstrap confidence intervals are calculated
+for the partial correlation coefficients and returned as $boot_lower and
+$boot_upper. The coefficients themselves are those of the observed data, as
+with boot = FALSE. Versions before 1.2.18 reported the mean of the bootstrap
+replicates instead.}
 
 \item{boot_n}{The number of bootstrap replicates}
 
@@ -237,15 +254,76 @@ example, previous_year = TRUE, number_previous_years = 2 and
 month_interval = c(-1, 12) analyses the full sequence from January of year
 t - 2 to December of year t.}
 
-\item{dc_method}{a character string to determine the method to detrend climate
-data.  Possible values are "none" (default) and "SLD" which refers to Simple
-Linear Detrending}
+\item{dc_method}{a character string specifying how the aggregated climate
+series of each moving window should be detrended before the partial
+correlation is calculated. Detrending is applied to the aggregated series,
+i.e. to a vector with one value per year, and not to the raw monthly
+data. By default the same detrending is applied to the windows of
+env_data_primary and env_data_control; see dc_env_data_control to detrend
+the control windows differently. Possible values are "none" (or NULL, the default, no
+detrending), "SLD" (Simple Linear Detrending, the historical dendroTools
+option), and the smoothers "Spline", "Mean", "Ar" and "Friedman", which
+follow dplR::detrend(). The smoothers are fitted in chronological order of
+the years given by the row names. "Ar" (prewhitening) leaves missing values
+at the start of each detrended window, so pcor_na_use is changed to
+"pairwise.complete.obs", with a warning, unless it already excludes
+missing values.
+The growth-specific options of dplR::detrend() ("ModNegExp",
+"ModHugershoff", "AgeDepSpline") are not available, because they assume
+strictly positive series with a biological growth trend.}
+
+\item{dc_nyrs}{a number giving the rigidity of the smoothing spline when
+dc_method = "Spline". Defaults to NULL, i.e. 0.67 times the length of the
+series, exactly as in dplR::detrend(). Ignored by the other methods.}
+
+\item{dc_f}{a number between 0 and 1 giving the frequency response at the
+wavelength given by dc_nyrs when dc_method = "Spline". Defaults to 0.5.
+Ignored by the other methods.}
+
+\item{dc_difference}{logical. If FALSE (default, as in dplR::detrend()),
+the detrended series is calculated as a ratio between the observed series
+and the fitted curve. If TRUE, it is calculated as a difference. Ratio
+detrending is only defined for strictly positive data, such as precipitation
+sums, so the function stops if a data frame whose windows are detrended by
+ratios, env_data_primary or env_data_control, contains negative values. Windows whose aggregated series still contains a zero, for
+example a completely dry month, are returned as NA. For temperature
+and for any other variable that can be negative, use dc_difference = TRUE.
+Ignored when dc_method = "SLD", which is always residual based.}
+
+\item{dc_span}{the span used by the Friedman super smoother when
+dc_method = "Friedman". Either "cv" (default, cross-validation) or a
+number between 0 and 1. See also stats::supsmu(). Ignored by the other
+methods.}
+
+\item{dc_bass}{a number between 0 and 10 controlling the smoothness of the
+Friedman super smoother when dc_method = "Friedman". Defaults to 0. See also
+stats::supsmu(). Ignored by the other methods.}
+
+\item{dc_scale}{logical or NULL. If TRUE, the detrended series is divided by
+the standard deviation of its own values. The default (NULL) uses the
+convention of the selected method: TRUE for dc_method = "SLD", which
+preserves the behaviour of earlier dendroTools versions, and FALSE for the
+dplR methods, which are not rescaled in dplR::detrend(). Rescaling does not
+affect partial correlations, but it does affect the scale of
+$optimized_return and of the transfer function.}
+
+\item{dc_env_data_control}{NULL (default) or a named list of detrending
+settings for the windows of env_data_control. With NULL, the control windows
+are detrended exactly like the primary windows. A list replaces any of
+dc_method, dc_nyrs, dc_f, dc_difference, dc_span, dc_bass and dc_scale for
+the control windows only, and the settings it does not name are taken from
+the arguments above. For example, dc_method = "Spline", dc_difference =
+TRUE and dc_env_data_control = list(dc_difference = FALSE) detrend
+temperature (primary) by differences and precipitation (control) by
+ratios, and dc_env_data_control = list(dc_method = "none") leaves the
+control windows untouched.}
 
 \item{pcor_na_use}{an optional character string giving a method for computing
 covariances in the presence of missing values for partial correlation
 coefficients. This must be (an abbreviation of) one of the strings "all.obs",
-"everything", "complete.obs", "na.or.complete", or "pairwise.complete.obs"
-(default). See also the documentation for the base partial.r in psych R package}
+"everything" (default), "complete.obs", "na.or.complete", or
+"pairwise.complete.obs". See also the documentation for the base partial.r in
+psych R package}
 }
 \value{
 a list with elements including:
@@ -271,6 +349,9 @@ a list with elements including:
  applied, the criterion used, and how many matrix cells were retained or removed
  \item $previous_year - logical indicating whether previous-year climate data were used
  \item $number_previous_years - integer indicating how many previous years were used
+ \item $detrending - information about the climate detrending applied, a
+ list with the elements primary and control, each giving the method and the
+ settings used for those windows, or "none"
 }
 }
 \description{
@@ -352,6 +433,21 @@ example_quantile <- monthly_response_seascorr(
    tidy_env_data_control = TRUE)
 
  # summary(example_quantile)
+
+# 4 Example with climate detrending, following dplR::detrend(). The same
+# detrending is applied to the primary and the control windows (see
+# dc_env_data_control to set it separately). The temperatures cross zero,
+# so differences are used instead of ratios.
+example_detrended <- monthly_response_seascorr(response = data_MVA,
+   env_data_primary = LJ_monthly_temperatures,
+   env_data_control = LJ_monthly_precipitation,
+   row_names_subset = TRUE,
+   remove_insignificant = FALSE,
+   tidy_env_data_primary = FALSE,
+   tidy_env_data_control = TRUE,
+   dc_method = "Friedman", dc_difference = TRUE)
+
+# example_detrended$detrending
 
 }
 }

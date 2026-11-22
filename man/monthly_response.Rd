@@ -40,6 +40,12 @@ monthly_response(
   boot_conf_int = 0.95,
   month_interval = NULL,
   dc_method = NULL,
+  dc_nyrs = NULL,
+  dc_f = 0.5,
+  dc_difference = FALSE,
+  dc_span = "cv",
+  dc_bass = 0,
+  dc_scale = NULL,
   cor_na_use = "everything"
 )
 }
@@ -124,6 +130,9 @@ matrix following Li and Ji (2005), and a Sidak correction is applied to
 that number rather than to the nominal count of windows. No permutations
 are required, so it is effectively instantaneous and is available for all
 methods including "brnn".
+Years that are missing in some of the windows, such as the first years
+removed by dc_method = "Ar", are left out of this estimate, rather than
+the windows themselves.
 
 "sidak" is an approximation to "maxstat". Across 54 combinations of site
 and climate variable the two thresholds agreed to within 0.016 on average,
@@ -177,7 +186,9 @@ to the ending day of window calculation.}
 
 \item{aggregate_function}{character string specifying how the monthly data should be
 aggregated. The default is 'mean', the other options are 'median', 'sum'
-and 'quantile'.}
+and 'quantile'.
+Missing months are skipped, so 'sum' adds only the months that are
+available; a window without any value is NA.}
 
 \item{quantile_prob}{numeric value between 0 and 1 specifying the quantile
 probability used when aggregate_function = 'quantile'. For example,
@@ -212,8 +223,11 @@ the form of: ylimits = c(0,1)}
 \item{tidy_env_data}{if set to TRUE, env_data should be inserted as a data frame with three
 columns: "Year", "Month", "Precipitation/Temperature/etc."}
 
-\item{boot}{logical, if TRUE, bootstrap procedure will be used to calculate
-estimates correlation coefficients, R squared or adjusted R squared metrices}
+\item{boot}{logical, if TRUE, bootstrap confidence intervals are calculated
+for the correlation coefficients, R squared or adjusted R squared metrics and
+returned as $boot_lower and $boot_upper. The metrics themselves are those of
+the observed data, as with boot = FALSE. Versions before 1.2.18 reported the
+mean of the bootstrap replicates instead.}
 
 \item{boot_n}{The number of bootstrap replicates}
 
@@ -235,9 +249,56 @@ example, previous_year = TRUE, number_previous_years = 2 and
 month_interval = c(-1, 12) analyses the full sequence from January of year
 t - 2 to December of year t.}
 
-\item{dc_method}{a character string to determine the method to detrend climate
-data.  Possible values are "none" (default) and "SLD" which refers to Simple
-Linear Detrending}
+\item{dc_method}{a character string specifying how the aggregated climate
+series of each moving window should be detrended before the climate-growth
+relationship is calculated. Detrending is applied to the aggregated series,
+i.e. to a vector with one value per year, and not to the raw monthly data.
+Possible values are "none" (or NULL, the default, no detrending), "SLD"
+(Simple Linear Detrending, the historical dendroTools option), and the
+smoothers "Spline", "Mean", "Ar" and "Friedman", which follow
+dplR::detrend(). The smoothers are fitted in chronological order of the
+years given by the row names. "Ar" (prewhitening) leaves missing values at
+the start of each detrended window, so for method = "cor" cor_na_use is
+changed to "pairwise.complete.obs", with a warning, unless it already
+excludes missing values.
+The growth-specific options of dplR::detrend() ("ModNegExp",
+"ModHugershoff", "AgeDepSpline") are not available, because they assume
+strictly positive series with a biological growth trend.}
+
+\item{dc_nyrs}{a number giving the rigidity of the smoothing spline when
+dc_method = "Spline". Defaults to NULL, i.e. 0.67 times the length of the
+series, exactly as in dplR::detrend(). Ignored by the other methods.}
+
+\item{dc_f}{a number between 0 and 1 giving the frequency response at the
+wavelength given by dc_nyrs when dc_method = "Spline". Defaults to 0.5.
+Ignored by the other methods.}
+
+\item{dc_difference}{logical. If FALSE (default, as in dplR::detrend()),
+the detrended series is calculated as a ratio between the observed series
+and the fitted curve. If TRUE, it is calculated as a difference. Ratio
+detrending is only defined for strictly positive data, such as precipitation
+sums, so the function stops if env_data contains negative values. Windows
+whose aggregated series still contains a zero, for example a completely dry
+month, are returned as NA. For temperature and for any other variable that
+can be negative, use dc_difference = TRUE. Ignored when dc_method = "SLD",
+which is always residual based.}
+
+\item{dc_span}{the span used by the Friedman super smoother when
+dc_method = "Friedman". Either "cv" (default, cross-validation) or a
+number between 0 and 1. See also stats::supsmu(). Ignored by the other
+methods.}
+
+\item{dc_bass}{a number between 0 and 10 controlling the smoothness of the
+Friedman super smoother when dc_method = "Friedman". Defaults to 0. See also
+stats::supsmu(). Ignored by the other methods.}
+
+\item{dc_scale}{logical or NULL. If TRUE, the detrended series is divided by
+the standard deviation of its own values. The default (NULL) uses the
+convention of the selected method: TRUE for dc_method = "SLD", which
+preserves the behaviour of earlier dendroTools versions, and FALSE for the
+dplR methods, which are not rescaled in dplR::detrend(). Rescaling does not
+affect correlations, but it does affect the scale of $optimized_return and
+of the transfer function.}
 
 \item{cor_na_use}{an optional character string giving a method for computing
 covariances in the presence of missing values for correlation coefficients.
@@ -246,7 +307,7 @@ This must be (an abbreviation of) one of the strings "everything" (default),
 also the documentation for the base cor() function.}
 }
 \value{
-a list with 19 elements:
+a list with 20 elements:
 \enumerate{
  \item $calculations - a matrix with calculated metrics
  \item $method - the character string of a method
@@ -268,6 +329,8 @@ a list with 19 elements:
  \item $aggregated_climate - matrix with all aggregated climate series
  \item $previous_year - logical indicating whether previous-year climate data were used
  \item $number_previous_years - integer indicating how many previous years were used
+ \item $detrending - information about the climate detrending applied,
+ i.e. the method and the settings that were used, or "none"
 }
 }
 \description{
@@ -391,6 +454,24 @@ example_two_previous_years <- monthly_response(
   month_interval = c(-1, 10),
   aggregate_function = "mean"
 )
+
+# Example with climate detrending, following dplR::detrend().
+# LJ_monthly_temperatures are temperatures in degrees Celsius and therefore
+# cross zero, so differences must be used instead of the default ratios.
+example_detrended <- monthly_response(response = data_MVA,
+  env_data = LJ_monthly_temperatures,
+  method = "cor", row_names_subset = TRUE,
+  remove_insignificant = FALSE,
+  dc_method = "Spline", dc_difference = TRUE)
+
+# example_detrended$detrending
+
+# Precipitation sums are positive, so the default ratios can be used
+example_detrended_ratio <- monthly_response(response = data_MVA,
+  env_data = LJ_monthly_precipitation, tidy_env_data = TRUE,
+  method = "cor", row_names_subset = TRUE,
+  aggregate_function = "sum", remove_insignificant = FALSE,
+  dc_method = "Friedman")
 
 }
 }
