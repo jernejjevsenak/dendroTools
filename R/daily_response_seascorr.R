@@ -116,17 +116,27 @@
 #' all three data frames are kept.
 #' @param aggregate_function_env_data_primary character string specifying how the
 #' daily data from env_data_primary should be aggregated. The default is 'mean',
-#' the other options are 'median', 'sum', 'min', 'max' and 'quantile'.
+#' the other options are 'median', 'sum', 'min', 'max', 'quantile' and 'SPEI'.
 #' Missing days are skipped, so 'sum' adds only the days that are available;
-#' a window without any value is NA.
+#' a window without any value is NA. 'SPEI' calculates the Standardized
+#' Precipitation-Evapotranspiration Index of each window from the daily
+#' climatic water balance (precipitation minus potential evapotranspiration,
+#' see water_balance()) in env_data_primary, as described for aggregate_function
+#' in daily_response(). A window that includes a missing day is NA in that
+#' year.
 #' @param quantile_prob_env_data_primary numeric value between 0 and 1 specifying
 #' the quantile probability used when aggregate_function_env_data_primary =
 #' 'quantile'. For example, 0.95 calculates the 95th percentile. The default is 0.5.
 #' @param aggregate_function_env_data_control character string specifying how the
 #' daily data from env_data_control should be aggregated. The default is 'mean',
-#' the other options are 'median', 'sum', 'min', 'max' and 'quantile'.
+#' the other options are 'median', 'sum', 'min', 'max', 'quantile' and 'SPEI'.
 #' Missing days are skipped, so 'sum' adds only the days that are available;
-#' a window without any value is NA.
+#' a window without any value is NA. 'SPEI' calculates the Standardized
+#' Precipitation-Evapotranspiration Index of each window from the daily
+#' climatic water balance (precipitation minus potential evapotranspiration,
+#' see water_balance()) in env_data_control, as described for aggregate_function
+#' in daily_response(). A window that includes a missing day is NA in that
+#' year.
 #' @param quantile_prob_env_data_control numeric value between 0 and 1 specifying
 #' the quantile probability used when aggregate_function_env_data_control =
 #' 'quantile'. For example, 0.95 calculates the 95th percentile. The default is 0.5.
@@ -167,12 +177,14 @@
 #' @param boot logical, if TRUE, bootstrap confidence intervals are calculated
 #' for the partial correlation coefficients and returned as $boot_lower and
 #' $boot_upper. The coefficients themselves are those of the observed data, as
-#' with boot = FALSE. Versions before 1.2.18 reported the mean of the bootstrap
+#' with boot = FALSE. Versions before 2.0.0 reported the mean of the bootstrap
 #' replicates instead.
 #' @param boot_n The number of bootstrap replicates
-#' @param boot_ci_type A character string representing the type of bootstrap intervals
-#' required. The value should be any subset of the values c("norm","basic", "stud",
-#' "perc", "bca").
+#' @param boot_ci_type A character string representing the type of bootstrap
+#' intervals: "norm" (default), "basic", "perc" or "bca". "bca" needs boot_n of
+#' at least the number of analysed years. With fewer replicates
+#' boot::boot.ci() cannot estimate bca intervals, so they are all NA, and a
+#' warning is given. Studentized intervals ("stud") are not available.
 #' @param boot_conf_int A scalar or vector containing the confidence level(s) of
 #' the required interval(s)
 #' @param day_interval a vector of two values defining the interval of days used
@@ -266,8 +278,18 @@
 #' window position is processed, skipping two positions in between each selected
 #' one. This parameter allows for controlling the granularity of the analysis
 #' and can help in reducing computation time by focusing on a subset of the data.
+#' @param pcor_control logical. If TRUE, the partial correlations of the
+#' response with the control variable, controlling for the primary variable,
+#' are also calculated for every window. They are what the function returns
+#' when env_data_primary and env_data_control, and their settings, are
+#' swapped. They are filtered with the same significance method and settings
+#' as the primary partial correlations, with permutation methods against the
+#' same permutations, and returned as $calculations_control. plot(x, type = 3)
+#' shows them as a heatmap, and summary() also reports the strongest of them,
+#' its window, and the value in the optimal window of the primary variable.
+#' The primary results do not change. Default is FALSE.
 #'
-#' @return a list with 21 elements:
+#' @return a list with elements including:
 #' \enumerate{
 #'  \item $calculations - a matrix with calculated metrics
 #'  \item $method - the character string of a method
@@ -294,6 +316,21 @@
 #'  \item $detrending - information about the climate detrending applied, a
 #'  list with the elements primary and control, each giving the method and the
 #'  settings used for those windows, or "none"
+#'  \item $variance_partitioning - a data frame for the optimal window: the
+#'  correlations of the response with the primary and the control series and
+#'  between them (r_response_primary, r_response_control, r_primary_control),
+#'  both partial correlations (pcor_primary, pcor_control), the variance of the
+#'  response explained by both series together (r_squared) and how it splits
+#'  into a part unique to the primary series (unique_primary), a part unique to
+#'  the control series (unique_control) and a part they share (shared, negative
+#'  when one series suppresses the other). For pcor_method = "spearman" the
+#'  split refers to ranks; for "kendall" it is NA
+#'  \item with pcor_control = TRUE: $calculations_control - a matrix with the
+#'  partial correlations of the response with the control variable,
+#'  controlling for the primary variable; $boot_lower_control and
+#'  $boot_upper_control - their bootstrap confidence intervals;
+#'  $significance_filter_control - the significance filter applied to them;
+#'  $plot_heatmap_control - their heatmap, also shown by plot(x, type = 3)
 #'}
 #'
 #' @export
@@ -419,6 +456,24 @@
 #'   skip_window_position = 10)
 #'
 #' # example_detrended$detrending
+#'
+#' # 6 Partial correlations with both variables: temperature controlling for
+#' # precipitation, and precipitation controlling for temperature
+#' example_both <- daily_response_seascorr(response = data_MVA,
+#'   env_data_primary = LJ_daily_temperatures,
+#'   env_data_control = LJ_daily_precipitation,
+#'   row_names_subset = TRUE,
+#'   fixed_width = 30,
+#'   remove_insignificant = FALSE,
+#'   tidy_env_data_primary = FALSE,
+#'   tidy_env_data_control = TRUE,
+#'   aggregate_function_env_data_control = "sum",
+#'   pcor_control = TRUE,
+#'   skip_window_position = 10)
+#'
+#' # summary(example_both)
+#' # example_both$variance_partitioning
+#' # plot(example_both, type = 3)
 #' }
 
 daily_response_seascorr <- function(response, env_data_primary, env_data_control,
@@ -453,7 +508,8 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
                                     dc_env_data_control = NULL,
                                     pcor_na_use = "everything",
                                     skip_window_length = 1,
-                                    skip_window_position = 1){
+                                    skip_window_position = 1,
+                                    pcor_control = FALSE){
 
   ##############################################################################
   # 1 day interval is organized
@@ -658,6 +714,11 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
     stop("remove_insignificant must be either TRUE or FALSE.")
   }
 
+  if (!is.logical(pcor_control) || length(pcor_control) != 1 ||
+      is.na(pcor_control)) {
+    stop("pcor_control must be either TRUE or FALSE.")
+  }
+
   # The bootstrap filter needs bootstrap intervals to exist.
   if (isTRUE(remove_insignificant) &&
       remove_insignificant_method == "boot" && isFALSE(boot)) {
@@ -735,7 +796,8 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
 
 
   # Check selected aggregation functions
-  allowed_aggregate_functions <- c("mean", "median", "sum", "min", "max", "quantile")
+  allowed_aggregate_functions <- c("mean", "median", "sum", "min", "max", "quantile",
+                                   "SPEI")
 
   check_aggregate_function <- function(aggregate_function, argument_name) {
     if (!(aggregate_function %in% allowed_aggregate_functions)) {
@@ -766,10 +828,18 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
   check_quantile_prob(quantile_prob_env_data_control,
                       "quantile_prob_env_data_control")
 
-  # Internal helper for aggregating daily data across rows
-  aggregate_daily_window <- function(x, aggregate_function, quantile_prob) {
+  # Internal helper for aggregating daily data across rows. data is the
+  # climate data frame and cols are the columns of the window.
+  aggregate_daily_window <- function(data, cols, aggregate_function, quantile_prob,
+                                     spei_ref = NULL) {
 
-    x <- data.frame(x)
+    # SPEI is standardised against all years of the climate data, which are
+    # kept in spei_ref, so the values do not depend on the analysed years.
+    if (aggregate_function == "SPEI") {
+      return(spei_window_values(spei_ref, cols, years = row.names(data)))
+    }
+
+    x <- data.frame(data[, cols, drop = FALSE])
 
     if (aggregate_function == "mean") {
       return(rowMeans(x, na.rm = TRUE))
@@ -815,16 +885,18 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
     }
   }
 
-  aggregate_daily_window_primary <- function(x) {
-    aggregate_daily_window(x,
+  aggregate_daily_window_primary <- function(data, cols) {
+    aggregate_daily_window(data, cols,
                            aggregate_function = aggregate_function_env_data_primary,
-                           quantile_prob = quantile_prob_env_data_primary)
+                           quantile_prob = quantile_prob_env_data_primary,
+                           spei_ref = spei_ref_primary)
   }
 
-  aggregate_daily_window_control <- function(x) {
-    aggregate_daily_window(x,
+  aggregate_daily_window_control <- function(data, cols) {
+    aggregate_daily_window(data, cols,
                            aggregate_function = aggregate_function_env_data_control,
-                           quantile_prob = quantile_prob_env_data_control)
+                           quantile_prob = quantile_prob_env_data_control,
+                           spei_ref = spei_ref_control)
   }
 
 
@@ -967,10 +1039,31 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
                    "row_names_subset is set to TRUE."))
   }
 
+  # SPEI is standardised against all years of the climate data, before they
+  # are lagged and matched with the response (see spei_reference()).
+  spei_current_years <- list(primary = env_data_primary,
+                             control = env_data_control)
+
   # Build current-year or multi-year environmental matrices.
   # For number_previous_years = 0 these return the data unchanged.
   env_data_primary <- build_lagged_env_data(env_data_primary, number_previous_years)
   env_data_control <- build_lagged_env_data(env_data_control, number_previous_years)
+
+  spei_ref_primary <- NULL
+  spei_ref_control <- NULL
+
+  if (aggregate_function_env_data_primary == "SPEI") {
+    spei_ref_primary <- spei_reference(spei_current_years$primary,
+                                       n_previous_years = number_previous_years,
+                                       daily = TRUE)
+  }
+
+  if (aggregate_function_env_data_control == "SPEI") {
+    spei_ref_control <- spei_reference(spei_current_years$control,
+                                       n_previous_years = number_previous_years,
+                                       daily = TRUE)
+  }
+  rm(spei_current_years)
 
   # These objects are used later for optimized_return_all. They should represent
   # the full lagged climate matrices before subset_years is applied.
@@ -1032,6 +1125,20 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
                               "dc_env_data_control, for example ",
                               "dc_env_data_control = ",
                               "list(dc_difference = TRUE)."))
+
+  spei_check_detrending(aggregate_function_env_data_primary,
+                        dc_args_primary$dc_method,
+                        dc_args_primary$dc_difference,
+                        env_name = "env_data_primary")
+
+  spei_check_detrending(aggregate_function_env_data_control,
+                        dc_args_control$dc_method,
+                        dc_args_control$dc_difference,
+                        env_name = "env_data_control",
+                        fix = paste0("Set dc_difference = TRUE, or add ",
+                                     "dc_env_data_control = ",
+                                     "list(dc_difference = TRUE) to change ",
+                                     "only the control windows."))
 
   dc_settings <- list(
     env_data_primary = do.call(dc_check_settings, c(dc_args_primary, list(
@@ -1232,6 +1339,44 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
     env_data_primary = window_gap_years(env_data_primary, min_window_width),
     env_data_control = window_gap_years(env_data_control, min_window_width))
 
+  # SPEI does not skip missing values: a window that includes a missing day
+  # has no SPEI in that year, so all years with missing days that enter the
+  # analysis are reported instead, and the warnings of the loop below are not
+  # needed.
+  spei_gaps <- list(env_data_primary = character(0),
+                    env_data_control = character(0))
+
+  if (aggregate_function_env_data_primary == "SPEI") {
+    spei_gaps$env_data_primary <- spei_gap_years(env_data_primary, days_per_year)
+    years_with_window_gaps$env_data_primary <- character(0)
+  }
+
+  if (aggregate_function_env_data_control == "SPEI") {
+    spei_gaps$env_data_control <- spei_gap_years(env_data_control, days_per_year)
+    years_with_window_gaps$env_data_control <- character(0)
+  }
+
+  if (any(lengths(spei_gaps) > 0)) {
+
+    spei_switch <- !(pcor_na_use %in% c("complete.obs", "na.or.complete",
+                                        "pairwise.complete.obs"))
+
+    for (env_name in names(spei_gaps)[lengths(spei_gaps) > 0]) {
+
+      warning(spei_gap_message(env_name, spei_gaps[[env_name]], unit = "days",
+                               switched = spei_switch,
+                               old_na_use = pcor_na_use,
+                               detrending = dc_detrended[[env_name]],
+                               na_arg = "pcor_na_use"))
+
+      # the change of pcor_na_use is reported once
+      if (spei_switch) {
+        pcor_na_use <- "pairwise.complete.obs"
+        spei_switch <- FALSE
+      }
+    }
+  }
+
   for (env_name in names(years_with_window_gaps)) {
 
     if (length(years_with_window_gaps[[env_name]]) == 0) {
@@ -1291,7 +1436,16 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
   # drawn once and shared by every window; each replicate is rebuilt from the
   # three pairwise correlations rather than by resampling. "bca" needs
   # jackknife estimates and keeps the boot() route.
+  # bca intervals need at least as many replicates as resampled years
+  bca_boot_n_warning(boot, boot_ci_type, boot_n, n_years = nrow(response))
+
   boot_fast_obj <- NULL
+
+  # With pcor_control = TRUE, one bootstrap run returns both partial
+  # correlations, so the primary results and the random numbers drawn are the
+  # same as without it.
+  boot_statistic <- if (isTRUE(pcor_control)) boot_f_pcor_both else boot_f_pcor
+  calc <- NULL
   if (boot == TRUE && boot_ci_type %in% c("norm", "perc", "basic")) {
 
     boot_fast_obj <- boot_fast_prep(y = response[, 1],
@@ -1322,6 +1476,10 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
     temporal_matrix_lower <- temporal_matrix
     temporal_matrix_upper <- temporal_matrix
 
+    temporal_matrix_control <- temporal_matrix
+    temporal_matrix_control_lower <- temporal_matrix
+    temporal_matrix_control_upper <- temporal_matrix
+
 
     if (fixed_width != max_window){
 
@@ -1344,15 +1502,13 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
       b = b + 1
 
       x1 <- aggregate_daily_window_primary(
-        env_data_primary[1:nrow(env_data_primary),
-                         (1 + j):(j + fixed_width),
-                         drop = FALSE]
+        env_data_primary,
+        (1 + j):(j + fixed_width)
       )
 
       x2 <- aggregate_daily_window_control(
-        env_data_control[1:nrow(env_data_control),
-                         (1 + j):(j + fixed_width),
-                         drop = FALSE]
+        env_data_control,
+        (1 + j):(j + fixed_width)
       )
 
       # Optional detrending of the aggregated climate series.
@@ -1415,11 +1571,11 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
 
         } else {
 
-          calc <- boot(data = my_temporal_data, statistic = boot_f_pcor, R = boot_n,
+          calc <- boot(data = my_temporal_data, statistic = boot_statistic, R = boot_n,
                        cor.type = pcor_method, pcor.use = pcor_na_use)
 
           temporal_correlation <- as.numeric(calc$t0[1])
-          ci_int <- try(boot.ci(calc, conf = boot_conf_int, type = boot_ci_type), silent = TRUE)
+          ci_int <- try(boot.ci(calc, conf = boot_conf_int, type = boot_ci_type, index = 1L), silent = TRUE)
 
           if (class(ci_int)[[1]] == "try-error"){
 
@@ -1480,6 +1636,32 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
         print(paste0("boot should be TRUE or FALSE, instead it is ", boot))
 
       }
+      # Partial correlation of the response with the control window,
+      # controlling for the primary window, stored at the same position.
+      if (isTRUE(pcor_control) && window_is_usable_pcor(my_temporal_data)) {
+
+        control_position <- if (reference_window == 'start') {
+          j + 1
+        } else if (reference_window == 'end') {
+          j + fixed_width
+        } else {
+          round2(j + 1 + fixed_width/2, 0)
+        }
+
+        control_stats <- seascorr_control_stats(
+          my_temporal_data,
+          boot = boot, boot_fast_obj = boot_fast_obj, calc = calc,
+          pcor_method = pcor_method, pcor_na_use = pcor_na_use,
+          boot_conf_int = boot_conf_int, boot_ci_type = boot_ci_type)
+
+        temporal_matrix_control[1, control_position] <- control_stats[1]
+
+        if (isTRUE(boot)) {
+          temporal_matrix_control_lower[1, control_position] <- control_stats[2]
+          temporal_matrix_control_upper[1, control_position] <- control_stats[3]
+        }
+      }
+
       if(interactive()){
 
         if (fixed_width != max_window){setTxtProgressBar(pb, b)}
@@ -1504,6 +1686,10 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
     colnames(temporal_matrix) <- temporal_colnames
     colnames(temporal_matrix_lower) <- temporal_colnames
     colnames(temporal_matrix_upper) <- temporal_colnames
+
+    dimnames(temporal_matrix_control) <- dimnames(temporal_matrix)
+    dimnames(temporal_matrix_control_lower) <- dimnames(temporal_matrix)
+    dimnames(temporal_matrix_control_upper) <- dimnames(temporal_matrix)
   }
 
 
@@ -1540,6 +1726,10 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
     temporal_matrix_lower <- temporal_matrix
     temporal_matrix_upper <- temporal_matrix
 
+    temporal_matrix_control <- temporal_matrix
+    temporal_matrix_control_lower <- temporal_matrix
+    temporal_matrix_control_upper <- temporal_matrix
+
     if (upper_limit != lower_limit){
       if(interactive()){
 
@@ -1558,15 +1748,13 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
       for (j in seq((0 + offset_start -1), (ncol(env_data_primary) - max((K + offset_end), offset_end)), by = skip_window_position)) {
 
         x1 <- aggregate_daily_window_primary(
-          env_data_primary[1:nrow(env_data_primary),
-                           (1 + j):(j + K),
-                           drop = FALSE]
+          env_data_primary,
+          (1 + j):(j + K)
         )
 
         x2 <- aggregate_daily_window_control(
-          env_data_control[1:nrow(env_data_control),
-                           (1 + j):(j + K),
-                           drop = FALSE]
+          env_data_control,
+          (1 + j):(j + K)
         )
 
         # Optional detrending of the aggregated climate series.
@@ -1632,11 +1820,11 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
 
           } else {
 
-            calc <- boot(data = my_temporal_data, statistic = boot_f_pcor, R = boot_n,
+            calc <- boot(data = my_temporal_data, statistic = boot_statistic, R = boot_n,
                          cor.type = pcor_method, pcor.use = pcor_na_use)
 
             temporal_correlation <- as.numeric(calc$t0[1])
-            ci_int <- try(boot.ci(calc, conf = boot_conf_int, type = boot_ci_type), silent = TRUE)
+            ci_int <- try(boot.ci(calc, conf = boot_conf_int, type = boot_ci_type, index = 1L), silent = TRUE)
 
             if (class(ci_int)[[1]] == "try-error"){
 
@@ -1698,6 +1886,35 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
 
         }
 
+
+        # Partial correlation of the response with the control window,
+        # controlling for the primary window, stored at the same position.
+        if (isTRUE(pcor_control) && window_is_usable_pcor(my_temporal_data)) {
+
+          control_position <- if (reference_window == 'start') {
+            j + 1
+          } else if (reference_window == 'end') {
+            j + K
+          } else {
+            round2(j + 1 + K/2, 0)
+          }
+
+          control_stats <- seascorr_control_stats(
+            my_temporal_data,
+            boot = boot, boot_fast_obj = boot_fast_obj, calc = calc,
+            pcor_method = pcor_method, pcor_na_use = pcor_na_use,
+            boot_conf_int = boot_conf_int, boot_ci_type = boot_ci_type)
+
+          control_row <- (K - lower_limit) + 1
+          temporal_matrix_control[control_row, control_position] <- control_stats[1]
+
+          if (isTRUE(boot)) {
+            temporal_matrix_control_lower[control_row, control_position] <-
+              control_stats[2]
+            temporal_matrix_control_upper[control_row, control_position] <-
+              control_stats[3]
+          }
+        }
       }
 
       if(interactive()){
@@ -1728,6 +1945,10 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
     colnames(temporal_matrix) <- temporal_colnames
     colnames(temporal_matrix_lower) <- temporal_colnames
     colnames(temporal_matrix_upper) <- temporal_colnames
+
+    dimnames(temporal_matrix_control) <- dimnames(temporal_matrix)
+    dimnames(temporal_matrix_control_lower) <- dimnames(temporal_matrix)
+    dimnames(temporal_matrix_control_upper) <- dimnames(temporal_matrix)
   }
 
   # To enhance the visualisation, insignificant values are removed if
@@ -1749,476 +1970,72 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
     total_cells = length(temporal_matrix)
   )
 
+  # The control surface starts from the same, empty description.
+  significance_filter_control <- significance_filter
+  significance_filter_control$retained_cells <-
+    sum(!is.na(temporal_matrix_control))
+
   if (isTRUE(remove_insignificant)) {
 
-    # Partial correlation controls for one variable, which the critical
-    # value and p value helpers account for through df_adjust.
-    n_obs <- nrow(response)
-    original_non_missing <- !is.na(temporal_matrix)
-    keep <- NULL
+    # The filter is in seascorr_significance(), shared by both seascorr
+    # functions. With pcor_control = TRUE it is applied in the same way to the
+    # control surface, against the same permutations. Warnings about the
+    # primary surface are collected, so that the control surface does not
+    # repeat them.
+    primary_warnings <- character(0)
 
-    # 1 Plain alpha threshold
-    if (remove_insignificant_method == "alpha") {
+    significance <- withCallingHandlers(
+      seascorr_significance(
+        surface = temporal_matrix,
+        surface_lower = temporal_matrix_lower,
+        surface_upper = temporal_matrix_upper,
+        climate_tested = list_climate_primary,
+        climate_other = list_climate_control,
+        response = response,
+        significance_filter = significance_filter,
+        remove_insignificant_method = remove_insignificant_method,
+        alpha = alpha, pcor_method = pcor_method, pcor_na_use = pcor_na_use,
+        perm_n = perm_n, cluster_threshold = cluster_threshold,
+        reference_window = reference_window),
+      warning = function(w) {
+        primary_warnings <<- c(primary_warnings, conditionMessage(w))
+      })
 
-      critical_threshold_cor <- critical_r(n_obs, alpha = alpha,
-                                           cor_method = pcor_method)
+    temporal_matrix <- significance$surface
+    temporal_matrix_lower <- significance$lower
+    temporal_matrix_upper <- significance$upper
+    significance_filter <- significance$significance_filter
+    primary_perm_index <- significance$perm_index
 
-      keep <- abs(temporal_matrix) >= abs(critical_threshold_cor)
+    if (isTRUE(pcor_control)) {
 
-      significance_filter$applied <- TRUE
-      significance_filter$method <- "alpha"
-      significance_filter$criterion <- paste0("|partial r| >= ",
-                                              round(critical_threshold_cor, 3),
-                                              " (alpha = ", alpha, ")")
-
-      significance_filter$critical_r <- critical_threshold_cor
-
-      # 2 Bootstrap confidence interval
-    } else if (remove_insignificant_method == "boot") {
-
-      if (is.null(temporal_matrix_lower) ||
-          is.null(temporal_matrix_upper) ||
-          !all(dim(temporal_matrix) == dim(temporal_matrix_lower)) ||
-          !all(dim(temporal_matrix) == dim(temporal_matrix_upper))) {
-
-        warning(paste0("Bootstrap confidence-interval filtering was requested, ",
-                       "but boot_lower and boot_upper are not available with the ",
-                       "same dimensions as the calculation matrix. The bootstrap ",
-                       "filter is ignored."))
-
-      } else {
-
-        keep <- (temporal_matrix_lower > 0 & temporal_matrix_upper > 0) |
-          (temporal_matrix_lower < 0 & temporal_matrix_upper < 0)
-
-        significance_filter$applied <- TRUE
-        significance_filter$method <- "boot"
-        significance_filter$criterion <- "Bootstrap confidence interval excludes zero"
-      }
-
-      # 3 False discovery rate
-    } else if (remove_insignificant_method == "fdr_BY" |
-               remove_insignificant_method == "fdr_BH") {
-
-      fdr_type <- sub("^fdr_", "", remove_insignificant_method)
-
-      p_surface <- p_from_r(temporal_matrix, n_obs,
-                            cor_method = pcor_method, df_adjust = 1)
-
-      p_adjusted <- stats::p.adjust(as.vector(p_surface), method = fdr_type)
-      p_adjusted <- matrix(p_adjusted, nrow = nrow(p_surface))
-
-      keep <- p_adjusted < alpha
-
-      significance_filter$applied <- TRUE
-      significance_filter$method <- remove_insignificant_method
-      significance_filter$criterion <- paste0("Adjusted p < ", alpha,
-                                              " (", fdr_type, ")")
-
-      # 4 Max-statistic permutation
-    } else if (remove_insignificant_method == "maxstat") {
-
-      climate_primary <- do.call(cbind, list_climate_primary)
-      climate_control <- do.call(cbind, list_climate_control)
-
-      if (is.null(climate_primary) || is.null(climate_control) ||
-          ncol(climate_primary) < 1 ||
-          ncol(climate_primary) != ncol(climate_control)) {
-
-        warning(paste0("remove_insignificant_method = 'maxstat' was requested, ",
-                       "but the matrices of aggregated primary and control ",
-                       "windows are not available or do not match. The ",
-                       "significance filter is ignored."))
-
-      } else {
-
-        shared_years <- intersect(row.names(response), row.names(climate_primary))
-
-        if (length(shared_years) < 10) {
-
-          warning(paste0("remove_insignificant_method = 'maxstat' was requested, ",
-                         "but fewer than 10 years are shared between the response ",
-                         "and the aggregated climate windows. The significance ",
-                         "filter is ignored."))
-
-        } else {
-
-          y_perm  <- response[shared_years, 1]
-          x1_perm <- climate_primary[shared_years, , drop = FALSE]
-          x2_perm <- climate_control[shared_years, , drop = FALSE]
-
-          # Correlation between each primary window and its paired control
-          # window. This does not involve the response, so it is unchanged by
-          # permutation and is computed only once.
-          r_yz <- vapply(seq_len(ncol(x1_perm)), function(win_i) {
-            suppressWarnings(stats::cor(x1_perm[, win_i], x2_perm[, win_i],
-                                        method = pcor_method, use = pcor_na_use))
-          }, numeric(1))
-
-          denom_z <- sqrt(1 - r_yz ^ 2)
-
-          # Null distribution of the largest absolute partial correlation
-          # obtained anywhere in the search when the response is unrelated to
-          # climate. The same shuffle is applied to both correlations so that
-          # the response stays internally consistent within a permutation.
-          null_max <- rep(NA_real_, perm_n)
-
-          for (perm_i in seq_len(perm_n)) {
-
-            y_shuffled <- sample(y_perm)
-
-            r_xy <- suppressWarnings(
-              as.numeric(stats::cor(y_shuffled, x1_perm,
-                                    method = pcor_method, use = pcor_na_use)))
-
-            r_xz <- suppressWarnings(
-              as.numeric(stats::cor(y_shuffled, x2_perm,
-                                    method = pcor_method, use = pcor_na_use)))
-
-            perm_pcor <- (r_xy - r_xz * r_yz) / (sqrt(1 - r_xz ^ 2) * denom_z)
-
-            null_max[perm_i] <- max(abs(perm_pcor), na.rm = TRUE)
+      significance <- withCallingHandlers(
+        seascorr_significance(
+          surface = temporal_matrix_control,
+          surface_lower = temporal_matrix_control_lower,
+          surface_upper = temporal_matrix_control_upper,
+          climate_tested = list_climate_control,
+          climate_other = list_climate_primary,
+          response = response,
+          significance_filter = significance_filter_control,
+          remove_insignificant_method = remove_insignificant_method,
+          alpha = alpha, pcor_method = pcor_method, pcor_na_use = pcor_na_use,
+          perm_n = perm_n, cluster_threshold = cluster_threshold,
+          reference_window = reference_window,
+          perm_index = primary_perm_index, label = "control"),
+        warning = function(w) {
+          if (conditionMessage(w) %in% primary_warnings) {
+            invokeRestart("muffleWarning")
           }
-
-          critical_threshold_perm <- as.numeric(
-            stats::quantile(null_max, probs = 1 - alpha, na.rm = TRUE))
-
-          observed_max <- max(abs(temporal_matrix), na.rm = TRUE)
-
-          keep <- abs(temporal_matrix) >= critical_threshold_perm
-
-          p_global <- (sum(null_max >= observed_max, na.rm = TRUE) + 1) /
-            (perm_n + 1)
-
-          significance_filter$applied <- TRUE
-          significance_filter$method <- "maxstat"
-          significance_filter$criterion <- paste0("|partial r| >= ",
-                                                  round(critical_threshold_perm, 3),
-                                                  " (max-statistic permutation, ",
-                                                  perm_n, " permutations, alpha = ",
-                                                  alpha, ")")
-          significance_filter$critical_r <- critical_threshold_perm
-          significance_filter$observed_max_r <- observed_max
-          significance_filter$p_global <- p_global
-          significance_filter$perm_n <- perm_n
-          significance_filter$n_windows_searched <- ncol(x1_perm)
-        }
-      }
-
-      # 5 Sidak correction on the effective number of tests
-    } else if (remove_insignificant_method == "sidak") {
-
-      climate_primary <- do.call(cbind, list_climate_primary)
-      climate_control <- do.call(cbind, list_climate_control)
-
-      if (is.null(climate_primary) || is.null(climate_control) ||
-          ncol(climate_primary) < 2 ||
-          ncol(climate_primary) != ncol(climate_control)) {
-
-        warning(paste0("remove_insignificant_method = 'sidak' was requested, ",
-                       "but the matrices of aggregated primary and control ",
-                       "windows are not available or do not match. The ",
-                       "significance filter is ignored."))
-
-      } else {
-
-        shared_years <- intersect(row.names(response), row.names(climate_primary))
-
-        if (length(shared_years) < 10) {
-
-          warning(paste0("remove_insignificant_method = 'sidak' was requested, ",
-                         "but fewer than 10 years are shared between the ",
-                         "response and the aggregated climate windows. The ",
-                         "significance filter is ignored."))
-
-        } else {
-
-          n_obs_sidak <- length(shared_years)
-
-          x1_sidak <- climate_primary[shared_years, , drop = FALSE]
-          x2_sidak <- climate_control[shared_years, , drop = FALSE]
-
-          # Missing years are left out rather than whole windows, so that the
-          # effective number of tests describes every screened window, see
-          # sidak_window_matrix(). A year or window counts as missing when the
-          # primary or the control value is missing. Complete data are not
-          # affected.
-          x1_sidak <- sidak_window_matrix(x1_sidak, x_control = x2_sidak)
-          rm(x2_sidak)
-
-          if (ncol(x1_sidak) < 2) {
-
-            warning(paste0("remove_insignificant_method = 'sidak' was ",
-                           "requested, but fewer than two complete window ",
-                           "pairs remain. The significance filter is ",
-                           "ignored."))
-
-          } else {
-
-            x1_sidak <- x1_sidak[, apply(x1_sidak, 2, stats::sd) > 0,
-                                 drop = FALSE]
-
-            if (ncol(x1_sidak) < 2) {
-
-              warning(paste0("remove_insignificant_method = 'sidak' was ",
-                             "requested, but fewer than two primary windows ",
-                             "vary. The significance filter is ignored."))
-
-            } else {
-
-              # Effective number of independent tests among the screened
-              # primary windows, following Li and Ji (2005). The correlation
-              # matrix among windows has rank at most the number of years, so
-              # its non-zero eigenvalues come from the years-by-years matrix
-              # rather than the windows-by-windows one.
-              z_sidak <- scale(x1_sidak)
-              gram <- tcrossprod(z_sidak) / (nrow(z_sidak) - 1)
-
-              eig <- eigen(gram, symmetric = TRUE, only.values = TRUE)$values
-              eig <- eig[eig > 1e-10]
-
-              m_eff <- sum((eig >= 1) + (eig - floor(eig)))
-
-              # One degree of freedom is spent on the control variable
-              alpha_sidak <- 1 - (1 - alpha) ^ (1 / m_eff)
-              critical_threshold_sidak <- critical_r(n_obs_sidak - 1,
-                                                     alpha = alpha_sidak,
-                                                     cor_method = pcor_method)
-
-              keep <- abs(temporal_matrix) >= critical_threshold_sidak
-
-              significance_filter$applied <- TRUE
-              significance_filter$method <- "sidak"
-              significance_filter$criterion <- paste0("|partial r| >= ",
-                                                      round(critical_threshold_sidak, 3),
-                                                      " (Sidak on ", round(m_eff, 1),
-                                                      " effective tests, alpha = ",
-                                                      alpha, ")")
-              significance_filter$critical_r <- critical_threshold_sidak
-              significance_filter$effective_tests <- m_eff
-              significance_filter$alpha_per_test <- alpha_sidak
-              significance_filter$n_windows_searched <- ncol(x1_sidak)
-            }
-          }
-        }
-      }
-
-      # 6 Cluster-extent inference
-    } else if (remove_insignificant_method == "cluster") {
-
-      climate_primary <- do.call(cbind, list_climate_primary)
-      climate_control <- do.call(cbind, list_climate_control)
-
-      if (is.null(climate_primary) || is.null(climate_control) ||
-          ncol(climate_primary) < 1 ||
-          ncol(climate_primary) != ncol(climate_control)) {
-
-        warning(paste0("remove_insignificant_method = 'cluster' was requested, ",
-                       "but the matrices of aggregated primary and control ",
-                       "windows are not available or do not match. The ",
-                       "significance filter is ignored."))
-
-      } else {
-
-        shared_years <- intersect(row.names(response), row.names(climate_primary))
-
-        if (length(shared_years) < 10) {
-
-          warning(paste0("remove_insignificant_method = 'cluster' was ",
-                         "requested, but fewer than 10 years are shared ",
-                         "between the response and the aggregated climate ",
-                         "windows. The significance filter is ignored."))
-
-        } else {
-
-          y_perm <- response[shared_years, 1]
-          x1_perm <- climate_primary[shared_years, , drop = FALSE]
-          x2_perm <- climate_control[shared_years, , drop = FALSE]
-          n_obs_cl <- length(shared_years)
-
-          # Cluster inference needs the permuted statistics laid out on the
-          # same surface as the observed ones, unlike the max-statistic test
-          # which needs only their maximum. Each aggregated window is named
-          # "start_end", which gives its width and position; the mapping is
-          # checked against the observed surface before it is used.
-          win_nm <- colnames(x1_perm)
-          parts <- strsplit(win_nm, "_", fixed = TRUE)
-          w_start <- suppressWarnings(as.numeric(vapply(parts, `[`, "", 1)))
-          w_end <- suppressWarnings(as.numeric(vapply(parts, `[`, "", 2)))
-          w_width <- w_end - w_start + 1
-
-          surf_widths <- suppressWarnings(as.numeric(row.names(temporal_matrix)))
-
-          if (nrow(temporal_matrix) == 1) {
-            row_idx <- rep(1L, length(w_width))
-          } else {
-            row_idx <- match(w_width, surf_widths)
-          }
-
-          col_idx <- if (reference_window == "start") {
-            w_start
-          } else if (reference_window == "end") {
-            w_end
-          } else {
-            round2(w_start + w_width / 2, 0)
-          }
-
-          usable <- !is.na(row_idx) & !is.na(col_idx) &
-            row_idx >= 1 & row_idx <= nrow(temporal_matrix) &
-            col_idx >= 1 & col_idx <= ncol(temporal_matrix)
-
-          map_ok <- FALSE
-          if (any(usable)) {
-
-            r_xy_o <- suppressWarnings(
-              as.numeric(stats::cor(y_perm, x1_perm[, usable, drop = FALSE],
-                                    method = pcor_method, use = pcor_na_use)))
-            r_xz_o <- suppressWarnings(
-              as.numeric(stats::cor(y_perm, x2_perm[, usable, drop = FALSE],
-                                    method = pcor_method, use = pcor_na_use)))
-            r_yz_o <- vapply(which(usable), function(win_i) {
-              suppressWarnings(stats::cor(x1_perm[, win_i], x2_perm[, win_i],
-                                          method = pcor_method,
-                                          use = pcor_na_use))
-            }, numeric(1))
-
-            obs_pcor <- (r_xy_o - r_xz_o * r_yz_o) /
-              (sqrt(1 - r_xz_o ^ 2) * sqrt(1 - r_yz_o ^ 2))
-
-            on_surface <- temporal_matrix[cbind(row_idx[usable],
-                                                col_idx[usable])]
-            both <- is.finite(obs_pcor) & is.finite(on_surface)
-            map_ok <- sum(both) > 0 &&
-              max(abs(obs_pcor[both] - on_surface[both])) < 1e-8
-          }
-
-          if (!map_ok) {
-
-            warning(paste0("remove_insignificant_method = 'cluster' was ",
-                           "requested, but the aggregated windows could not be ",
-                           "matched to their positions on the response ",
-                           "surface. The significance filter is ignored."))
-
-          } else {
-
-            idx_cells <- cbind(row_idx[usable], col_idx[usable])
-            x1_use <- x1_perm[, usable, drop = FALSE]
-            x2_use <- x2_perm[, usable, drop = FALSE]
-
-            form_thr <- if (identical(cluster_threshold, "nominal")) {
-              critical_r(n_obs_cl, alpha = alpha, cor_method = pcor_method)
-            } else {
-              cluster_threshold
-            }
-
-            # the primary-control correlation does not involve the response,
-            # so it is unchanged by permutation and computed only once
-            r_yz <- vapply(seq_len(ncol(x1_use)), function(win_i) {
-              suppressWarnings(stats::cor(x1_use[, win_i], x2_use[, win_i],
-                                          method = pcor_method,
-                                          use = pcor_na_use))
-            }, numeric(1))
-            denom_z <- sqrt(1 - r_yz ^ 2)
-
-            null_clust <- rep(NA_real_, perm_n)
-            null_max <- rep(NA_real_, perm_n)
-
-            perm_surface <- matrix(NA_real_, nrow(temporal_matrix),
-                                   ncol(temporal_matrix))
-
-            for (perm_i in seq_len(perm_n)) {
-
-              y_shuffled <- sample(y_perm)
-
-              r_xy <- suppressWarnings(
-                as.numeric(stats::cor(y_shuffled, x1_use,
-                                      method = pcor_method, use = pcor_na_use)))
-              r_xz <- suppressWarnings(
-                as.numeric(stats::cor(y_shuffled, x2_use,
-                                      method = pcor_method, use = pcor_na_use)))
-
-              perm_pcor <- (r_xy - r_xz * r_yz) /
-                (sqrt(1 - r_xz ^ 2) * denom_z)
-
-              perm_surface[] <- NA_real_
-              perm_surface[idx_cells] <- perm_pcor
-
-              null_max[perm_i] <- max(abs(perm_pcor), na.rm = TRUE)
-              null_clust[perm_i] <- max(cluster_fast_masses(perm_surface,
-                                                            form_thr))
-            }
-
-            crit_mass <- as.numeric(
-              stats::quantile(null_clust, probs = 1 - alpha, na.rm = TRUE))
-            crit_max_cl <- as.numeric(
-              stats::quantile(null_max, probs = 1 - alpha, na.rm = TRUE))
-
-            obs_mask <- !is.na(temporal_matrix) &
-              abs(temporal_matrix) > form_thr
-            cc <- cluster_fast_label(obs_mask)
-
-            keep <- matrix(FALSE, nrow(temporal_matrix),
-                           ncol(temporal_matrix))
-            n_retained <- 0L
-            obs_masses <- numeric(0)
-
-            if (cc$n > 0L) {
-              for (cl in seq_len(cc$n)) {
-                in_cl <- cc$labels == cl
-                mass <- sum(abs(temporal_matrix[in_cl]), na.rm = TRUE)
-                obs_masses <- c(obs_masses, mass)
-                if (mass > crit_mass) {
-                  keep[in_cl] <- TRUE
-                  n_retained <- n_retained + 1L
-                }
-              }
-            }
-
-            significance_filter$applied <- TRUE
-            significance_filter$method <- "cluster"
-            significance_filter$criterion <- paste0("cluster mass > ",
-                                                    round(crit_mass, 1),
-                                                    ", clusters formed at ",
-                                                    "|partial r| > ",
-                                                    round(form_thr, 3), " (",
-                                                    perm_n,
-                                                    " permutations, alpha = ",
-                                                    alpha, ")")
-            significance_filter$forming_threshold <- form_thr
-            significance_filter$cluster_mass_critical <- crit_mass
-            significance_filter$n_clusters_formed <- cc$n
-            significance_filter$n_clusters_retained <- n_retained
-            significance_filter$largest_cluster_mass <-
-              if (length(obs_masses)) max(obs_masses) else 0
-            significance_filter$maxstat_critical_r <- crit_max_cl
-            significance_filter$perm_n <- perm_n
-            significance_filter$n_windows_searched <- ncol(x1_use)
-          }
-        }
-      }
+        })
+
+      temporal_matrix_control <- significance$surface
+      temporal_matrix_control_lower <- significance$lower
+      temporal_matrix_control_upper <- significance$upper
+      significance_filter_control <- significance$significance_filter
     }
 
-    # Apply whichever mask was produced
-    if (!is.null(keep)) {
-
-      keep[is.na(keep)] <- FALSE
-
-      temporal_matrix[!keep] <- NA
-
-      # The same mask is applied to the confidence-interval matrices, so that
-      # a filtered surface is not accompanied by intervals for windows the
-      # filter removed.
-      if (exists("temporal_matrix_lower") && !is.null(temporal_matrix_lower) &&
-          all(dim(temporal_matrix_lower) == dim(temporal_matrix))) {
-        temporal_matrix_lower[!keep] <- NA
-        temporal_matrix_upper[!keep] <- NA
-      }
-
-      significance_filter$removed_cells <- sum(original_non_missing & !keep,
-                                               na.rm = TRUE)
-      significance_filter$retained_cells <- sum(!is.na(temporal_matrix))
-      significance_filter$total_cells <- length(temporal_matrix)
-    }
+    rm(significance, primary_warnings, primary_perm_index)
   }
 
 
@@ -2261,7 +2078,17 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
                        aggregated_climate_primary = NA,
                        aggregated_climate_control = NA,
                        significance_filter = significance_filter,
-                       detrending = detrending_summary)
+                       detrending = detrending_summary,
+                       variance_partitioning = NA)
+
+    if (isTRUE(pcor_control)) {
+      final_list <- c(final_list,
+                      list(calculations_control = temporal_matrix_control,
+                           boot_lower_control = temporal_matrix_control_lower,
+                           boot_upper_control = temporal_matrix_control_upper,
+                           significance_filter_control = significance_filter_control,
+                           plot_heatmap_control = NA))
+    }
 
     class(final_list) <- 'dmrs'
 
@@ -2346,30 +2173,30 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
     if (reference_window == 'start'){
 
       x1 <- data.frame(aggregate_daily_window_primary(
-        env_data_primary[, as.numeric(plot_column):
-                           (as.numeric(plot_column) + as.numeric(row_index) - 1),
-                         drop = FALSE]
+        env_data_primary,
+        as.numeric(plot_column):
+          (as.numeric(plot_column) + as.numeric(row_index) - 1)
       ))
 
       x2 <- data.frame(aggregate_daily_window_control(
-        env_data_control[, as.numeric(plot_column):
-                           (as.numeric(plot_column) + as.numeric(row_index) - 1),
-                         drop = FALSE]
+        env_data_control,
+        as.numeric(plot_column):
+          (as.numeric(plot_column) + as.numeric(row_index) - 1)
       ))
 
       ## Once again, the same procedure, to get the optimal sequence, but this time for whole data, not only
       # for the analysed period.
 
       x1_original <- data.frame(aggregate_daily_window_primary(
-        env_data_primary_original[, as.numeric(plot_column):
-                                    (as.numeric(plot_column) + as.numeric(row_index) - 1),
-                                  drop = FALSE]
+        env_data_primary_original,
+        as.numeric(plot_column):
+          (as.numeric(plot_column) + as.numeric(row_index) - 1)
       ))
 
       x2_original <- data.frame(aggregate_daily_window_control(
-        env_data_control_original[, as.numeric(plot_column):
-                                    (as.numeric(plot_column) + as.numeric(row_index) - 1),
-                                  drop = FALSE]
+        env_data_control_original,
+        as.numeric(plot_column):
+          (as.numeric(plot_column) + as.numeric(row_index) - 1)
       ))
 
     }
@@ -2379,30 +2206,30 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
     if (reference_window == 'end'){
 
       x1 <- data.frame(aggregate_daily_window_primary(
-        env_data_primary[, (as.numeric(plot_column) - as.numeric(row_index) + 1):
-                           as.numeric(plot_column),
-                         drop = FALSE]
+        env_data_primary,
+        (as.numeric(plot_column) - as.numeric(row_index) + 1):
+          as.numeric(plot_column)
       ))
 
       x2 <- data.frame(aggregate_daily_window_control(
-        env_data_control[, (as.numeric(plot_column) - as.numeric(row_index) + 1):
-                           as.numeric(plot_column),
-                         drop = FALSE]
+        env_data_control,
+        (as.numeric(plot_column) - as.numeric(row_index) + 1):
+          as.numeric(plot_column)
       ))
 
       ## Once again, the same procedure, to get the optimal sequence, but this time for whole data, not only
       # for the analysed period.
 
       x1_original <- data.frame(aggregate_daily_window_primary(
-        env_data_primary_original[, (as.numeric(plot_column) - as.numeric(row_index) + 1):
-                                    as.numeric(plot_column),
-                                  drop = FALSE]
+        env_data_primary_original,
+        (as.numeric(plot_column) - as.numeric(row_index) + 1):
+          as.numeric(plot_column)
       ))
 
       x2_original <- data.frame(aggregate_daily_window_control(
-        env_data_control_original[, (as.numeric(plot_column) - as.numeric(row_index) + 1):
-                                    as.numeric(plot_column),
-                                  drop = FALSE]
+        env_data_control_original,
+        (as.numeric(plot_column) - as.numeric(row_index) + 1):
+          as.numeric(plot_column)
       ))
 
     }
@@ -2420,30 +2247,30 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
       }
 
       x1 <- data.frame(aggregate_daily_window_primary(
-        env_data_primary[, (round2((as.numeric(plot_column) - as.numeric(row_index) / 2)) - adjustment_1):
-                           (round2((as.numeric(plot_column) + as.numeric(row_index) / 2)) - adjustment_2),
-                         drop = FALSE]
+        env_data_primary,
+        (round2((as.numeric(plot_column) - as.numeric(row_index) / 2)) - adjustment_1):
+          (round2((as.numeric(plot_column) + as.numeric(row_index) / 2)) - adjustment_2)
       ))
 
       x2 <- data.frame(aggregate_daily_window_control(
-        env_data_control[, (round2((as.numeric(plot_column) - as.numeric(row_index) / 2)) - adjustment_1):
-                           (round2((as.numeric(plot_column) + as.numeric(row_index) / 2)) - adjustment_2),
-                         drop = FALSE]
+        env_data_control,
+        (round2((as.numeric(plot_column) - as.numeric(row_index) / 2)) - adjustment_1):
+          (round2((as.numeric(plot_column) + as.numeric(row_index) / 2)) - adjustment_2)
       ))
 
       ## Once again, the same procedure, to get the optimal sequence, but this time for whole data, not only
       # for the analysed period.
 
       x1_original <- data.frame(aggregate_daily_window_primary(
-        env_data_primary_original[, (round2((as.numeric(plot_column) - as.numeric(row_index) / 2)) - adjustment_1):
-                                    (round2((as.numeric(plot_column) + as.numeric(row_index) / 2)) - adjustment_2),
-                                  drop = FALSE]
+        env_data_primary_original,
+        (round2((as.numeric(plot_column) - as.numeric(row_index) / 2)) - adjustment_1):
+          (round2((as.numeric(plot_column) + as.numeric(row_index) / 2)) - adjustment_2)
       ))
 
       x2_original <- data.frame(aggregate_daily_window_control(
-        env_data_control_original[, (round2((as.numeric(plot_column) - as.numeric(row_index) / 2)) - adjustment_1):
-                                    (round2((as.numeric(plot_column) + as.numeric(row_index) / 2)) - adjustment_2),
-                                  drop = FALSE]
+        env_data_control_original,
+        (round2((as.numeric(plot_column) - as.numeric(row_index) / 2)) - adjustment_1):
+          (round2((as.numeric(plot_column) + as.numeric(row_index) / 2)) - adjustment_2)
       ))
 
     }
@@ -2718,6 +2545,30 @@ daily_response_seascorr <- function(response, env_data_primary, env_data_control
                        aggregated_climate_control = do.call(cbind, list_climate_control),
                        significance_filter = significance_filter,
                        detrending = detrending_summary)
+
+    # Both partial correlations and the shared variance in the optimal window
+    final_list$variance_partitioning <- seascorr_variance_partitioning(
+      x1_full, pcor_method = pcor_method, pcor_na_use = pcor_na_use)
+
+    if (isTRUE(pcor_control)) {
+
+      plot_heatmap_control <- NA
+
+      if (any(is.finite(temporal_matrix_control))) {
+        control_list <- final_list
+        control_list$calculations <- temporal_matrix_control
+        plot_heatmap_control <- plot_heatmap(control_list,
+                                             reference_window = reference_window,
+                                             type = "daily")
+      }
+
+      final_list <- c(final_list,
+                      list(calculations_control = temporal_matrix_control,
+                           boot_lower_control = temporal_matrix_control_lower,
+                           boot_upper_control = temporal_matrix_control_upper,
+                           significance_filter_control = significance_filter_control,
+                           plot_heatmap_control = plot_heatmap_control))
+    }
 
     class(final_list) <- "dmrs"
 

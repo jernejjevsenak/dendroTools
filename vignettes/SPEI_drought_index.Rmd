@@ -1,0 +1,311 @@
+---
+title: "Climate-growth correlations with SPEI"
+author: "Jernej Jevšenak"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{SPEI_drought_index}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+<style>
+body {
+text-align: justify; font-size: 16px}
+</style>
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.align = "center")
+```
+
+# 1 Introduction
+
+The Standardized Precipitation-Evapotranspiration Index (SPEI; Vicente-Serrano et al. 2010) describes how wet or dry a period was compared with the same period of other years. It is based on the climatic water balance, i.e. precipitation minus potential evapotranspiration (PET), accumulated over a number of months or days, the time scale of the index. The accumulated water balance is standardised separately for each month or day of the year, so SPEI values are comparable between seasons, time scales and sites: 0 is a normal period, negative values are drier and positive values wetter than usual, and values below -2 or above 2 are rare.
+
+With `aggregate_function = "SPEI"`, *monthly_response()*, *daily_response()* and the two seascorr functions calculate the SPEI of every moving window. The width of a window is the time scale and its last month or day is the month or day of the index, so one analysis covers all time scales and all months or days at once. All other options of the functions work as they do for temperature or precipitation: previous years, significance filters, bootstrap confidence intervals, temporal stability, subsets of years, climate detrending and partial correlations.
+
+| Argument | Purpose |
+|---|---|
+| `env_data` | the climatic water balance, for example from *water_balance()* |
+| `aggregate_function = "SPEI"` | SPEI of every window; in the seascorr functions `aggregate_function_env_data_primary` or `aggregate_function_env_data_control` |
+| `fixed_width`, or `lower_limit` and `upper_limit` | the time scales, in months or days |
+| `previous_year`, `number_previous_years`, `month_interval` or `day_interval` | windows that extend into previous years |
+| `cor_na_use` | the treatment of windows that are missing in some years (section 6) |
+| `subset_years` | the years used for the correlations (section 7) |
+| `dc_method` with `dc_difference = TRUE` | climate detrending (section 8) |
+
+# 2 Data
+
+The examples use black pine (*Pinus nigra*) from Sežana, a sub-Mediterranean site on the Karst plateau in western Slovenia (45.71 N, 13.88 E, 532 m a.s.l.), where growth is limited by precipitation (Izmir et al. 2024). *SEZ_rwl* contains the raw ring widths of 41 cores from 21 trees, from 1882 to 2021. The chronology is built as in Izmir et al. (2024): every series is detrended with a 32-year spline, and the prewhitened indices are averaged with a biweight robust mean, which gives the residual chronology.
+
+```{r}
+library(dendroTools)
+
+data(SEZ_rwl)
+
+SEZ_rwi <- dplR::detrend(SEZ_rwl, method = "Spline", nyrs = 32, f = 0.5)
+SEZ_chron <- dplR::chron(SEZ_rwi, prewhiten = TRUE)
+
+# the residual chronology, without the first years lost to prewhitening
+SEZ_res <- SEZ_chron[!is.na(SEZ_chron$res), "res", drop = FALSE]
+range(as.numeric(row.names(SEZ_res)))
+```
+
+*SEZ_daily_tmin*, *SEZ_daily_tavg*, *SEZ_daily_tmax* and *SEZ_daily_psum* are the daily minimum, mean and maximum temperatures and precipitation sums of the site from 1950 to 2020, from the gridded E-OBS dataset (Cornes et al. 2018). They have one row per day, and *data_transform()* converts them into the daily (366 columns) or monthly (12 columns) layout of *daily_response()* and *monthly_response()*.
+
+# 3 Climatic water balance
+
+The climate data for SPEI are the climatic water balance. *water_balance()* calculates it from precipitation, minimum and maximum temperatures and the latitude of the site, with PET from the Hargreaves equation (Hargreaves and Samani 1985; Allen et al. 1998). Daily PET uses the extraterrestrial radiation of each day of year and the mean temperature, if given as `tmean`. For monthly data, the values are those of *SPEI::hargreaves()*, which uses the mean of the minimum and maximum temperatures. A water balance with PET from another method can be used in the same way.
+
+```{r}
+data(SEZ_daily_tmin)
+data(SEZ_daily_tavg)
+data(SEZ_daily_tmax)
+data(SEZ_daily_psum)
+
+# monthly means of temperature and monthly sums of precipitation
+monthly_mean <- function(x) {
+  data_transform(x, format = "monthly", monthly_aggregate_function = "mean")
+}
+
+monthly_tmin <- monthly_mean(SEZ_daily_tmin)
+monthly_tavg <- monthly_mean(SEZ_daily_tavg)
+monthly_tmax <- monthly_mean(SEZ_daily_tmax)
+monthly_psum <- data_transform(SEZ_daily_psum, format = "monthly",
+                               monthly_aggregate_function = "sum")
+
+monthly_wb <- water_balance(prec = monthly_psum, tmin = monthly_tmin,
+                            tmax = monthly_tmax, lat = 45.71)
+
+# mean monthly water balance (mm)
+round(colMeans(monthly_wb), 1)
+```
+
+Precipitation exceeds PET from September to April, but from May to August PET is higher, most of all in July. Growth at Sežana depends on how large this summer deficit is.
+
+# 4 From the water balance to SPEI
+
+For every window, the SPEI is calculated in three steps:
+
+1. The water balance is summed over the window, which gives one value per year.
+2. A log-logistic distribution is fitted to these sums by unbiased probability weighted moments, the default of *SPEI::spei()* and the method recommended by Beguería et al. (2014).
+3. The fitted probabilities are transformed into standard normal values.
+
+The distribution is fitted to all years of the climate data, before they are matched with the tree-ring data. A monthly window of K months ending in month m therefore has the value of `SPEI::spei(scale = K)` in month m. The SPEI of a year does not depend on which years are analysed (section 7), and a window in a previous year has the values of the same window in the current year, shifted by one year. The SPEI package is not needed.
+
+```{r, fig.width = 8, fig.height = 4, fig.cap = "Figure 1: Sums of the water balance and their SPEI values for the window from June to July and for August, one point per year."}
+library(ggplot2)
+
+monthly_spei_current <- monthly_response(response = SEZ_res,
+                                         env_data = monthly_wb,
+                                         row_names_subset = TRUE,
+                                         aggregate_function = "SPEI",
+                                         remove_insignificant = FALSE)
+
+# windows are named by their first and last month
+spei_values <- monthly_spei_current$aggregated_climate
+analysed <- row.names(spei_values)
+
+windows <- rbind(
+  data.frame(window = "June to July",
+             water_balance = rowSums(monthly_wb[analysed, 6:7]),
+             SPEI = spei_values[, "6_7"]),
+  data.frame(window = "August",
+             water_balance = monthly_wb[analysed, 8],
+             SPEI = spei_values[, "8_8"]))
+windows$window <- factor(windows$window, levels = c("June to July", "August"))
+
+ggplot(windows, aes(x = water_balance, y = SPEI)) +
+  geom_hline(yintercept = 0, colour = "grey60") +
+  geom_point(colour = "#2a78d6") +
+  facet_wrap(~ window, scales = "free_x") +
+  labs(x = "Water balance (mm)", y = "SPEI") +
+  theme_bw() +
+  theme(panel.grid.minor = element_blank())
+```
+
+SPEI is an increasing function of the window sum (Figure 1). From June to July, where the sums are roughly symmetric, it is almost linear. In August, a few very wet years make the sums skewed, and the fitted distribution bends the relationship: the wettest Augusts get less extreme values, and the differences between dry Augusts are stretched. The scale is the same for every window, so a value of -1.5 is equally unusual in a window of two months as in a single month, whatever the amounts of water involved.
+
+Because SPEI increases with the window sum, Spearman and Kendall correlations, which depend only on ranks, are identical for SPEI and for the sums of the water balance (`aggregate_function = "sum"`) when the data are complete. Pearson correlations differ.
+
+```{r}
+spearman_spei <- monthly_response(response = SEZ_res, env_data = monthly_wb,
+                                  row_names_subset = TRUE,
+                                  aggregate_function = "SPEI",
+                                  cor_method = "spearman",
+                                  remove_insignificant = FALSE)
+
+spearman_sum <- monthly_response(response = SEZ_res, env_data = monthly_wb,
+                                 row_names_subset = TRUE,
+                                 aggregate_function = "sum",
+                                 cor_method = "spearman",
+                                 remove_insignificant = FALSE)
+
+all.equal(spearman_spei$calculations, spearman_sum$calculations)
+
+# Pearson correlations: largest difference between SPEI and the sums
+pearson_sum <- monthly_response(response = SEZ_res, env_data = monthly_wb,
+                                row_names_subset = TRUE,
+                                aggregate_function = "sum",
+                                remove_insignificant = FALSE)
+
+round(max(abs(monthly_spei_current$calculations - pearson_sum$calculations),
+          na.rm = TRUE), 3)
+```
+
+SPEI therefore matters most for Pearson correlations, for comparisons between windows, periods and sites, and when the SPEI values themselves are used, for example `$optimized_return` in a reconstruction.
+
+# 5 Monthly data
+
+The analysis below relates the residual chronology to the SPEI of all windows from 1 to 12 months, including windows in the previous year.
+
+```{r}
+monthly_spei <- monthly_response(response = SEZ_res,
+                                 env_data = monthly_wb,
+                                 row_names_subset = TRUE,
+                                 aggregate_function = "SPEI",
+                                 previous_year = TRUE,
+                                 remove_insignificant = FALSE)
+
+# the main rows of summary()
+key_results <- function(x) {
+  s <- summary(x)
+  s[s$Variable %in% c("analysed_years", "maximal_calculated_metric",
+                      "optimal_time_window"), ]
+}
+
+key_results(monthly_spei)
+```
+
+```{r, fig.width = 11, fig.height = 5.5, fig.cap = "Figure 2: Correlations between the residual chronology of Sežana and the SPEI of monthly windows. A window is shown at its first month and its width in months; the months of the previous year come first."}
+plot(monthly_spei, type = 2)
+```
+
+Rings are wider in years with a wet early summer (Figure 2). The strongest correlation is with the 2-month SPEI of July, i.e. the water balance of June and July (r = 0.575), and the windows from May or April to July are almost as strong. Windows in the previous year are only weakly related to growth.
+
+# 6 Daily data
+
+```{r}
+# daily layout: years as rows, days of year as columns
+daily_tmin <- data_transform(SEZ_daily_tmin, format = "daily")
+daily_tavg <- data_transform(SEZ_daily_tavg, format = "daily")
+daily_tmax <- data_transform(SEZ_daily_tmax, format = "daily")
+daily_psum <- data_transform(SEZ_daily_psum, format = "daily")
+
+daily_wb <- water_balance(prec = daily_psum, tmin = daily_tmin,
+                          tmax = daily_tmax, lat = 45.71,
+                          tmean = daily_tavg)
+
+daily_spei <- daily_response(response = SEZ_res,
+                             env_data = daily_wb,
+                             row_names_subset = TRUE,
+                             aggregate_function = "SPEI",
+                             lower_limit = 21,
+                             upper_limit = 120,
+                             remove_insignificant = FALSE)
+
+summary(daily_spei)
+```
+
+```{r, fig.width = 10, fig.height = 6, fig.cap = "Figure 3: Correlations between the residual chronology of Sežana and the SPEI of daily windows from 21 to 120 days, shown at the first day of each window."}
+plot(daily_spei, type = 2)
+```
+
+The daily windows show the period more precisely: the SPEI of the 78 days from 18 May to 3 August has the strongest correlation with growth, while windows from late summer on have weak negative correlations (Figure 3).
+
+The climate data of Sežana are complete. Means and sums skip missing days, but a sum that lacks days is not comparable with complete sums, so SPEI does not skip them: a window that includes a missing day is missing in that year. The functions then warn, name the years with missing days, and change `cor_na_use` to `"pairwise.complete.obs"`, so that the correlations of the affected windows are calculated over the other years. DOY 366 is skipped in non-leap years, where it does not exist.
+
+# 7 Subsets of years
+
+`subset_years` selects the years that are used for the correlations. The SPEI is still standardised against all years of the climate data, so the values of every window are the same as in the analysis of all years, and the correlations of different periods are based on the same SPEI values.
+
+```{r}
+monthly_early <- monthly_response(response = SEZ_res,
+                                  env_data = monthly_wb,
+                                  row_names_subset = TRUE,
+                                  aggregate_function = "SPEI",
+                                  previous_year = TRUE,
+                                  remove_insignificant = FALSE,
+                                  subset_years = c(1951, 1985))
+
+monthly_late <- monthly_response(response = SEZ_res,
+                                 env_data = monthly_wb,
+                                 row_names_subset = TRUE,
+                                 aggregate_function = "SPEI",
+                                 previous_year = TRUE,
+                                 remove_insignificant = FALSE,
+                                 subset_years = c(1986, 2020))
+
+# the SPEI values of the early period are those of the analysis of all years
+early_years <- row.names(monthly_early$aggregated_climate)
+all.equal(monthly_early$aggregated_climate,
+          monthly_spei$aggregated_climate[early_years, ])
+
+key_results(monthly_early)
+key_results(monthly_late)
+```
+
+From 1951 to 1985, the strongest correlation is with April to July; from 1986 to 2020, it is with June and July and stronger. Both periods use the same SPEI values, so the difference comes from the relationship with growth, not from the standardisation.
+
+# 8 Detrending and partial correlations
+
+The SPEI of every window can be detrended before the correlations are calculated (see the vignette *Detrending_climate_data*). SPEI values are centred on zero, so they can only be detrended by differences, `dc_difference = TRUE`; ratios give an error.
+
+```{r}
+monthly_spei_detrended <- monthly_response(response = SEZ_res,
+                                           env_data = monthly_wb,
+                                           row_names_subset = TRUE,
+                                           aggregate_function = "SPEI",
+                                           previous_year = TRUE,
+                                           remove_insignificant = FALSE,
+                                           dc_method = "Spline",
+                                           dc_difference = TRUE)
+
+key_results(monthly_spei_detrended)
+```
+
+The optimal window and its correlation hardly change, so the relationship with SPEI is not driven by trends.
+
+SPEI can also be the primary or the control variable of *monthly_response_seascorr()* and *daily_response_seascorr()* (see the vignette *Partial_correlations_seascorr*). PET increases with temperature, so SPEI and temperature are correlated. The partial correlations separate the two: below, SPEI is the primary variable, the monthly mean temperature the control variable, and with `pcor_control = TRUE` the partial correlations of temperature, controlling for SPEI, are calculated as well.
+
+```{r}
+monthly_spei_pcor <- monthly_response_seascorr(
+  response = SEZ_res,
+  env_data_primary = monthly_wb,
+  env_data_control = monthly_tavg,
+  aggregate_function_env_data_primary = "SPEI",
+  row_names_subset = TRUE,
+  remove_insignificant = FALSE,
+  pcor_control = TRUE)
+
+s <- summary(monthly_spei_pcor)
+s[s$Variable %in% c("maximal_calculated_metric", "optimal_time_window",
+                    "maximal_calculated_metric_control",
+                    "optimal_time_window_control",
+                    "control_metric_in_optimal_time_window"), ]
+
+monthly_spei_pcor$variance_partitioning
+```
+
+In June and July, warm summers are dry summers, and growth correlates negatively with temperature (r_response_control) as well as positively with SPEI (r_response_primary). Controlling for temperature, SPEI keeps most of its correlation, while temperature, controlling for SPEI, has almost none: the summer temperature signal of Sežana is a drought signal. Most of the explained variance is unique to SPEI, and almost none to temperature. Temperature has its own, positive partial correlation in winter, from January to March.
+
+# 9 Notes
+
+* The SPEI of a window is standardised against all years of the climate data. With `subset_years`, the values do not change (section 7). If the SPEI were standardised against the analysed years only, rank correlations would not change either, and Pearson correlations would change little; for the current-year windows of the two periods in section 7 by at most 0.04.
+* Daily SPEI is calculated in the layout of *daily_response()*: a window covers the same days of year in every year, and 29 February is a day like the others. Implementations that remove 29 February and fit one distribution per day of a 365-day year give slightly different values.
+* Windows that include a missing day or month are missing in that year (section 6). Gaps in years outside the analysed period only reduce the number of years to which the distribution of the affected windows is fitted.
+* Calculating the SPEI of all windows takes no longer than calculating means or sums.
+
+# References
+
+Allen, R.G., Pereira, L.S., Raes, D., Smith, M., 1998. Crop evapotranspiration - Guidelines for computing crop water requirements. FAO Irrigation and drainage paper 56. FAO, Rome.
+
+Beguería, S., Vicente-Serrano, S.M., Reig, F., Latorre, B., 2014. Standardized precipitation evapotranspiration index (SPEI) revisited: parameter fitting, evapotranspiration models, tools, datasets and drought monitoring. International Journal of Climatology 34, 3001–3023. https://doi.org/10.1002/joc.3887
+
+Cornes, R.C., van der Schrier, G., van den Besselaar, E.J.M., Jones, P.D., 2018. An Ensemble Version of the E-OBS Temperature and Precipitation Data Sets. Journal of Geophysical Research: Atmospheres 123, 9391–9409. https://doi.org/10.1029/2017JD028200
+
+Hargreaves, G.H., Samani, Z.A., 1985. Reference crop evapotranspiration from temperature. Applied Engineering in Agriculture 1, 96–99. https://doi.org/10.13031/2013.26773
+
+Izmir, Ş.C., Jevšenak, J., Krajnc, L., Hafner, P., Köse, N., 2024. Distinct spatial patterns in climate-growth relationships, vegetation and resilience indices of Black pine (*Pinus nigra* J.F. Arnold) from its northern and southern distribution range. Dendrochronologia 88, 126236. https://doi.org/10.1016/j.dendro.2024.126236
+
+Vicente-Serrano, S.M., Beguería, S., López-Moreno, J.I., 2010. A multiscalar drought index sensitive to global warming: the Standardized Precipitation Evapotranspiration Index. Journal of Climate 23, 1696–1718. https://doi.org/10.1175/2009JCLI2909.1

@@ -1,4 +1,4 @@
-# dendroTools 1.2.18
+# dendroTools 2.0.0
 
 ## New features
 
@@ -58,6 +58,76 @@
 
 * All four functions share one check of the `dc_*` arguments, so the
   arguments behave identically everywhere.
+
+* New vignette "Detrending_climate_data" describes the climate detrending
+  methods and gives examples for monthly and daily data, ratio and
+  difference detrending, prewhitening and the seascorr functions.
+
+* New vignette "Partial_correlations_seascorr" introduces
+  `monthly_response_seascorr()` and `daily_response_seascorr()`, including
+  the partial correlations of the control variable (`pcor_control`),
+  `$variance_partitioning`, significance filters and climate detrending.
+
+* `daily_response_seascorr()` and `monthly_response_seascorr()` gain
+  `pcor_control`. With `pcor_control = TRUE` they also calculate, for every
+  window, the partial correlation of the response with the control variable,
+  controlling for the primary variable. This is what a run with the primary
+  and control data, and their settings, swapped returns. These partial
+  correlations are filtered with the same significance method and settings as
+  the primary ones, with the permutation methods against the same
+  permutations, and returned as `$calculations_control` with
+  `$boot_lower_control`, `$boot_upper_control`,
+  `$significance_filter_control` and a heatmap, `plot(x, type = 3)`.
+  `summary()` adds the strongest of them, its window and the value in the
+  optimal window of the primary variable. The primary results do not change.
+
+* The seascorr functions return `$variance_partitioning` for the optimal
+  window: the three simple correlations, both partial correlations, the
+  variance of the response explained by both climate variables together, and
+  how it splits into parts unique to each variable and a shared part.
+
+* The significance filters of the two seascorr functions now share one
+  implementation. Their results are unchanged.
+
+* `aggregate_function = "SPEI"` is a new option in `daily_response()` and
+  `monthly_response()`, and for the primary and the control variable of
+  `daily_response_seascorr()` and `monthly_response_seascorr()`. It calculates
+  the Standardized Precipitation-Evapotranspiration Index (SPEI) of every
+  window from the climatic water balance in the climate data, i.e.
+  precipitation minus potential evapotranspiration. The water balance is
+  summed over the window and standardised with a log-logistic distribution
+  fitted by unbiased probability weighted moments, the default of
+  `SPEI::spei()`. Each window is standardised against all years of the
+  climate data, before they are matched with the response. A monthly window
+  of K months ending in month m therefore has the value of
+  `SPEI::spei(scale = K)` in month m, the SPEI of a year does not depend on
+  the analysed years, and a window in a previous year is standardised as the
+  same window in the current year. Previous years, climate detrending (by
+  differences only), the significance filters, the bootstrap and
+  `pcor_control` work with SPEI as with the other aggregations. Unlike them,
+  SPEI does not skip missing values: a window that includes a missing day or
+  month is `NA` in that year, with a warning, and `cor_na_use` or
+  `pcor_na_use` is changed to `"pairwise.complete.obs"` unless it already
+  excludes missing values. DOY 366 of non-leap years is skipped. The SPEI
+  package is not needed.
+
+* New function `water_balance()` calculates the daily or monthly climatic
+  water balance from precipitation and minimum and maximum temperatures, with
+  potential evapotranspiration from the Hargreaves equation. Daily data use
+  the extraterrestrial radiation of each day of year; for monthly data the
+  values are those of `SPEI::hargreaves()`.
+
+* New datasets from the black pine (*Pinus nigra*) site Sežana in Slovenia
+  (Izmir et al. 2024, Dendrochronologia 88, 126236): `SEZ_rwl`, the raw ring
+  widths of 41 cores from 21 trees (1882–2021), and `SEZ_daily_tmin`,
+  `SEZ_daily_tavg`, `SEZ_daily_tmax` and `SEZ_daily_psum`, the daily minimum,
+  mean and maximum temperatures and precipitation sums from E-OBS
+  (1950–2020).
+
+* New vignette "SPEI_drought_index" shows, with the data from Sežana, how to
+  calculate the climatic water balance with `water_balance()` and how to use
+  `aggregate_function = "SPEI"` with monthly and daily data, subsets of
+  years, climate detrending and partial correlations.
 
 ## Changes in behaviour
 
@@ -143,6 +213,13 @@
 * The documentation of `pcor_na_use` in the seascorr functions gave
   `"pairwise.complete.obs"` as the default. The default is `"everything"`, as
   in earlier versions.
+
+* `boot_ci_type = "bca"` with `boot_n` smaller than the number of analysed
+  years gave only `NA` intervals without explanation, because
+  `boot::boot.ci()` cannot estimate bca intervals from so few replicates. All
+  four functions now give a warning that names the `boot_n` needed. The
+  documentation of `boot_ci_type` now lists the available interval types;
+  `"stud"` was listed but is not available.
 
 # dendroTools 1.2.17
 

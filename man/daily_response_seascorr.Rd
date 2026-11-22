@@ -48,7 +48,8 @@ daily_response_seascorr(
   dc_env_data_control = NULL,
   pcor_na_use = "everything",
   skip_window_length = 1,
-  skip_window_position = 1
+  skip_window_position = 1,
+  pcor_control = FALSE
 )
 }
 \arguments{
@@ -176,9 +177,14 @@ all three data frames are kept.}
 
 \item{aggregate_function_env_data_primary}{character string specifying how the
 daily data from env_data_primary should be aggregated. The default is 'mean',
-the other options are 'median', 'sum', 'min', 'max' and 'quantile'.
+the other options are 'median', 'sum', 'min', 'max', 'quantile' and 'SPEI'.
 Missing days are skipped, so 'sum' adds only the days that are available;
-a window without any value is NA.}
+a window without any value is NA. 'SPEI' calculates the Standardized
+Precipitation-Evapotranspiration Index of each window from the daily
+climatic water balance (precipitation minus potential evapotranspiration,
+see water_balance()) in env_data_primary, as described for aggregate_function
+in daily_response(). A window that includes a missing day is NA in that
+year.}
 
 \item{quantile_prob_env_data_primary}{numeric value between 0 and 1 specifying
 the quantile probability used when aggregate_function_env_data_primary =
@@ -186,9 +192,14 @@ the quantile probability used when aggregate_function_env_data_primary =
 
 \item{aggregate_function_env_data_control}{character string specifying how the
 daily data from env_data_control should be aggregated. The default is 'mean',
-the other options are 'median', 'sum', 'min', 'max' and 'quantile'.
+the other options are 'median', 'sum', 'min', 'max', 'quantile' and 'SPEI'.
 Missing days are skipped, so 'sum' adds only the days that are available;
-a window without any value is NA.}
+a window without any value is NA. 'SPEI' calculates the Standardized
+Precipitation-Evapotranspiration Index of each window from the daily
+climatic water balance (precipitation minus potential evapotranspiration,
+see water_balance()) in env_data_control, as described for aggregate_function
+in daily_response(). A window that includes a missing day is NA in that
+year.}
 
 \item{quantile_prob_env_data_control}{numeric value between 0 and 1 specifying
 the quantile probability used when aggregate_function_env_data_control =
@@ -240,14 +251,16 @@ same for all three reference windows.}
 \item{boot}{logical, if TRUE, bootstrap confidence intervals are calculated
 for the partial correlation coefficients and returned as $boot_lower and
 $boot_upper. The coefficients themselves are those of the observed data, as
-with boot = FALSE. Versions before 1.2.18 reported the mean of the bootstrap
+with boot = FALSE. Versions before 2.0.0 reported the mean of the bootstrap
 replicates instead.}
 
 \item{boot_n}{The number of bootstrap replicates}
 
-\item{boot_ci_type}{A character string representing the type of bootstrap intervals
-required. The value should be any subset of the values c("norm","basic", "stud",
-"perc", "bca").}
+\item{boot_ci_type}{A character string representing the type of bootstrap
+intervals: "norm" (default), "basic", "perc" or "bca". "bca" needs boot_n of
+at least the number of analysed years. With fewer replicates
+boot::boot.ci() cannot estimate bca intervals, so they are all NA, and a
+warning is given. Studentized intervals ("stud") are not available.}
 
 \item{boot_conf_int}{A scalar or vector containing the confidence level(s) of
 the required interval(s)}
@@ -354,9 +367,20 @@ second window position. Similarly, if skip_window_position = 3, every third
 window position is processed, skipping two positions in between each selected
 one. This parameter allows for controlling the granularity of the analysis
 and can help in reducing computation time by focusing on a subset of the data.}
+
+\item{pcor_control}{logical. If TRUE, the partial correlations of the
+response with the control variable, controlling for the primary variable,
+are also calculated for every window. They are what the function returns
+when env_data_primary and env_data_control, and their settings, are
+swapped. They are filtered with the same significance method and settings
+as the primary partial correlations, with permutation methods against the
+same permutations, and returned as $calculations_control. plot(x, type = 3)
+shows them as a heatmap, and summary() also reports the strongest of them,
+its window, and the value in the optimal window of the primary variable.
+The primary results do not change. Default is FALSE.}
 }
 \value{
-a list with 21 elements:
+a list with elements including:
 \enumerate{
  \item $calculations - a matrix with calculated metrics
  \item $method - the character string of a method
@@ -383,6 +407,21 @@ a list with 21 elements:
  \item $detrending - information about the climate detrending applied, a
  list with the elements primary and control, each giving the method and the
  settings used for those windows, or "none"
+ \item $variance_partitioning - a data frame for the optimal window: the
+ correlations of the response with the primary and the control series and
+ between them (r_response_primary, r_response_control, r_primary_control),
+ both partial correlations (pcor_primary, pcor_control), the variance of the
+ response explained by both series together (r_squared) and how it splits
+ into a part unique to the primary series (unique_primary), a part unique to
+ the control series (unique_control) and a part they share (shared, negative
+ when one series suppresses the other). For pcor_method = "spearman" the
+ split refers to ranks; for "kendall" it is NA
+ \item with pcor_control = TRUE: $calculations_control - a matrix with the
+ partial correlations of the response with the control variable,
+ controlling for the primary variable; $boot_lower_control and
+ $boot_upper_control - their bootstrap confidence intervals;
+ $significance_filter_control - the significance filter applied to them;
+ $plot_heatmap_control - their heatmap, also shown by plot(x, type = 3)
 }
 }
 \description{
@@ -515,5 +554,23 @@ example_detrended <- daily_response_seascorr(response = data_MVA,
   skip_window_position = 10)
 
 # example_detrended$detrending
+
+# 6 Partial correlations with both variables: temperature controlling for
+# precipitation, and precipitation controlling for temperature
+example_both <- daily_response_seascorr(response = data_MVA,
+  env_data_primary = LJ_daily_temperatures,
+  env_data_control = LJ_daily_precipitation,
+  row_names_subset = TRUE,
+  fixed_width = 30,
+  remove_insignificant = FALSE,
+  tidy_env_data_primary = FALSE,
+  tidy_env_data_control = TRUE,
+  aggregate_function_env_data_control = "sum",
+  pcor_control = TRUE,
+  skip_window_position = 10)
+
+# summary(example_both)
+# example_both$variance_partitioning
+# plot(example_both, type = 3)
 }
 }

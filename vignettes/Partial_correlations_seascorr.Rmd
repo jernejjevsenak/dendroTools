@@ -1,0 +1,248 @@
+---
+title: "Partial correlations with the seascorr functions"
+author: "Jernej Jevšenak"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Partial_correlations_seascorr}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+<style>
+body {
+text-align: justify; font-size: 16px}
+</style>
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.align = "center")
+```
+
+# 1 Introduction
+
+Temperature and precipitation are correlated: in many regions, warm months are also dry. A simple correlation between a tree-ring chronology and temperature therefore partly reflects precipitation, and the other way round. A partial correlation removes the linear effect of a second, control variable from both the chronology and the variable of interest, and describes the relationship that remains.
+
+*monthly_response_seascorr()* and *daily_response_seascorr()* calculate partial correlations for all moving windows of monthly or daily climate data (Jevšenak 2020), just as *monthly_response()* and *daily_response()* calculate simple correlations. For every window, the primary variable (`env_data_primary`) and the control variable (`env_data_control`) are aggregated over the same months or days, and the partial correlation between the response and the primary variable, controlling for the control variable, is calculated.
+
+The functions build on seascorr (Meko et al. 2011), which summarises the relationship with a primary climate variable by simple correlations and the relationship with a secondary variable by partial correlations, controlling for the primary variable. In dendroTools, the partial correlations are calculated for `env_data_primary`, which therefore corresponds to the secondary variable of seascorr. The simple correlations of the other variable can be calculated with *monthly_response()* or *daily_response()*. With `pcor_control = TRUE`, its partial correlations, controlling for `env_data_primary`, are calculated as well, so that both variables are described in the same way.
+
+# 2 Data and main arguments
+
+The response is a data frame with one column and years as row names. Climate data can be given in wide format, with years as row names and 12 months or 366 days as columns, or in tidy format, with the columns Year, Month (or DOY) and the climate variable. The two climate variables are aggregated separately, typically by means for temperature and by sums for precipitation.
+
+| Argument | Purpose |
+|---|---|
+| `env_data_primary`, `env_data_control` | climate data; partial correlations are calculated for the primary variable |
+| `tidy_env_data_primary`, `tidy_env_data_control` | `TRUE` for climate data in tidy format |
+| `aggregate_function_env_data_primary`, `aggregate_function_env_data_control` | `"mean"`, `"median"`, `"sum"`, `"quantile"` or `"SPEI"`, and for daily data also `"min"` and `"max"` |
+| `fixed_width`, or `lower_limit` and `upper_limit` | window widths in months or days |
+| `previous_year`, `number_previous_years`, `month_interval` or `day_interval` | windows that extend into previous years |
+| `pcor_method`, `pcor_na_use` | Pearson, Spearman or Kendall partial correlations, and the treatment of missing values |
+| `remove_insignificant`, `remove_insignificant_method`, `alpha` | significance filter |
+| `boot`, `boot_n`, `boot_ci_type` | bootstrap confidence intervals |
+| `pcor_control` | partial correlations for the control variable as well |
+| `dc_method` and the other `dc_*` arguments | climate detrending |
+| `skip_window_length`, `skip_window_position` | faster daily analyses, by skipping window widths and positions |
+
+The results are summarised by `summary()`. `plot(x, type = 1)` shows the window width with the strongest partial correlation, `plot(x, type = 2)` the heatmap of all partial correlations and, with `pcor_control = TRUE`, `plot(x, type = 3)` the heatmap of the partial correlations of the control variable. The aggregated climate of the optimal window is in `$optimized_return`, and `$variance_partitioning` describes how the two variables share the explained variance in that window (section 3.2).
+
+# 3 Monthly data
+
+## 3.1 Temperature, controlling for precipitation
+
+The mean vessel area chronology (*data_MVA*) is related to the monthly mean temperatures of Ljubljana, controlling for the monthly precipitation sums. The temperatures are in wide format and the precipitation in tidy format.
+
+```{r}
+library(dendroTools)
+
+data(data_MVA)
+data(LJ_monthly_temperatures)
+data(LJ_monthly_precipitation)
+
+monthly_pcor <- monthly_response_seascorr(
+  response = data_MVA,
+  env_data_primary = LJ_monthly_temperatures,
+  env_data_control = LJ_monthly_precipitation,
+  tidy_env_data_primary = FALSE,
+  tidy_env_data_control = TRUE,
+  aggregate_function_env_data_primary = "mean",
+  aggregate_function_env_data_control = "sum",
+  row_names_subset = TRUE,
+  remove_insignificant = FALSE)
+
+summary(monthly_pcor)
+```
+
+## 3.2 Both variables
+
+With `pcor_control = TRUE`, the function also calculates, for every window, the partial correlation of MVA with precipitation, controlling for temperature. These are exactly the partial correlations that a second run with the two variables, and their settings, swapped would return. The partial correlations of temperature do not change.
+
+```{r}
+monthly_both <- monthly_response_seascorr(
+  response = data_MVA,
+  env_data_primary = LJ_monthly_temperatures,
+  env_data_control = LJ_monthly_precipitation,
+  tidy_env_data_primary = FALSE,
+  tidy_env_data_control = TRUE,
+  aggregate_function_env_data_control = "sum",
+  row_names_subset = TRUE,
+  remove_insignificant = FALSE,
+  pcor_control = TRUE)
+
+# the main rows of summary()
+key_results <- function(x) {
+  s <- summary(x)
+  s[s$Variable %in% c("maximal_calculated_metric",
+                      "optimal_time_window",
+                      "maximal_calculated_metric_control",
+                      "optimal_time_window_control",
+                      "control_metric_in_optimal_time_window"), ]
+}
+
+key_results(monthly_both)
+```
+
+summary() now also gives the strongest partial correlation of the control variable and its window, and the partial correlation of the control variable in the optimal window of the primary variable. Figure 1 shows both surfaces.
+
+```{r, fig.width = 13, fig.height = 6, fig.cap = "Figure 1: Partial correlations between MVA and (a) monthly temperature, controlling for precipitation, and (b) monthly precipitation, controlling for temperature. Each panel has its own colour scale."}
+library(ggplot2)
+
+# the heatmaps of the primary (type = 2) and the control variable (type = 3)
+smaller_legend <- theme(legend.title = element_text(size = 14),
+                        legend.text = element_text(size = 12))
+
+grid::grid.newpage()
+grid::pushViewport(grid::viewport(layout = grid::grid.layout(1, 2)))
+print(plot(monthly_both, type = 2) + smaller_legend +
+        labs(title = "a) Temperature, controlling for precipitation"),
+      vp = grid::viewport(layout.pos.row = 1, layout.pos.col = 1))
+print(plot(monthly_both, type = 3) + smaller_legend +
+        labs(title = "b) Precipitation, controlling for temperature"),
+      vp = grid::viewport(layout.pos.row = 1, layout.pos.col = 2))
+```
+
+The two partial correlations do not divide the climate signal into a temperature part and a precipitation part: the variance of MVA that temperature and precipitation share, because the two variables are correlated, belongs to neither. `$variance_partitioning` describes this split for the optimal window. It gives the three simple correlations, both partial correlations, the variance of MVA explained by both variables together (r_squared), the parts unique to the primary and the control variable, and the shared part, which is negative when one variable suppresses the other.
+
+```{r}
+monthly_both$variance_partitioning
+```
+
+In the optimal window, almost all of the explained variance is unique to temperature. Note that this window, from March to November, is long, because MVA and the temperatures share a positive trend; section 5 shows how detrending changes this.
+
+## 3.3 Significance
+
+The significance filter is applied to both surfaces with the same method and settings. Methods that correct for multiple testing (`"fdr_BY"`, `"fdr_BH"`, `"sidak"`, `"maxstat"` and `"cluster"`) correct within each surface, as a separate run with the two variables swapped would, and the permutation methods use the same permutations for both surfaces. The filters are described in `$significance_filter` and `$significance_filter_control`.
+
+```{r}
+monthly_fdr <- monthly_response_seascorr(
+  response = data_MVA,
+  env_data_primary = LJ_monthly_temperatures,
+  env_data_control = LJ_monthly_precipitation,
+  tidy_env_data_primary = FALSE,
+  tidy_env_data_control = TRUE,
+  aggregate_function_env_data_control = "sum",
+  row_names_subset = TRUE,
+  remove_insignificant = TRUE,
+  remove_insignificant_method = "fdr_BH",
+  pcor_control = TRUE)
+
+monthly_fdr$significance_filter$criterion
+
+# windows retained by the filter, out of all windows
+c(primary = monthly_fdr$significance_filter$retained_cells,
+  control = monthly_fdr$significance_filter_control$retained_cells,
+  windows = sum(!is.na(monthly_both$calculations)))
+```
+
+# 4 Daily data
+
+*daily_response_seascorr()* works in the same way with daily data. Here every window is 45 days wide (`fixed_width = 45`), which keeps the example fast. Windows of different widths are evaluated with `lower_limit` and `upper_limit`, and `skip_window_length` and `skip_window_position` then reduce the computing time by evaluating only every n-th window width or position.
+
+```{r}
+data(LJ_daily_temperatures)
+data(LJ_daily_precipitation)
+
+daily_both <- daily_response_seascorr(
+  response = data_MVA,
+  env_data_primary = LJ_daily_temperatures,
+  env_data_control = LJ_daily_precipitation,
+  tidy_env_data_primary = FALSE,
+  tidy_env_data_control = TRUE,
+  aggregate_function_env_data_control = "sum",
+  row_names_subset = TRUE,
+  fixed_width = 45,
+  remove_insignificant = FALSE,
+  pcor_control = TRUE)
+
+key_results(daily_both)
+daily_both$variance_partitioning
+```
+
+With one window width, both sets of partial correlations can be shown as lines through the year (Figure 2). The dashed lines give the partial correlation that is significant at p = 0.05 for a single window; one degree of freedom is spent on the controlled variable.
+
+```{r, fig.width = 8, fig.height = 4.5, fig.cap = "Figure 2: Partial correlations between MVA and 45-day windows of temperature, controlling for precipitation, and of precipitation, controlling for temperature. The dashed lines show the critical partial correlation at p = 0.05."}
+n_years <- nrow(daily_both$optimized_return)
+t_critical <- stats::qt(0.975, df = n_years - 3)
+r_critical <- t_critical / sqrt(n_years - 3 + t_critical ^ 2)
+
+n_windows <- ncol(daily_both$calculations)
+labels <- c("temperature, controlling for precipitation",
+            "precipitation, controlling for temperature")
+
+daily_lines <- data.frame(
+  start = rep(seq_len(n_windows), 2),
+  partial_r = c(daily_both$calculations[1, ],
+                daily_both$calculations_control[1, ]),
+  variable = factor(rep(labels, each = n_windows), levels = labels)
+)
+
+ggplot(daily_lines, aes(x = start, y = partial_r, colour = variable)) +
+  geom_hline(yintercept = 0, colour = "grey60") +
+  geom_hline(yintercept = c(-r_critical, r_critical), colour = "grey60",
+             linetype = "dashed") +
+  geom_line(na.rm = TRUE) +
+  scale_colour_manual(values = c("#2a78d6", "#eb6834")) +
+  labs(x = "First day of the window (day of year)",
+       y = "Partial correlation", colour = NULL) +
+  theme_bw() +
+  theme(legend.position = "bottom", panel.grid.minor = element_blank())
+```
+
+The strongest relationship of MVA is with spring temperature, from late March to early May. In this window, precipitation has almost no partial correlation, and nearly all of the explained variance is unique to temperature. Precipitation has its own, positive partial correlation with MVA in late summer. The partial correlations with temperature are positive in almost every window, partly because MVA and the temperatures share a trend (section 5).
+
+# 5 Climate detrending
+
+The aggregated climate of every window can be detrended before the partial correlations are calculated (see the vignette *Detrending_climate_data*). By default, both variables are detrended with the same settings. `dc_env_data_control` changes any of them for the control variable, for example ratios for precipitation sums while temperature, which can be negative, is detrended by differences.
+
+```{r}
+monthly_detrended <- monthly_response_seascorr(
+  response = data_MVA,
+  env_data_primary = LJ_monthly_temperatures,
+  env_data_control = LJ_monthly_precipitation,
+  tidy_env_data_primary = FALSE,
+  tidy_env_data_control = TRUE,
+  aggregate_function_env_data_control = "sum",
+  row_names_subset = TRUE,
+  remove_insignificant = FALSE,
+  dc_method = "Spline",
+  dc_difference = TRUE,
+  dc_env_data_control = list(dc_difference = FALSE),
+  pcor_control = TRUE)
+
+key_results(monthly_detrended)
+```
+
+After detrending, the optimal temperature window is short and lies in spring, as in the daily analysis, instead of covering March to November.
+
+# 6 Notes on interpretation
+
+* A partial correlation describes the relationship that remains after the linear effect of the other variable is removed. When the two variables are strongly correlated in a window, both partial correlations can be small even though together they explain much of the response; `$variance_partitioning` shows how large the shared part is.
+* `pcor_control = TRUE` gives the same partial correlations, intervals and significance filter as a separate run with the two variables, and their settings, swapped.
+* The variance split is defined for Pearson correlations. With `pcor_method = "spearman"`, it refers to ranks, and with `"kendall"` it is not given.
+* Bootstrap confidence intervals of type `"bca"` need at least as many bootstrap replicates (`boot_n`) as analysed years.
+
+# References
+
+Jevšenak, J., 2020. New features in the dendroTools R package: Bootstrapped and partial correlation coefficients for monthly and daily climate data. Dendrochronologia 63, 125753. https://doi.org/10.1016/j.dendro.2020.125753
+
+Meko, D.M., Touchan, R., Anchukaitis, K.J., 2011. Seascorr: A MATLAB program for identifying the seasonal climate signal in an annual tree-ring time series. Computers & Geosciences 37, 1234–1241. https://doi.org/10.1016/j.cageo.2011.01.013

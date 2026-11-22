@@ -18,6 +18,7 @@ export(data_transform)
 export(monthly_response)
 export(daily_response_seascorr)
 export(monthly_response_seascorr)
+export(water_balance)
 
 S3method(summary, "dmrs")
 S3method(plot, "dmrs")

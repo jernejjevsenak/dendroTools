@@ -1,0 +1,239 @@
+---
+title: "Detrending climate data"
+author: "Jernej Jevšenak"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Detrending_climate_data}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+<style>
+body {
+text-align: justify; font-size: 16px}
+</style>
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.align = "center")
+```
+
+# 1 Introduction
+
+Tree-ring chronologies are standardised before they are related to climate. Standardisation removes age-related trends and, depending on the method, part of the low-frequency variability. Climate data are usually used as they are. A climate-growth correlation can then be inflated by trends that both series share, or weakened by low-frequency variability that remains in only one of them. To compare like with like, the four moving-window functions of dendroTools, *daily_response()*, *monthly_response()*, *daily_response_seascorr()* and *monthly_response_seascorr()*, can detrend the climate data with the `dc_*` arguments. Without these arguments, no detrending is applied and the results are those of earlier versions.
+
+Detrending is applied to the aggregated climate series of each moving window. For every window, the daily or monthly values are first aggregated (mean, sum, ...) into one value per year, and this annual series is detrended before the correlation is calculated. Each window is therefore detrended on its own, just as a seasonal climate variable would be detrended before it is compared with a chronology.
+
+# 2 Methods and arguments
+
+| `dc_method` | Fitted curve | Specific settings |
+|---|---|---|
+| `"none"` (or `NULL`) | none (default) | |
+| `"SLD"` | straight line (simple linear detrending), the historical dendroTools option | `dc_scale` |
+| `"Spline"` | cubic smoothing spline, *dplR::caps()* | `dc_nyrs`, `dc_f` |
+| `"Mean"` | horizontal line at the mean | |
+| `"Ar"` | autoregressive model (prewhitening), *stats::ar()* | |
+| `"Friedman"` | Friedman's super smoother, *stats::supsmu()* | `dc_span`, `dc_bass` |
+
+* `"Spline"`, `"Mean"`, `"Ar"` and `"Friedman"` follow *dplR::detrend()* and are fitted in the chronological order of the years given as row names. For `"Spline"`, `dc_nyrs` sets the stiffness of the spline (default: 0.67 times the number of years) and `dc_f` its frequency response at that wavelength (default 0.5). For `"Friedman"`, `dc_span` is `"cv"` (span chosen by cross-validation, the default) or a number between 0 and 1, and with `dc_span = "cv"` a larger `dc_bass` (0 to 10) gives a smoother curve. `"Ar"` keeps the residuals of an autoregressive model whose order is chosen by AIC, so the first years of every window are missing.
+* `dc_difference` sets how the curve is removed: as a ratio, observed / curve (`FALSE`, the default, as in dplR), or as a difference, observed - curve (`TRUE`). Ratios suit non-negative variables, such as precipitation sums. For temperature in degrees Celsius and any other variable that can be negative, use `dc_difference = TRUE`. `"SLD"` always uses differences.
+* `dc_scale = TRUE` divides each detrended series by its standard deviation. The default (`NULL`) uses the convention of each method: `TRUE` for `"SLD"`, as in earlier versions, and `FALSE` for the dplR methods. Scaling does not change correlations, only the scale of `$optimized_return` and of the transfer function.
+
+The settings used are returned as `$detrending`. The detrended series of all windows are in `$aggregated_climate` (in the seascorr functions `$aggregated_climate_primary` and `$aggregated_climate_control`), and the detrended optimal window is in `$optimized_return`.
+
+# 3 Examples
+
+## 3.1 Monthly temperatures with and without detrending
+
+The mean vessel area chronology (*data_MVA*) and the temperatures of Ljubljana both contain a positive trend over the period 1940-2012, as their correlations with the year show:
+
+```{r}
+library(dendroTools)
+
+data(data_MVA)
+data(LJ_monthly_temperatures)
+
+years <- as.numeric(row.names(data_MVA))
+
+# MVA
+cor(data_MVA$MVA, years)
+
+# mean temperature from March to November
+cor(rowMeans(LJ_monthly_temperatures[row.names(data_MVA), 3:11]), years)
+```
+
+The climate-growth relationship is calculated once without detrending and once with the temperatures detrended by a smoothing spline. Because temperatures can be negative, the spline is removed as a difference.
+
+```{r}
+no_detrending <- monthly_response(response = data_MVA,
+                                  env_data = LJ_monthly_temperatures,
+                                  row_names_subset = TRUE,
+                                  remove_insignificant = FALSE)
+
+spline_detrending <- monthly_response(response = data_MVA,
+                                      env_data = LJ_monthly_temperatures,
+                                      row_names_subset = TRUE,
+                                      remove_insignificant = FALSE,
+                                      dc_method = "Spline",
+                                      dc_difference = TRUE)
+
+str(spline_detrending$detrending)
+```
+
+Figure 1 shows what the detrending does to one window, the mean temperature from March to November (in °C). The fitted curve is the difference between the aggregated and the detrended series.
+
+```{r, fig.width = 7, fig.height = 4.5, fig.cap = "Figure 1: Mean March to November temperature in Ljubljana with the fitted spline (top), and the detrended series used in the correlations (bottom)."}
+library(ggplot2)
+
+window <- "3_11"  # from March (3) to November (11)
+observed <- no_detrending$aggregated_climate[, window]
+detrended <- spline_detrending$aggregated_climate[, window]
+years <- as.numeric(row.names(no_detrending$aggregated_climate))
+
+panels <- c("Mean temperature, March to November",
+            "Detrended: observed minus spline")
+
+figure_data <- data.frame(
+  year = rep(years, 3),
+  value = c(observed, observed - detrended, detrended),
+  series = rep(c("observed", "spline", "observed"), each = length(years)),
+  panel = factor(rep(panels[c(1, 1, 2)], each = length(years)), levels = panels)
+)
+
+ggplot(figure_data, aes(x = year, y = value, colour = series)) +
+  geom_line() +
+  facet_wrap(~ panel, ncol = 1, scales = "free_y") +
+  scale_colour_manual(values = c(observed = "#2a78d6", spline = "#eb6834")) +
+  labs(x = NULL, y = NULL, colour = NULL) +
+  theme_bw() +
+  theme(legend.position = "bottom", panel.grid.minor = element_blank())
+```
+
+## 3.2 Comparing the methods
+
+The same analysis is repeated for every method.
+
+```{r}
+# the highest correlation and its window, taken from summary()
+optimum <- function(x) {
+  s <- summary(x)
+  data.frame(r = s$Value[s$Variable == "maximal_calculated_metric"],
+             window = s$Value[s$Variable == "optimal_time_window"])
+}
+
+methods <- c("none", "SLD", "Spline", "Mean", "Ar", "Friedman")
+
+comparison <- do.call(rbind, lapply(methods, function(m) {
+  x <- monthly_response(response = data_MVA,
+                        env_data = LJ_monthly_temperatures,
+                        row_names_subset = TRUE,
+                        remove_insignificant = FALSE,
+                        dc_method = m, dc_difference = TRUE,
+                        cor_na_use = "pairwise.complete.obs")
+  data.frame(dc_method = m, optimum(x))
+}))
+
+knitr::kable(comparison)
+```
+
+Without detrending, the highest correlation belongs to a long window from March to November. `"Mean"` gives the same result, because subtracting the mean of each window does not change correlations. All other methods remove most of the low-frequency variability, which moves the optimum to a short spring window and lowers the correlation. This suggests that much of the correlation of the long window came from the trends that both series share. Figure 2 shows all windows without (a) and with spline detrending (b).
+
+```{r, fig.width = 13, fig.height = 6, fig.cap = "Figure 2: Correlations between MVA and monthly temperatures for all windows, (a) without detrending and (b) after spline detrending. Each panel has its own colour scale."}
+heatmap_a <- plot(no_detrending, type = 2) + labs(title = "a) No detrending")
+heatmap_b <- plot(spline_detrending, type = 2) + labs(title = "b) Spline detrending")
+
+# the two heatmaps side by side
+grid::grid.newpage()
+grid::pushViewport(grid::viewport(layout = grid::grid.layout(1, 2)))
+print(heatmap_a, vp = grid::viewport(layout.pos.row = 1, layout.pos.col = 1))
+print(heatmap_b, vp = grid::viewport(layout.pos.row = 1, layout.pos.col = 2))
+```
+
+## 3.3 Ratios for precipitation
+
+Precipitation sums are non-negative, so the default ratio detrending can be used.
+
+```{r}
+data(LJ_monthly_precipitation)
+
+precipitation_spline <- monthly_response(response = data_MVA,
+                                         env_data = LJ_monthly_precipitation,
+                                         tidy_env_data = TRUE,
+                                         aggregate_function = "sum",
+                                         row_names_subset = TRUE,
+                                         remove_insignificant = FALSE,
+                                         dc_method = "Spline")
+
+optimum(precipitation_spline)
+```
+
+A window whose sum is zero in some year, for example a completely dry window, cannot be detrended by ratios and is returned as `NA`. Ratio detrending of data with negative values stops with an error:
+
+```{r, error = TRUE}
+monthly_response(response = data_MVA, env_data = LJ_monthly_temperatures,
+                 row_names_subset = TRUE, dc_method = "Spline")
+```
+
+## 3.4 Prewhitening daily data
+
+Prewhitening is usually applied to both series: the residual tree-ring chronology and the climate data. Here the residual chronology is calculated with *dplR::detrend.series()*. Like the prewhitened climate windows, it starts with missing values.
+
+```{r}
+data(LJ_daily_temperatures)
+
+mva_residual <- data_MVA
+mva_residual$MVA <- dplR::detrend.series(data_MVA$MVA, method = "Ar",
+                                         make.plot = FALSE)
+
+daily_prewhitened <- daily_response(response = mva_residual,
+                                    env_data = LJ_daily_temperatures,
+                                    row_names_subset = TRUE,
+                                    fixed_width = 60,
+                                    remove_insignificant = FALSE,
+                                    dc_method = "Ar",
+                                    dc_difference = TRUE,
+                                    cor_na_use = "pairwise.complete.obs")
+
+daily_not_prewhitened <- daily_response(response = data_MVA,
+                                        env_data = LJ_daily_temperatures,
+                                        row_names_subset = TRUE,
+                                        fixed_width = 60,
+                                        remove_insignificant = FALSE)
+
+rbind(not_prewhitened = optimum(daily_not_prewhitened),
+      prewhitened = optimum(daily_prewhitened))
+```
+
+After prewhitening, the optimal window shifts by only a few days and the correlation remains high, so the relationship is not a result of autocorrelation in the two series.
+
+## 3.5 Different settings for the control variable
+
+In the seascorr functions, the primary and the control windows are detrended with the same settings by default. `dc_env_data_control` replaces any of these settings for the control windows. Here the temperatures (primary) are detrended by differences and the precipitation sums (control) by ratios. `dc_env_data_control = list(dc_method = "none")` would leave the control windows as they are.
+
+```{r}
+seascorr_detrended <- monthly_response_seascorr(
+  response = data_MVA,
+  env_data_primary = LJ_monthly_temperatures,
+  env_data_control = LJ_monthly_precipitation,
+  tidy_env_data_primary = FALSE,
+  tidy_env_data_control = TRUE,
+  row_names_subset = TRUE,
+  remove_insignificant = FALSE,
+  dc_method = "Spline", dc_difference = TRUE,
+  dc_env_data_control = list(dc_difference = FALSE))
+
+seascorr_detrended$detrending$primary$dc_difference
+seascorr_detrended$detrending$control$dc_difference
+
+optimum(seascorr_detrended)
+```
+
+# 4 Practical notes
+
+* Ols et al. (2023) found that fewer than 20 % of the dendroecological studies published in Dendrochronologia from 2018 to 2021 detrended the climate data, although detrending the climate data increased climate-growth correlations on average in their North American tree-ring network. They recommend detrending climate and tree-ring data in the same way. For a chronology standardised with a 32-year spline, this means `dc_method = "Spline"` and `dc_nyrs = 32` (with `dc_difference = TRUE` for temperature), and for a residual chronology `dc_method = "Ar"`.
+* Missing values are left out when the curve is fitted and put back afterwards. If a whole window is missing in some of the analysed years, a warning names those years.
+* Detrending is applied after the aggregation, so `aggregate_function` works as before.
+
+# References
+
+Ols, C., Klesse, S., Girardin, M.P., Evans, M.E.K., DeRose, R.J., Trouet, V., 2023. Detrending climate data prior to climate–growth analyses in dendroecology: A common best practice? Dendrochronologia 79, 126094. https://doi.org/10.1016/j.dendro.2023.126094

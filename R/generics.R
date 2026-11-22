@@ -457,6 +457,63 @@ summary.dmrs <- function(object, ...) {
       stringsAsFactors = FALSE
     )
 
+    # Seascorr results with pcor_control = TRUE: the strongest partial
+    # correlation with the control variable, and its value in the optimal
+    # window of the primary variable.
+    if (!is.null(result_daily_response$calculations_control)) {
+      output_df <- rbind(output_df, summary_control_rows(result_daily_response))
+    }
+
     return(output_df)
   }
+}
+
+
+#' Summary rows for the control partial correlations of the seascorr functions
+#'
+#' Internal helper of summary.dmrs(). The rows for the control surface are
+#' those that summary.dmrs() gives for the primary surface.
+#'
+#' @keywords internal
+#' @noRd
+
+summary_control_rows <- function(object) {
+
+  control_object <- object
+  control_object[[1]] <- object$calculations_control
+  control_object$boot_lower <- object$boot_lower_control
+  control_object$boot_upper <- object$boot_upper_control
+  control_object$calculations_control <- NULL
+
+  control_summary <- summary.dmrs(control_object)
+
+  pick <- function(variable) {
+    if (!is.data.frame(control_summary)) {
+      return(NA)
+    }
+    control_summary$Value[control_summary$Variable == variable]
+  }
+
+  partitioning <- object$variance_partitioning
+  in_optimal_window <- if (is.data.frame(partitioning)) {
+    round(partitioning$Value[partitioning$Variable == "pcor_control"], 3)
+  } else {
+    NA
+  }
+
+  data.frame(
+    Variable = c("maximal_calculated_metric_control",
+                 "lower_ci_control",
+                 "upper_ci_control",
+                 "optimal_time_window_control",
+                 "optimal_time_window_length_control",
+                 "control_metric_in_optimal_time_window"),
+    Value = c(pick("maximal_calculated_metric"),
+              pick("lower_ci"),
+              pick("upper_ci"),
+              pick("optimal_time_window"),
+              pick("optimal_time_window_length"),
+              in_optimal_window),
+    stringsAsFactors = FALSE
+  )
 }

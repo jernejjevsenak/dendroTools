@@ -61,7 +61,9 @@ those from a response data frame. If not, set row_names_subset = TRUE.
 Alternatively, env_data could be a tidy data with three columns,
 i.e. Year, DOY (Month) and third column representing values of mean temperatures,
 sum of precipitation etc. If tidy data is passed to the function, set the argument
-tidy_env_data to TRUE.}
+tidy_env_data to TRUE. For aggregate_function = 'SPEI', env_data holds the
+monthly climatic water balance (precipitation minus potential
+evapotranspiration), for example from water_balance().}
 
 \item{method}{a character string specifying which method to use. Current
 possibilities are "cor" (default), "lm" and "brnn".}
@@ -185,10 +187,25 @@ reference_window argument is set to 'end', then each calculation is related
 to the ending day of window calculation.}
 
 \item{aggregate_function}{character string specifying how the monthly data should be
-aggregated. The default is 'mean', the other options are 'median', 'sum'
-and 'quantile'.
+aggregated. The default is 'mean', the other options are 'median', 'sum',
+'quantile' and 'SPEI'.
 Missing months are skipped, so 'sum' adds only the months that are
-available; a window without any value is NA.}
+available; a window without any value is NA.
+'SPEI' calculates the Standardized Precipitation-Evapotranspiration Index
+(Vicente-Serrano et al. 2010) of each window. env_data must then hold the
+monthly climatic water balance, i.e. precipitation minus potential
+evapotranspiration (P - PET), which can be calculated with
+water_balance(). The water balance is summed over the window and
+standardised with a log-logistic distribution fitted by unbiased
+probability weighted moments, the default of SPEI::spei(). Each window is
+standardised against all years of env_data, before they are matched with
+the response. A window of K months ending in month m therefore has the
+value of SPEI::spei(scale = K) in month m, the SPEI of a year does not
+depend on the analysed years, and a window in a previous year is
+standardised as the same window in the current year. Unlike the other
+options, 'SPEI' does not skip missing months: a window that includes a
+missing month is NA in that year. SPEI values can only be detrended by
+differences (dc_difference = TRUE).}
 
 \item{quantile_prob}{numeric value between 0 and 1 specifying the quantile
 probability used when aggregate_function = 'quantile'. For example,
@@ -226,14 +243,16 @@ columns: "Year", "Month", "Precipitation/Temperature/etc."}
 \item{boot}{logical, if TRUE, bootstrap confidence intervals are calculated
 for the correlation coefficients, R squared or adjusted R squared metrics and
 returned as $boot_lower and $boot_upper. The metrics themselves are those of
-the observed data, as with boot = FALSE. Versions before 1.2.18 reported the
+the observed data, as with boot = FALSE. Versions before 2.0.0 reported the
 mean of the bootstrap replicates instead.}
 
 \item{boot_n}{The number of bootstrap replicates}
 
-\item{boot_ci_type}{A character string representing the type of bootstrap intervals
-required. The value should be any subset of the values c("norm","basic", "stud",
-"perc", "bca").}
+\item{boot_ci_type}{A character string representing the type of bootstrap
+intervals: "norm" (default), "basic", "perc" or "bca". "bca" needs boot_n of
+at least the number of analysed years. With fewer replicates
+boot::boot.ci() cannot estimate bca intervals, so they are all NA, and a
+warning is given. Studentized intervals ("stud") are not available.}
 
 \item{boot_conf_int}{A scalar or vector containing the confidence level(s) of
 the required interval(s)}
@@ -473,5 +492,35 @@ example_detrended_ratio <- monthly_response(response = data_MVA,
   aggregate_function = "sum", remove_insignificant = FALSE,
   dc_method = "Friedman")
 
+# Example with SPEI for the black pine site Sezana. The residual
+# chronology is built as in Izmir et al. (2024).
+SEZ_chron <- dplR::chron(dplR::detrend(SEZ_rwl, method = "Spline",
+                                       nyrs = 32, f = 0.5),
+                         prewhiten = TRUE)
+SEZ_res <- SEZ_chron[!is.na(SEZ_chron$res), "res", drop = FALSE]
+
+monthly_wb <- water_balance(
+  prec = data_transform(SEZ_daily_psum, format = "monthly",
+                        monthly_aggregate_function = "sum"),
+  tmin = data_transform(SEZ_daily_tmin, format = "monthly",
+                        monthly_aggregate_function = "mean"),
+  tmax = data_transform(SEZ_daily_tmax, format = "monthly",
+                        monthly_aggregate_function = "mean"),
+  lat = 45.71)
+
+example_spei <- monthly_response(response = SEZ_res,
+  env_data = monthly_wb, method = "cor", row_names_subset = TRUE,
+  previous_year = TRUE, aggregate_function = "SPEI",
+  remove_insignificant = FALSE)
+
+# summary(example_spei)
+# plot(example_spei, type = 2)
+
 }
+}
+\references{
+Vicente-Serrano, S.M., Begueria, S., Lopez-Moreno, J.I. (2010) A
+multiscalar drought index sensitive to global warming: the Standardized
+Precipitation Evapotranspiration Index. Journal of Climate, 23, 1696-1718.
+\doi{10.1175/2009JCLI2909.1}
 }

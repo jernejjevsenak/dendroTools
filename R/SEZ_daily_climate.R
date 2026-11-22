@@ -1,0 +1,57 @@
+#' Daily climate data for the black pine site Sezana (SEZ), 1950 - 2020
+#'
+#' Daily minimum, mean and maximum temperatures and daily precipitation sums
+#' for the black pine site Sezana (SEZ) in Slovenia, whose raw ring widths are
+#' in \code{\link{SEZ_rwl}}. The data are from the gridded E-OBS dataset,
+#' version 25.0e, on a 0.1 degree regular grid, extracted for the grid point
+#' nearest to the site (lon = 13.85, lat = 45.75), as in Izmir et al. (2024).
+#' Temperatures are given to 0.01 degrees Celsius and precipitation to 0.1
+#' mm, the precision of E-OBS.
+#'
+#' The data have one row per day. \code{\link{data_transform}} converts them
+#' into the daily (366 columns) or monthly (12 columns) layout of
+#' \code{\link{daily_response}} and \code{\link{monthly_response}}, and
+#' \code{\link{water_balance}} calculates the climatic water balance needed
+#' for aggregate_function = "SPEI".
+#'
+#' @format Four data frames with 25933 rows, one for each day from 1 January
+#' 1950 to 31 December 2020, and 2 variables:
+#' \describe{
+#'   \item{date}{the date (class Date)}
+#'   \item{t_min, t_avg, t_max, p_sum}{the minimum (SEZ_daily_tmin), mean
+#'   (SEZ_daily_tavg) and maximum (SEZ_daily_tmax) temperature in degrees
+#'   Celsius, and the precipitation sum (SEZ_daily_psum) in mm}
+#' }
+#' @source \url{https://www.ecad.eu/download/ensembles/download.php}
+#'
+#' @details The E-OBS data are subject to the ECA&D data policy: they may only
+#' be used for non-commercial research and non-commercial education.
+#'
+#' We acknowledge the E-OBS dataset from the EU-FP6 project UERRA
+#' (https://www.uerra.eu) and the Copernicus Climate Change Service, and the
+#' data providers in the ECA&D project (https://www.ecad.eu). Cornes, R., G.
+#' van der Schrier, E.J.M. van den Besselaar, and P.D. Jones. 2018: An
+#' Ensemble Version of the E-OBS Temperature and Precipitation Datasets, J.
+#' Geophys. Res. Atmos., 123. doi:10.1029/2017JD028200
+#'
+#' @references Izmir, S.C., Jevsenak, J., Krajnc, L., Hafner, P., Kose, N.
+#' (2024) Distinct spatial patterns in climate-growth relationships,
+#' vegetation and resilience indices of Black pine (Pinus nigra J.F. Arnold)
+#' from its northern and southern distribution range. Dendrochronologia, 88,
+#' 126236. \doi{10.1016/j.dendro.2024.126236}
+#'
+#' @examples
+#' # daily layout: years as rows, days of year as columns
+#' daily_tavg <- data_transform(SEZ_daily_tavg, format = "daily")
+#' daily_tavg[1:5, 1:5]
+#'
+#' # monthly precipitation sums
+#' monthly_psum <- data_transform(SEZ_daily_psum, format = "monthly",
+#'                                monthly_aggregate_function = "sum")
+#' round(colMeans(monthly_psum), 1)
+#'
+#' @name SEZ_daily_climate
+#' @aliases SEZ_daily_tmin SEZ_daily_tavg SEZ_daily_tmax SEZ_daily_psum
+#' @docType data
+#' @keywords datasets
+NULL

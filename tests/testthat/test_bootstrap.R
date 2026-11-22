@@ -96,3 +96,39 @@ test_that("temporal stability of monthly_response() uses asymptotic p values", {
   expect_equal(as.numeric(r$temporal_stability[2, 3]), round(asymptotic, 4))
   expect_false(isTRUE(all.equal(round(exact, 4), round(asymptotic, 4))))
 })
+
+test_that("bca with fewer replicates than years gives a warning", {
+
+  collect_warnings <- function(expr) {
+    messages <- character(0)
+    withCallingHandlers(expr, warning = function(w) {
+      messages <<- c(messages, conditionMessage(w))
+      invokeRestart("muffleWarning")
+    })
+    messages
+  }
+
+  # data_MVA and the Ljubljana temperatures share 73 years
+  w <- collect_warnings(
+    monthly_response(data_MVA, LJ_monthly_temperatures,
+                     row_names_subset = TRUE, remove_insignificant = FALSE,
+                     fixed_width = 3, boot = TRUE, boot_n = 20,
+                     boot_ci_type = "bca"))
+  expect_true(any(grepl("Set boot_n to at least 73", w)))
+
+  w <- collect_warnings(
+    monthly_response_seascorr(data_MVA, LJ_monthly_temperatures, prec_wide,
+                              row_names_subset = TRUE,
+                              remove_insignificant = FALSE, fixed_width = 3,
+                              boot = TRUE, boot_n = 20,
+                              boot_ci_type = "bca"))
+  expect_true(any(grepl("Set boot_n to at least", w)))
+
+  # enough replicates
+  w <- collect_warnings(
+    monthly_response(data_MVA, LJ_monthly_temperatures,
+                     row_names_subset = TRUE, remove_insignificant = FALSE,
+                     fixed_width = 3, boot = TRUE, boot_n = 80,
+                     boot_ci_type = "bca"))
+  expect_false(any(grepl("boot_ci_type = 'bca' needs", w)))
+})

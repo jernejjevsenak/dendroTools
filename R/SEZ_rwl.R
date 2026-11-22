@@ -1,0 +1,39 @@
+#' Raw tree-ring widths of black pine from Sezana (SEZ), Slovenia, 1882 - 2021
+#'
+#' Raw tree-ring widths of 41 cores from 21 black pine trees (\emph{Pinus
+#' nigra} subsp. \emph{nigra}) from the site Sezana (SEZ) on the Karst plateau
+#' in western Slovenia (45.71 N, 13.88 E, 532 m a.s.l.). The site is
+#' sub-Mediterranean, on dolomite bedrock, and tree growth there is limited
+#' by precipitation (Izmir et al. 2024). The trees were cored at breast height
+#' after the 2021 growing season, with two cores per tree. One core of tree
+#' 14 could not be cross-dated and is not included. Daily climate data for
+#' the site are in \code{\link{SEZ_daily_climate}}.
+#'
+#' Izmir et al. (2024) detrended every series with a 32-year spline with a
+#' frequency response of 0.5 and averaged the prewhitened indices with a
+#' biweight robust mean, which gives the residual chronology (see the
+#' examples).
+#'
+#' @format An object of class "rwl" (a data frame, see dplR::read.rwl()) with
+#' 140 rows, the years 1882 - 2021 as row names, and 41 columns, one per
+#' core. Ring widths are in mm.
+#'
+#' @source The measurements of Izmir et al. (2024).
+#'
+#' @references Izmir, S.C., Jevsenak, J., Krajnc, L., Hafner, P., Kose, N.
+#' (2024) Distinct spatial patterns in climate-growth relationships,
+#' vegetation and resilience indices of Black pine (Pinus nigra J.F. Arnold)
+#' from its northern and southern distribution range. Dendrochronologia, 88,
+#' 126236. \doi{10.1016/j.dendro.2024.126236}
+#'
+#' @examples
+#' dim(SEZ_rwl)
+#'
+#' # the residual chronology of Izmir et al. (2024)
+#' SEZ_rwi <- dplR::detrend(SEZ_rwl, method = "Spline", nyrs = 32, f = 0.5)
+#' SEZ_chron <- dplR::chron(SEZ_rwi, prewhiten = TRUE)
+#' head(SEZ_chron[!is.na(SEZ_chron$res), ])
+#'
+#' @docType data
+#' @keywords datasets
+"SEZ_rwl"

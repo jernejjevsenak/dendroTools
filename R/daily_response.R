@@ -21,7 +21,9 @@
 #' Alternatively, env_data could be a tidy data with three columns,
 #' i.e. Year, DOY and third column representing values of mean temperatures,
 #' sum of precipitation etc. If tidy data is passed to the function, set the argument
-#' tidy_env_data to TRUE.
+#' tidy_env_data to TRUE. For aggregate_function = 'SPEI', env_data holds the
+#' daily climatic water balance (precipitation minus potential
+#' evapotranspiration), for example from water_balance().
 #' @param method a character string specifying which method to use. Current
 #' possibilities are "cor" (default), "lm" and "brnn".
 #' @param cor_method a character string indicating which correlation
@@ -122,9 +124,23 @@
 #' kept.
 #' @param aggregate_function character string specifying how the daily data
 #' should be aggregated. The default is 'mean', the other options are 'median',
-#' 'sum', 'min', 'max' and 'quantile'.
+#' 'sum', 'min', 'max', 'quantile' and 'SPEI'.
 #' Missing days are skipped, so 'sum' adds only the days that are available;
 #' a window without any value is NA.
+#' 'SPEI' calculates the Standardized Precipitation-Evapotranspiration Index
+#' (Vicente-Serrano et al. 2010) of each window. env_data must then hold the
+#' daily climatic water balance, i.e. precipitation minus potential
+#' evapotranspiration (P - PET), which can be calculated with
+#' water_balance(). The water balance is summed over the window and
+#' standardised with a log-logistic distribution fitted by unbiased
+#' probability weighted moments, the default of SPEI::spei(). Each window is
+#' standardised against all years of env_data, before they are matched with
+#' the response, so the SPEI of a year does not depend on the analysed years,
+#' and a window in a previous year is standardised as the same window in the
+#' current year. Unlike the other options, 'SPEI' does not skip missing days:
+#' a window that includes a missing day is NA in that year. DOY 366 of
+#' non-leap years is skipped. SPEI values can only be detrended by
+#' differences (dc_difference = TRUE).
 #' @param quantile_prob numeric value between 0 and 1 specifying the quantile
 #' probability used when aggregate_function = 'quantile'. For example,
 #' quantile_prob = 0.95 calculates the 95th percentile. The default is 0.5.
@@ -167,12 +183,14 @@
 #' @param boot logical, if TRUE, bootstrap confidence intervals are calculated
 #' for the correlation coefficients, R squared or adjusted R squared metrics and
 #' returned as $boot_lower and $boot_upper. The metrics themselves are those of
-#' the observed data, as with boot = FALSE. Versions before 1.2.18 reported the
+#' the observed data, as with boot = FALSE. Versions before 2.0.0 reported the
 #' mean of the bootstrap replicates instead.
 #' @param boot_n The number of bootstrap replicates
-#' @param boot_ci_type A character string representing the type of bootstrap intervals
-#' required. The value should be any subset of the values c("norm","basic", "stud",
-#' "perc", "bca").
+#' @param boot_ci_type A character string representing the type of bootstrap
+#' intervals: "norm" (default), "basic", "perc" or "bca". "bca" needs boot_n of
+#' at least the number of analysed years. With fewer replicates
+#' boot::boot.ci() cannot estimate bca intervals, so they are all NA, and a
+#' warning is given. Studentized intervals ("stud") are not available.
 #' @param boot_conf_int A scalar or vector containing the confidence level(s) of
 #' the required interval(s)
 #' @param day_interval a vector of two values defining the interval of days used
@@ -281,6 +299,13 @@
 #'  \item $detrending - information about the climate detrending applied,
 #'  i.e. the method and the settings that were used, or "none"
 #'}
+#'
+#' @references
+#' Vicente-Serrano, S.M., Begueria, S., Lopez-Moreno, J.I. (2010) A
+#' multiscalar drought index sensitive to global warming: the Standardized
+#' Precipitation Evapotranspiration Index. Journal of Climate, 23, 1696-1718.
+#' \doi{10.1175/2009JCLI2909.1}
+#'
 #' @export
 #'
 #' @examples
@@ -464,6 +489,28 @@
 #' plot_heatmap(example_basic)
 #' plot_extreme(example_basic)
 #' summary(example_basic)
+#'
+#' # Example with SPEI for the black pine site Sezana. The residual
+#' # chronology is built as in Izmir et al. (2024).
+#' SEZ_chron <- dplR::chron(dplR::detrend(SEZ_rwl, method = "Spline",
+#'                                        nyrs = 32, f = 0.5),
+#'                          prewhiten = TRUE)
+#' SEZ_res <- SEZ_chron[!is.na(SEZ_chron$res), "res", drop = FALSE]
+#'
+#' daily_wb <- water_balance(
+#'   prec = data_transform(SEZ_daily_psum, format = "daily"),
+#'   tmin = data_transform(SEZ_daily_tmin, format = "daily"),
+#'   tmax = data_transform(SEZ_daily_tmax, format = "daily"),
+#'   tmean = data_transform(SEZ_daily_tavg, format = "daily"),
+#'   lat = 45.71)
+#'
+#' example_spei <- daily_response(response = SEZ_res,
+#'                                env_data = daily_wb,
+#'                                row_names_subset = TRUE,
+#'                                aggregate_function = "SPEI",
+#'                                lower_limit = 21, upper_limit = 120)
+#' summary(example_spei)
+#' plot(example_spei, type = 2)
 #' }
 
 daily_response <- function(response, env_data, method = "cor",
@@ -792,7 +839,8 @@ daily_response <- function(response, env_data, method = "cor",
   )
 
   # Check selected aggregation function
-  allowed_aggregate_functions <- c("mean", "median", "sum", "min", "max", "quantile")
+  allowed_aggregate_functions <- c("mean", "median", "sum", "min", "max", "quantile",
+                                   "SPEI")
 
   if (!(aggregate_function %in% allowed_aggregate_functions)) {
     stop(paste0(
@@ -811,10 +859,17 @@ daily_response <- function(response, env_data, method = "cor",
     stop("quantile_prob must be a single numeric value between 0 and 1.")
   }
 
-  # Internal helper for aggregating daily data across rows
-  aggregate_daily_window <- function(x) {
+  # Internal helper for aggregating daily data across rows. data is the
+  # climate data frame and cols are the columns of the window.
+  aggregate_daily_window <- function(data, cols) {
 
-    x <- data.frame(x)
+    # SPEI is standardised against all years of env_data, which are kept
+    # in spei_ref, so the values do not depend on the analysed years.
+    if (aggregate_function == "SPEI") {
+      return(spei_window_values(spei_ref, cols, years = row.names(data)))
+    }
+
+    x <- data.frame(data[, cols, drop = FALSE])
 
     if (aggregate_function == "mean") {
       return(rowMeans(x, na.rm = TRUE))
@@ -1142,9 +1197,21 @@ daily_response <- function(response, env_data, method = "cor",
                    "row_names_subset is set to TRUE."))
   }
 
+  # SPEI is standardised against all years of env_data, before they are
+  # lagged and matched with the response (see spei_reference()).
+  env_data_current_years <- env_data
+
   # Build current-year or multi-year environmental matrix.
   # For number_previous_years = 0 this returns env_data unchanged.
   env_data <- build_lagged_env_data(env_data, number_previous_years)
+
+  spei_ref <- NULL
+  if (aggregate_function == "SPEI") {
+    spei_ref <- spei_reference(env_data_current_years,
+                               n_previous_years = number_previous_years,
+                               daily = TRUE)
+  }
+  rm(env_data_current_years)
 
   # This object is used later for optimized_return_all. It should represent the
   # full lagged climate matrix before subset_years is applied.
@@ -1186,6 +1253,8 @@ daily_response <- function(response, env_data, method = "cor",
   # remaining options reproduce dplR::detrend(). The arguments are checked by
   # dc_check_settings(), which is shared with monthly_response() and the
   # seascorr functions.
+  spei_check_detrending(aggregate_function, dc_method, dc_difference)
+
   dc_settings <- dc_check_settings(dc_method = dc_method,
                                    dc_nyrs = dc_nyrs,
                                    dc_f = dc_f,
@@ -1346,6 +1415,32 @@ daily_response <- function(response, env_data, method = "cor",
 
   years_with_window_gaps <- window_gap_years(env_data, min_window_width)
 
+  # SPEI does not skip missing values: a window that includes a missing day
+  # has no SPEI in that year, so all years with missing days that enter the
+  # analysis are reported instead. The two warnings below, written for
+  # aggregations that skip missing values, are then not needed.
+  if (aggregate_function == "SPEI") {
+
+    years_with_window_gaps <- character(0)
+    spei_gaps <- spei_gap_years(env_data, days_per_year)
+
+    if (length(spei_gaps) > 0) {
+
+      spei_switch <- method == "cor" &&
+        !(cor_na_use %in% c("complete.obs", "na.or.complete",
+                            "pairwise.complete.obs"))
+
+      warning(spei_gap_message("env_data", spei_gaps, unit = "days",
+                               switched = spei_switch,
+                               old_na_use = cor_na_use,
+                               detrending = !is.null(dc_method)))
+
+      if (spei_switch) {
+        cor_na_use <- "pairwise.complete.obs"
+      }
+    }
+  }
+
   # Where a window is empty for some years, detrend_climate() fits on the
   # non-missing years and reinserts the gaps afterwards.
   if (!is.null(dc_method) && length(years_with_window_gaps) > 0) {
@@ -1403,6 +1498,9 @@ daily_response <- function(response, env_data, method = "cor",
   # products rather than from a resampling loop. Used only for method = "cor"
   # with interval types computable directly from the replicates; "bca" needs
   # jackknife estimates and keeps the boot() route.
+  # bca intervals need at least as many replicates as resampled years
+  bca_boot_n_warning(boot, boot_ci_type, boot_n, n_years = nrow(response))
+
   boot_fast_obj <- NULL
   if (boot == TRUE && method == "cor" &&
       boot_ci_type %in% c("norm", "perc", "basic")) {
@@ -1457,7 +1555,7 @@ daily_response <- function(response, env_data, method = "cor",
       b = b + 1
 
       x <- aggregate_daily_window(
-        env_data[1:nrow(env_data), (1 + j):(j + fixed_width), drop = FALSE]
+        env_data, (1 + j):(j + fixed_width)
       )
 
       # Optional detrending of the aggregated climate series.
@@ -1628,7 +1726,7 @@ daily_response <- function(response, env_data, method = "cor",
       b = b + 1
 
       x <- aggregate_daily_window(
-        env_data[1:nrow(env_data), (1 + j):(j + fixed_width), drop = FALSE]
+        env_data, (1 + j):(j + fixed_width)
       )
 
       # Optional detrending of the aggregated climate series.
@@ -1831,7 +1929,7 @@ daily_response <- function(response, env_data, method = "cor",
       b = b + 1
 
       x <- aggregate_daily_window(
-        env_data[1:nrow(env_data), (1 + j):(j + fixed_width), drop = FALSE]
+        env_data, (1 + j):(j + fixed_width)
       )
 
       # Optional detrending of the aggregated climate series.
@@ -2095,7 +2193,7 @@ daily_response <- function(response, env_data, method = "cor",
       for (j in seq((0 + offset_start -1), (ncol(env_data) - max((K + offset_end), offset_end)), by = skip_window_position)) {
 
         x <- aggregate_daily_window(
-          env_data[1:nrow(env_data), (1 + j):(j + K), drop = FALSE]
+          env_data, (1 + j):(j + K)
         )
 
         # Optional detrending of the aggregated climate series.
@@ -2265,7 +2363,7 @@ daily_response <- function(response, env_data, method = "cor",
 
 
         x <- aggregate_daily_window(
-          env_data[1:nrow(env_data), (1 + j):(j + K), drop = FALSE]
+          env_data, (1 + j):(j + K)
         )
 
         # Optional detrending of the aggregated climate series.
@@ -2470,7 +2568,7 @@ daily_response <- function(response, env_data, method = "cor",
       for (j in seq((0 + offset_start -1), (ncol(env_data) - max((K + offset_end), offset_end)), by = skip_window_position)) {
 
         x <- aggregate_daily_window(
-          env_data[1:nrow(env_data), (1 + j):(j + K), drop = FALSE]
+          env_data, (1 + j):(j + K)
         )
 
         # Optional detrending of the aggregated climate series.
@@ -3256,9 +3354,9 @@ daily_response <- function(response, env_data, method = "cor",
     if (reference_window == 'start'){
 
       dataf <- data.frame(aggregate_daily_window(
-        env_data[, as.numeric(plot_column):
-                   (as.numeric(plot_column) + as.numeric(row_index) - 1),
-                 drop = FALSE]
+        env_data,
+        as.numeric(plot_column):
+          (as.numeric(plot_column) + as.numeric(row_index) - 1)
       ))
 
       # if detrending was applied, should also be applied here
@@ -3272,9 +3370,9 @@ daily_response <- function(response, env_data, method = "cor",
       # for the analysed period.
 
       dataf_original <- data.frame(aggregate_daily_window(
-        env_data_original[, as.numeric(plot_column):
-                            (as.numeric(plot_column) + as.numeric(row_index) - 1),
-                          drop = FALSE]
+        env_data_original,
+        as.numeric(plot_column):
+          (as.numeric(plot_column) + as.numeric(row_index) - 1)
       ))
 
       dataf_full_original <- dataf_original
@@ -3340,9 +3438,9 @@ daily_response <- function(response, env_data, method = "cor",
     if (reference_window == 'end'){
 
       dataf <- data.frame(aggregate_daily_window(
-        env_data[, (as.numeric(plot_column) - as.numeric(row_index) + 1):
-                   as.numeric(plot_column),
-                 drop = FALSE]
+        env_data,
+        (as.numeric(plot_column) - as.numeric(row_index) + 1):
+          as.numeric(plot_column)
       ))
 
       # if detrending was applied, should also be applied here
@@ -3356,9 +3454,9 @@ daily_response <- function(response, env_data, method = "cor",
       # for the analysed period.
 
       dataf_original <- data.frame(aggregate_daily_window(
-        env_data_original[, (as.numeric(plot_column) - as.numeric(row_index) + 1):
-                            as.numeric(plot_column),
-                          drop = FALSE]
+        env_data_original,
+        (as.numeric(plot_column) - as.numeric(row_index) + 1):
+          as.numeric(plot_column)
       ))
 
       dataf_full_original <- dataf_original
@@ -3432,9 +3530,9 @@ daily_response <- function(response, env_data, method = "cor",
       }
 
       dataf <- data.frame(aggregate_daily_window(
-        env_data[, (round2((as.numeric(plot_column) - as.numeric(row_index) / 2)) - adjustment_1):
-                   (round2((as.numeric(plot_column) + as.numeric(row_index) / 2)) - adjustment_2),
-                 drop = FALSE]
+        env_data,
+        (round2((as.numeric(plot_column) - as.numeric(row_index) / 2)) - adjustment_1):
+          (round2((as.numeric(plot_column) + as.numeric(row_index) / 2)) - adjustment_2)
       ))
 
       # if detrending was applied, should also be applied here
@@ -3448,9 +3546,9 @@ daily_response <- function(response, env_data, method = "cor",
       # for the analysed period.
 
       dataf_original <- data.frame(aggregate_daily_window(
-        env_data_original[, (round2((as.numeric(plot_column) - as.numeric(row_index) / 2)) - adjustment_1):
-                            (round2((as.numeric(plot_column) + as.numeric(row_index) / 2)) - adjustment_2),
-                          drop = FALSE]
+        env_data_original,
+        (round2((as.numeric(plot_column) - as.numeric(row_index) / 2)) - adjustment_1):
+          (round2((as.numeric(plot_column) + as.numeric(row_index) / 2)) - adjustment_2)
       ))
 
       dataf_full_original <- dataf_original
