@@ -14,12 +14,14 @@ Jernej
 ## Test environments
 * local Windows install, R 4.4.1
 
-* win-check oldrelease (LINK)
-* win-check release (LINK)
-* win-check devel (LINK)
+* win-check oldrelease (https://win-builder.r-project.org/jG8gmJ8v7Lmq/00check.log)
+* win-check release (https://win-builder.r-project.org/Ysg9Bz9z9pCR/00check.log)
+* win-check devel (https://win-builder.r-project.org/hNKBVJ23fc23/00check.log)
 
 ## R CMD check results
-There were 0 ERRORs, 0 WARNINGs and 0 NOTEs
+There were 0 ERRORs, 0 WARNINGs and 1 NOTE.
+
+The NOTE lists possibly misspelled words in DESCRIPTION: Evapotranspiration, Jevsenak, Levanic, Meko, SPEI, al and et. They are spelled correctly: Jevsenak, Levanic and Meko are author names, "et al." is part of the references, and Evapotranspiration and SPEI come from the name of the Standardized Precipitation-Evapotranspiration Index (SPEI).
 
 ## Downstream dependencies
 There are currently no downstream dependencies for this package.
